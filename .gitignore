@@ -4,3 +4,8 @@ wandb/
 visuals/
 runs/
 outputs/
+
+*.jpg
+*.png
+test.py
+todo.md
