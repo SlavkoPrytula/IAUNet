@@ -7,15 +7,19 @@
 # from .iaunet.iaunet import IAUNet
 # from .iaunet.iaunet_occluders import IAUNet
 # from .iaunet.iaunet_optimized import IAUNet
-from .iaunet.iaunet_optimized_v2 import IAUNet
-from .iaunet.iaunet_optimized_v3 import IAUNet
+# from .iaunet.iaunet_optimized_v2 import IAUNet
+# from .iaunet.iaunet_optimized_v3 import IAUNet
 # from .occluders.iaunet_optimized_occulder_v3 import IAUNet
 
 # from .custom.resnet.resnet_iaunet import IAUNet
-from .custom.resnet.resnet_iaunet_multitask import IAUNet
+# from .custom.resnet.resnet_iaunet_multitask import IAUNet
 # from .custom.resnet.resnet_iaunet_multitask_fpn import IAUNet
-from .custom.resnet.resnet_iaunet_multitask_ml import IAUNet
-from .custom.resnet.resnet_iaunet_occluders import IAUNet
+# from .custom.resnet.resnet_iaunet_multitask_ml import IAUNet
+# from .custom.resnet.resnet_iaunet_occluders import IAUNet
+
+from ..encoders.resnet import ResNet
+
+from .iaunet.iaunet import IAUNet
 
 
 # __all__ = ["SparseSEUnet", "IAUNet", "IAUNetDeepSupervision", "IAUNetLarge", "SparseSEUnetResidual"]

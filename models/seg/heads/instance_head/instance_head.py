@@ -1,25 +1,22 @@
 import torch 
-from torch import digamma, nn
+from torch import nn
 from torch.nn import init
 import numpy as np
 import torch.nn.functional as F
-
-# import math
 from fvcore.nn.weight_init import c2_msra_fill, c2_xavier_fill
 
 import sys
 sys.path.append('.')
 
-# from models.seg.heads.common import _make_stack_3x3_convs, MLP
 from .iam import (IAM_ASPP, IAM)
-from ..common import _make_stack_3x3_convs, MLP
+from ..common import _make_stack_3x3_convs
 from ...nn.blocks import DoubleConv_v2
 from configs import cfg
 from utils.registry import HEADS
     
     
 
-class PriorInstanceBranch(nn.Module):
+class InstanceBranch(nn.Module):
     def __init__(self, in_channels, out_channels=256, num_convs=4):
         super().__init__()
         
@@ -37,9 +34,10 @@ class PriorInstanceBranch(nn.Module):
 
 
 
-# InstanceHead_v1.1
-@HEADS.register(name="InstanceBranch_v1.1")
-class InstanceBranch(nn.Module):
+# InstanceHead-v1.1
+# base version, single activation mep object
+@HEADS.register(name="InstanceHead-v1.1")
+class InstanceHead(nn.Module):
     def __init__(self, 
                  in_channels: int = 256, 
                  num_convs: int = 4, 
@@ -59,7 +57,7 @@ class InstanceBranch(nn.Module):
         self.scale_factor = 1
         
         # iam prediction, a simple conv
-        self.iam_conv = IAM(self.dim, self.num_masks * self.num_groups, self.num_groups)
+        self.iam_conv = IAM(self.dim, self.num_masks * self.num_groups, groups=self.num_groups)
         
         expand_dim = self.dim * self.num_groups
         self.fc = nn.Linear(expand_dim, expand_dim)
@@ -132,8 +130,8 @@ class InstanceBranch(nn.Module):
     
 
 
-@HEADS.register(name="InstanceBranch-v1.2-occluders")
-class InstanceBranch(nn.Module):
+@HEADS.register(name="InstanceHead-v1.2-occluders")
+class InstanceHead(nn.Module):
     def __init__(self, 
                  in_channels: int = 256, 
                  num_convs: int = 4, 
@@ -243,8 +241,8 @@ class InstanceBranch(nn.Module):
 
 # InstanceHead_v3-multiheaded
 # introduces multiple activations per object for better features
-@HEADS.register(name="InstanceBranch-v3-multiheaded")
-class InstanceBranch(nn.Module):
+@HEADS.register(name="InstanceHead-v3-multiheaded")
+class InstanceHead(nn.Module):
     def __init__(self, 
                  in_channels: int = 256, 
                  num_convs: int = 4, 

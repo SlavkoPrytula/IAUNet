@@ -44,7 +44,7 @@ def get_model(cfg: cfg):
     if cfg.model.load_from_files:
         model = get_model_from_path(cfg)
     else:
-        model = MODELS.get(cfg.model.arch)(cfg=cfg)
+        model = MODELS.get(cfg.model.type)(cfg=cfg)
     
     return model
 
@@ -321,7 +321,7 @@ def get_model_from_path(cfg: cfg):
 
 
 
-def save_model_files(arch, save_dir):    
+def save_model_files(model_cfg, save_dir):    
     # save config files
     config_dst = save_dir / "config_files"
     _copy_folder(
@@ -348,7 +348,14 @@ def save_model_files(arch, save_dir):
             base_src_dir=MODEL_FILES
             )
     
-    model_file = MODELS.get_path(arch)
+    model_file = MODELS.get_path(model_cfg.type)
+    _copy_folder(
+        src=model_file,
+        dst=model_dst,
+        base_src_dir=MODEL_FILES
+        )
+    
+    model_file = MODELS.get_path(model_cfg.backbone.type)
     _copy_folder(
         src=model_file,
         dst=model_dst,

@@ -38,14 +38,10 @@ class Valid:
         
 
 # resnet50 + DoubleConv_v2 + num_convs=2
-# num_heads=1, InstanceHead-v1.2-occluder + IAM
+# num_heads=1, InstanceHead-v1.1 + IAM
 class Model:
-    # arch: str         = 'resnet_iaunet'
-    # arch: str         = 'resnet_iaunet_multitask'
-    arch: str         = 'resnet_iaunet_occluders'
-    # arch: str         = 'iaunet_optim_v2'
-    # arch: str         = 'iaunet_optim_v3'
-    # arch: str         = 'iaunet_optim_occluder_v3'
+    type: str         = 'iaunet'
+    # arch: str         = 'resnet_iaunet_occluders'
     
     # model structure.
     in_channels: int  = 3
@@ -58,16 +54,24 @@ class Model:
     coord_conv: bool  = True
     multi_level: bool = True
 
-
     # mask head.
     mask_dim: int     = 256
     # inst_dim: int     = 256
 
+    # backbone.
+    backbone=dict(
+        type='ResNet',
+        depth=50,
+        num_stages=4,
+        out_indices=(0, 1, 2, 3, 4),
+        pretrained=True
+    )
+
     # instance head.
     instance_head=dict(
-        # type="InstanceBranch_v1.1",
-        # type="InstanceBranch_v3",
-        type="InstanceBranch-v1.2-occluders",
+        type="InstanceHead-v1.1",
+        # type="InstanceHead-v3-multiheaded",
+        # type="InstanceHead-v1.2-occluders",
         in_channels=256,
         num_convs=2,
         num_classes=num_classes,
@@ -86,9 +90,9 @@ class Model:
     criterion=dict(
         type='SparseCriterion',
         # losses=["masks"], 
-        # losses=["labels", "masks"], 
+        losses=["labels", "masks"], 
         # losses=["labels", "masks", "iou"], 
-        losses=["labels", "masks", "overlaps"], 
+        # losses=["labels", "masks", "overlaps"], 
         # losses=["labels", "masks", "borders"], 
         # losses=["labels", "masks", "bboxes"], 
         weights=dict(
@@ -112,16 +116,11 @@ class Model:
 
     # evaluator.
     evaluator=dict(
-        # type="DataloaderEvaluator",
-        # type="DataloaderEvaluatorNMS", # nms
-        # type="MemoryEfficientDataloaderEvaluator",
-        # type="ExperimentalEvaluator",
         type="MMDetDataloaderEvaluator",
         mask_thr=0.5,
         score_thr=0.1,
         nms_thr=0.5,
         metric='segm', 
-        # metric=['bbox', 'segm'], 
         classwise=True,
         outfile_prefix="results/coco" # prefix to run dir
     )
@@ -171,8 +170,8 @@ class Dataset:
 
 class Run:
     runs_dir: str           = 'runs'
-    experiment_name: str    = f'{"/".join(f"[{i}]" for i in Model.arch.split("-"))}'
-    run_name: str           = f'[{Dataset.name}]/[{Model.instance_head.activation}_iam]/[kernel_dim={Model.instance_head.kernel_dim}]-[multi_level={Model.multi_level}]-[coord_conv={Model.coord_conv}]-[losses={Model.criterion.losses}]'
+    experiment_name: str    = f'{"/".join(f"[{i}]" for i in Model.type.split("-"))}'
+    run_name: str           = f'[{Model.backbone.type}]/[{Dataset.name}]/[{Model.instance_head.activation}_iam]/[kernel_dim={Model.instance_head.kernel_dim}]-[multi_level={Model.multi_level}]-[coord_conv={Model.coord_conv}]-[losses={Model.criterion.losses}]'
     group_name: str           = f'[base]'
     # group_name: str           = f'[experimental]'
     # group_name: str           = f'[resnet_encoder]'

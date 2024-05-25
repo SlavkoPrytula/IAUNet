@@ -85,12 +85,12 @@ cfg.csv = cfg.save_dir / 'results.csv'
 # set_logging(name=LOGGING_NAME, log_file=cfg.log, verbose=True)  # run before defining LOGGER
 
 # wandb.
-wandb.init(
-    project=cfg.wandb.project, 
-    group=cfg.wandb.group,
-    name=cfg.wandb.name,
-    dir=cfg.save_dir
-    )
+# wandb.init(
+#     project=cfg.wandb.project, 
+#     group=cfg.wandb.group,
+#     name=cfg.wandb.name,
+#     dir=cfg.save_dir
+#     )
 
 
 

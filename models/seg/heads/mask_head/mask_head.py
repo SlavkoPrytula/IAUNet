@@ -3,20 +3,18 @@ from torch import nn
 from torch.nn import init
 import numpy as np
 
-from fvcore.nn.weight_init import c2_msra_fill, c2_xavier_fill
+from fvcore.nn.weight_init import c2_msra_fill
 
 import sys
 sys.path.append('.')
 
 from ..common import _make_stack_3x3_convs
-from ...nn.blocks import DoubleConv_v2
 
 
 class MaskBranch(nn.Module):
     def __init__(self, in_channels, out_channels=256, num_convs=4):
         super().__init__()
         
-        # self.mask_convs = DoubleConv_v2(in_channels, out_channels)
         self.mask_convs = _make_stack_3x3_convs(num_convs, in_channels, out_channels)
         self._init_weights()
 

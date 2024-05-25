@@ -3,7 +3,7 @@ from os.path import join
 from configs.base import cfg
 
 
-LOGGING_NAME = cfg.model.arch
+LOGGING_NAME = cfg.model.type
 PROJECT_DIR = os.getcwd()
 MODEL_FILES = join(PROJECT_DIR, "models/seg")
 CONFIG_FILES = join(PROJECT_DIR, "configs")

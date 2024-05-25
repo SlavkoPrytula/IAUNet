@@ -107,7 +107,7 @@ class SparseInstCriterion(nn.Module):
         """Classification loss (NLL)
         targets dicts must contain the key "labels" containing a tensor of dim [nb_target_boxes]
         """
-        assert "pred_logits" in outputs
+        assert "pred_logits" in outputs, f"logits not found."
         src_logits = outputs["pred_logits"].float()
 
         idx = self._get_src_permutation_idx(indices)
@@ -129,8 +129,8 @@ class SparseInstCriterion(nn.Module):
 
 
     def loss_iou(self, outputs, targets, indices, num_masks, input_shape, **kwargs):
-        assert "pred_masks" in outputs
-        assert "pred_scores" in outputs
+        assert "pred_masks" in outputs, f"masks not found in losses."
+        assert "pred_scores" in outputs, f"scores not found."
 
         src_idx = self._get_src_permutation_idx(indices)
         tgt_idx = self._get_tgt_permutation_idx(indices)
@@ -172,7 +172,7 @@ class SparseInstCriterion(nn.Module):
         Compute the losses related to the masks: the focal loss and the dice loss.
         targets dicts must contain the key "masks" containing a tensor of dim [nb_target_boxes, h, w]
         """
-        assert f"pred_{name}" in outputs
+        assert f"pred_{name}" in outputs, f"{name} not found in losses."
 
         src_idx = self._get_src_permutation_idx(indices)
         tgt_idx = self._get_tgt_permutation_idx(indices)

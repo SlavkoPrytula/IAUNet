@@ -45,7 +45,7 @@ def build_model(cfg: cfg):
 
     # DEBUG: save model files
     if cfg.model.save_model_files:
-        save_model_files(arch=cfg.model.arch, save_dir=cfg.save_dir)
+        save_model_files(model_cfg=cfg.model, save_dir=cfg.save_dir)
 
     model.to(cfg.device)
 

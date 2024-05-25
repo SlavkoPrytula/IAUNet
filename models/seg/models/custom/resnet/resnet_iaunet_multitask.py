@@ -7,7 +7,7 @@ from fvcore.nn.weight_init import c2_msra_fill
 import sys
 sys.path.append("./")
 
-# from models.seg.heads.instance_head import PriorInstanceBranch, InstanceBranch, DilatedInstanceBranch
+# from models.seg.heads.instance_head import InstanceHead, InstanceBranch
 # from models.seg.heads.mask_head import MaskBranch
 
 # from models.seg.models.base import DoubleConv, SE_block
@@ -15,9 +15,10 @@ sys.path.append("./")
 #                              DoubleConv_v2, DoubleConv_v3, DoubleConvModule)
 
 
-from ....heads.instance_head import InstanceBranch, PriorInstanceBranch
+from ....heads.instance_head import InstanceHead, InstanceBranch
 from ....heads.mask_head import MaskBranch
 
+from models.seg.models.base import BaseModel
 from models.seg.models.base import DoubleConv, SE_block
 from ....nn.blocks import (PyramidPooling, PyramidPooling_v3, PyramidPooling_v5, 
                              DoubleConv_v2, DoubleConv_v3, DoubleConvModule)
@@ -121,9 +122,9 @@ class IAUNet(nn.Module):
         self.prior_instance_branch = nn.ModuleList([])
         for i in range(self.n_levels):
             if i == 0:
-                self.prior_instance_branch.append(PriorInstanceBranch(in_channels=embed_dims[i] + 2, out_channels=mask_dim, num_convs=self.num_convs))
+                self.prior_instance_branch.append(InstanceBranch(in_channels=embed_dims[i] + 2, out_channels=mask_dim, num_convs=self.num_convs))
             else:
-                self.prior_instance_branch.append(PriorInstanceBranch(in_channels=embed_dims[i] + mask_dim + 2, out_channels=mask_dim, num_convs=self.num_convs))
+                self.prior_instance_branch.append(InstanceBranch(in_channels=embed_dims[i] + mask_dim + 2, out_channels=mask_dim, num_convs=self.num_convs))
 
         # instance branch.
         self.instance_head = HEADS.build(cfg.model.instance_head)
