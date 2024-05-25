@@ -1,9 +1,9 @@
 .idea/
 .vscode/
-wandb/
-visuals/
-runs/
-outputs/
+wandb/*
+visuals/*
+runs/*
+outputs/*
 
 *.jpg
 *.png
