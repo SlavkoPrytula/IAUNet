@@ -7,8 +7,8 @@ import sys
 sys.path.append("./")
 
 from scipy.optimize import linear_sum_assignment
-from utils.utils import nested_masks_from_list, nested_tensor_from_tensor_list
-from utils.losses import dice_score
+from utils.utils import nested_tensor_from_tensor_list
+from utils.losses import batch_sigmoid_ce_loss_jit, batch_dice_loss_jit
 from utils.box_ops import box_cxcywh_to_xyxy, generalized_box_iou
 
 from configs import cfg
@@ -39,121 +39,6 @@ def point_sample(input, point_coords, **kwargs):
     if add_dim:
         output = output.squeeze(3)
     return output
-
-
-def batch_dice_loss(inputs, targets):
-    """
-    Compute the DICE loss, similar to generalized IOU for masks
-    Args:
-        inputs: A float tensor of arbitrary shape.
-                The predictions for each example.
-        targets: A float tensor with the same shape as inputs. Stores the binary
-                 classification label for each element in inputs
-                (0 for the negative class and 1 for the positive class).
-    """
-    inputs = inputs.sigmoid()
-    inputs = inputs.flatten(1)
-    numerator = 2 * torch.einsum("nc,mc->nm", inputs, targets)
-    denominator = inputs.sum(-1)[:, None] + targets.sum(-1)[None, :]
-    loss = 1 - (numerator + 1) / (denominator + 1)
-    return loss
-
-batch_dice_loss_jit = torch.jit.script(
-    batch_dice_loss
-) 
-
-
-def batch_sigmoid_focal_loss(inputs, targets, alpha: float = 0.25, gamma: float = 2):
-    """
-    Loss used in RetinaNet for dense detection: https://arxiv.org/abs/1708.02002.
-    Args:
-        inputs: A float tensor of arbitrary shape.
-                The predictions for each example.
-        targets: A float tensor with the same shape as inputs. Stores the binary
-                 classification label for each element in inputs
-                (0 for the negative class and 1 for the positive class).
-        alpha: (optional) Weighting factor in range (0,1) to balance
-                positive vs negative examples. Default = -1 (no weighting).
-        gamma: Exponent of the modulating factor (1 - p_t) to
-               balance easy vs hard examples.
-    Returns:
-        Loss tensor
-    """
-    hw = inputs.shape[1]
-
-    prob = inputs.sigmoid()
-    focal_pos = ((1 - prob) ** gamma) * F.binary_cross_entropy_with_logits(
-        inputs, torch.ones_like(inputs), reduction="none"
-    )
-    focal_neg = (prob ** gamma) * F.binary_cross_entropy_with_logits(
-        inputs, torch.zeros_like(inputs), reduction="none"
-    )
-    if alpha >= 0:
-        focal_pos = focal_pos * alpha
-        focal_neg = focal_neg * (1 - alpha)
-
-    loss = torch.einsum("nc,mc->nm", focal_pos, targets) + torch.einsum(
-        "nc,mc->nm", focal_neg, (1 - targets)
-    )
-
-    return loss / hw
-
-
-def batch_sigmoid_bce_loss(inputs, targets):
-    """
-    Loss used in RetinaNet for dense detection: https://arxiv.org/abs/1708.02002.
-    Args:
-        inputs: A float tensor of arbitrary shape.
-                The predictions for each example.
-        targets: A float tensor with the same shape as inputs. Stores the binary
-                 classification label for each element in inputs
-                (0 for the negative class and 1 for the positive class).
-        alpha: (optional) Weighting factor in range (0,1) to balance
-                positive vs negative examples. Default = -1 (no weighting).
-        gamma: Exponent of the modulating factor (1 - p_t) to
-               balance easy vs hard examples.
-    Returns:
-        Loss tensor
-    """
-    hw = inputs.shape[1]
-
-    pos_cost_mask = F.binary_cross_entropy_with_logits(inputs, torch.ones_like(inputs), reduction='none')
-    neg_cost_mask = F.binary_cross_entropy_with_logits(inputs, torch.zeros_like(inputs), reduction='none')
-    loss = torch.matmul(pos_cost_mask, targets.t()) + torch.matmul(neg_cost_mask, 1 - targets.t())
-
-    return loss / hw
-
-
-def batch_sigmoid_ce_loss(inputs: torch.Tensor, targets: torch.Tensor):
-    """
-    Args:
-        inputs: A float tensor of arbitrary shape.
-                The predictions for each example.
-        targets: A float tensor with the same shape as inputs. Stores the binary
-                 classification label for each element in inputs
-                (0 for the negative class and 1 for the positive class).
-    Returns:
-        Loss tensor
-    """
-    hw = inputs.shape[1]
-
-    pos = F.binary_cross_entropy_with_logits(
-        inputs, torch.ones_like(inputs), reduction="none"
-    )
-    neg = F.binary_cross_entropy_with_logits(
-        inputs, torch.zeros_like(inputs), reduction="none"
-    )
-
-    loss = torch.einsum("nc,mc->nm", pos, targets) + torch.einsum(
-        "nc,mc->nm", neg, (1 - targets)
-    )
-
-    return loss / hw
-
-
-batch_sigmoid_ce_loss_jit = torch.jit.script(
-    batch_sigmoid_ce_loss
-)
 
 
 
@@ -235,10 +120,10 @@ class HungarianMatcher(nn.Module):
                 # cost_iams_mask = batch_sigmoid_focal_loss(out_iams, tgt_mask)
 
                 # binary cross entropy cost
-                cost_mask = batch_sigmoid_bce_loss(out_mask, tgt_mask)
+                cost_mask = batch_sigmoid_ce_loss_jit(out_mask, tgt_mask)
                 
                 # Compute the dice loss betwen masks
-                cost_dice = batch_dice_loss(out_mask, tgt_mask)
+                cost_dice = batch_dice_loss_jit(out_mask, tgt_mask)
 
                 # Final cost matrix
                 C = (

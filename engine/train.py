@@ -477,68 +477,10 @@ def train_one_epoch(
                     cmap='jet', # plasma
                 )
     
-                   
 
-        
-    
     # logging results.      
     results["loss_train"] = epoch_loss
     for l in loss_dict:
         results[f"{l}_train"] = loss_dict[l]
     
     return results
-
-
-
-
-
-    # print('Loss/Train')
-    # # LOGGER.info('Loss/Train')
-    # for step, batch in tqdm(enumerate(dataloader), total=len(dataloader), miniters=5):
-    #     if batch is None:
-    #         continue
-
-    #     # batch shape: B
-        
-    #     # prepare targets
-    #     images = []
-    #     targets = []
-    #     for i in range(len(batch)):
-    #         target = batch[i]
-
-    #         target = {k: v.to(device) for k, v in target.items()}
-    #         images.append(target["image"])
-
-    #         targets.append(target)
-            
-    #     images = nested_tensor_from_tensor_list(images)   # (B, C, H, W)
-    #     batch_size = images.tensors.size(0)
-        
-    #     with amp.autocast(enabled=True):
-    #         output = model(images.tensors) # (B, N, H, W)
-            
-    #         # get losses
-    #         # TODO: return matched idxs for visualization of gt
-    #         loss_dict, (src_idx, tgt_idx) = criterion(output, targets, [512, 512], return_matches=True, epoch=epoch)
-    #         loss = sum(loss_dict.values())
-            
-            
-    #     scaler.scale(loss).backward()
-    #     if (step + 1) % 1 == 0:
-    #         scaler.step(optimizer)
-    #         scaler.update()
-
-    #         if scheduler is not None:
-    #             scheduler.step()
-                
-    #         # zero the parameter gradients
-    #         optimizer.zero_grad()
-                
-    #     running_loss += (loss.item() * batch_size)
-    #     dataset_size += batch_size
-    #     epoch_loss = running_loss / dataset_size
-        
-    #     mem = torch.cuda.memory_reserved() / 1E9 if torch.cuda.is_available() else 0
-    #     current_lr = optimizer.param_groups[0]['lr']
-        # torch.cuda.empty_cache()
-        # gc.collect()
