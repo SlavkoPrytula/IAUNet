@@ -178,9 +178,9 @@ class IAUNet(BaseModel):
         
         bboxes = bboxes.sigmoid()
 
-        inst_masks = nn.UpsamplingBilinear2d(scale_factor=2)(inst_masks)
+        inst_masks = nn.UpsamplingBilinear2d(scale_factor=4)(inst_masks)
         # borders_masks = nn.UpsamplingBilinear2d(scale_factor=2)(borders_masks)
-        iam = nn.UpsamplingBilinear2d(scale_factor=2)(iam)
+        iam = nn.UpsamplingBilinear2d(scale_factor=4)(iam)
 
 
         output = {

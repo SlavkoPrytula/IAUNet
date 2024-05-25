@@ -122,9 +122,10 @@ def train_one_epoch(
     print()
 
     # wandb results.
-    wandb.log({f"train/loss_train": epoch_loss})
-    for l in loss_dict:
-        wandb.log({f"train/{l}_train": loss_dict[l]})
+    if wandb.run is not None:
+        wandb.log({f"train/loss_train": epoch_loss})
+        for l in loss_dict:
+            wandb.log({f"train/{l}_train": loss_dict[l]})
 
     
     if epoch % 10 == 0:

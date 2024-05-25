@@ -22,13 +22,13 @@ cfg.model.instance_head.num_masks = 100
 cfg.model.mask_dim = 256
 # cfg.model.inst_dim = 256
 cfg.model.num_convs = 2
-cfg.model.n_levels = 5
+cfg.model.n_levels = 4
 
 cfg.model.arch = "iaunet"
 # cfg.model.arch = "resnet_iaunet_multitask"
 # cfg.model.arch = "iaunet_optim_v2"
 
-cfg.model.backbone.out_indices = [0, 1, 2, 3, 4]
+cfg.model.backbone.out_indices = [0, 1, 2, 3]
 
 
 model = get_model(cfg)

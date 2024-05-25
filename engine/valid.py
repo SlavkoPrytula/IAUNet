@@ -117,9 +117,10 @@ def valid_one_epoch(
             if evaluator_name in ["valid", "eval"]:
                 results.update(stats)  
                 
-                for s in stats:
-                    # wandb results.
-                    wandb.log({f"metrics/{s}": stats[s]})
+                if wandb.run is not None:
+                    for s in stats:
+                        # wandb results.
+                        wandb.log({f"metrics/{s}": stats[s]})
 
             # plot results.
             gt_coco = evaluator.gt_coco
@@ -143,9 +144,10 @@ def valid_one_epoch(
         results[f"{l}_valid"] = loss_dict[l]
         
     # wandb results.
-    wandb.log({f"valid/loss_valid": epoch_loss})
-    for l in loss_dict:
-        wandb.log({f"valid/{l}_valid": loss_dict[l]})
+    if wandb.run is not None:
+        wandb.log({f"valid/loss_valid": epoch_loss})
+        for l in loss_dict:
+            wandb.log({f"valid/{l}_valid": loss_dict[l]})
     
     torch.cuda.empty_cache()
     gc.collect()

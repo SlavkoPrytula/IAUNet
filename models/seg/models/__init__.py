@@ -18,6 +18,7 @@
 # from .custom.resnet.resnet_iaunet_occluders import IAUNet
 
 from ..encoders.resnet import ResNet
+from ..encoders.swin import SwinTransformer
 
 from .iaunet.iaunet import IAUNet
 

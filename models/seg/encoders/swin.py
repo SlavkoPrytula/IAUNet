@@ -1,9 +1,17 @@
 import torch
-from torch import nn
+from torch import int32, nn
 from torch.nn import functional as F
 
 import numpy as np
 from timm.models.layers import DropPath, to_2tuple, trunc_normal_
+from timm.models.swin_transformer import default_cfgs
+from timm.models.helpers import load_pretrained
+
+import sys
+sys.path.append("./")
+
+from utils.registry import MODELS
+
 
 
 # https://zhangtemplar.github.io/swin-transformer/
@@ -468,39 +476,41 @@ class LayerNorm2d(nn.Module):
         return x
 
 
-class SwinTransformerV1(nn.Module):
-    def __init__(self,
+
+@MODELS.register(name="SwinTransformer")
+class SwinTransformer(nn.Module):
+    def __init__(self, 
                  pretrain_img_size=224,
-                 patch_size=4,
                  in_chans=3,
                  embed_dim=96,
-                 depths=[2, 2, 6, 2],
-                 num_heads=[3, 6, 12, 24],
+                 patch_size=4,
                  window_size=7,
-                 mlp_ratio=4.,
+                 mlp_ratio=4,
+                 depths=[2, 2, 18, 2],
+                 num_heads=[3, 6, 12, 24],
                  qkv_bias=True,
                  qk_scale=None,
                  drop_rate=0.,
                  attn_drop_rate=0.,
                  drop_path_rate=0.1,
-                 norm_layer=nn.LayerNorm,
                  patch_norm=True,
-                 out_norm=nn.Identity,  # use nn.Identity, nn.BatchNorm2d, LayerNorm2d
-                 **kwargs
-                 ):
+                 out_indices=(0, 1, 2, 3),
+                 pretrained=True):
         super().__init__()
         self.pretrain_img_size = pretrain_img_size
         self.num_layers = len(depths)
         self.embed_dim = embed_dim
         self.mlp_ratio = mlp_ratio
+        self.depths = depths
 
-        self.embed_dims = [96, 192, 384, 768]
+        self.embed_dims = [int(embed_dim * 2 ** i) for i in out_indices]
+        self.out_indices = out_indices
 
         self.patch_embed = PatchEmbed(
             patch_size=patch_size,
             in_chans=in_chans,
             embed_dim=embed_dim,
-            norm_layer=norm_layer if patch_norm else None
+            norm_layer=nn.LayerNorm if patch_norm else None
         )
         self.pos_drop = nn.Dropout(p=drop_rate)
 
@@ -520,7 +530,7 @@ class SwinTransformerV1(nn.Module):
                 drop=drop_rate,
                 attn_drop=attn_drop_rate,
                 drop_path=dpr[sum(depths[:i]):sum(depths[:i + 1])],
-                norm_layer=norm_layer,
+                norm_layer=nn.LayerNorm,
                 downsample=PatchMerging if (i < self.num_layers - 1) else None,
             )
             self.layers.append(layer)
@@ -528,11 +538,29 @@ class SwinTransformerV1(nn.Module):
         # ---
         # add a norm layer for each output
         self.out_norm = nn.ModuleList(
-            [out_norm(int(embed_dim * 2 ** i)) for i in range(self.num_layers)]
+            [LayerNorm2d(int(embed_dim * 2 ** i)) for i in range(self.num_layers)]
         )
 
         # ---
         self.apply(self._init_weights)
+
+        if pretrained:
+            self.load_pretrained_weights()
+
+    def load_pretrained_weights(self):
+        model_cfg_name = self.get_model_cfg_name()
+        if model_cfg_name:
+            cfg = default_cfgs[model_cfg_name]
+            load_pretrained(self, cfg, strict=False)
+
+    def get_model_cfg_name(self):
+        model_cfgs = {
+            (96, (2, 2, 6, 2)): 'swin_tiny_patch4_window7_224',
+            (96, (2, 2, 18, 2)): 'swin_small_patch4_window7_224',
+            (128, (2, 2, 18, 2)): 'swin_base_patch4_window7_224',
+            (192, (2, 2, 18, 2)): 'swin_large_patch4_window7_224',
+        }
+        return model_cfgs.get((self.embed_dim, tuple(self.depths)), None)
 
     @staticmethod
     def _init_weights(m):
@@ -552,20 +580,20 @@ class SwinTransformerV1(nn.Module):
         x = x.flatten(2).transpose(1, 2)
         x = self.pos_drop(x)
 
-        outs = []
+        outputs = []
         for i in range(self.num_layers):
             x_out, H, W, x, Wh, Ww = self.layers[i](x, Wh, Ww)
             out = x_out.view(-1, H, W, int(self.embed_dim * 2 ** i)).permute(0, 3, 1, 2).contiguous()
             out = self.out_norm[i](out)
-            outs.append(out)
+            outputs.append(out)
 
-        return outs
+        return outputs
 
 
 if __name__ == '__main__':
-    model = SwinTransformerV1()
+    model = SwinTransformer()
 
-    x = torch.rand(1, 3, 224, 224)
+    x = torch.rand(1, 3, 512, 512)
     feats = model(x)
     for y in feats:
         print(y.shape)

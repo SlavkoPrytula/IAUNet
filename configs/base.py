@@ -48,7 +48,7 @@ class Model:
     out_channels: int = 1
 
     num_classes: int  = 1
-    n_levels: int     = 5
+    n_levels: int     = 4
     num_convs: int    = 2
 
     coord_conv: bool  = True
@@ -59,12 +59,15 @@ class Model:
     # inst_dim: int     = 256
 
     # backbone.
+    # backbone=dict(
+    #     type='ResNet',
+    #     depth=50,
+    #     num_stages=4,
+    #     out_indices=(0, 1, 2, 3, 4),
+    #     pretrained=True
+    # )
     backbone=dict(
-        type='ResNet',
-        depth=50,
-        num_stages=4,
-        out_indices=(0, 1, 2, 3, 4),
-        pretrained=True
+        type='SwinTransformer',
     )
 
     # instance head.
