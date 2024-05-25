@@ -1,4 +1,0 @@
-No much has been changes in the v2.0.2 update
-Mainly this serves as a checkpoint for all the files
-
-v2.1.0 is expected to have some restucturing done to the projects, removing unecessary parts
