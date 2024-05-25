@@ -1,0 +1,18 @@
+defaults:
+  - base
+
+hydra:
+  run:
+    dir: outputs/${now:%Y-%m-%d}/${group}/${model_name}/${now:%H-%M-%S}
+  sweep:
+    dir: output/${now:%Y-%m-%d}/${now:%H-%M-%S}
+    subdir: ${hydra.job.override_dirname}
+
+  job_logging:
+    formatters:
+      simple:
+        format: '[%(asctime)s][%(name)s][%(levelname)s] - %(message)s'
+      colorlog:
+        (): colorlog.ColoredFormatter
+        format: '[%(yellow)s%(asctime)s%(reset)s][%(blue)s%(name)s%(reset)s][%(log_color)s%(levelname)s%(reset)s]
+            - %(message)s'

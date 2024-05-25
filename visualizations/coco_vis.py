@@ -1,0 +1,124 @@
+import numpy as np
+import matplotlib.pyplot as plt
+import cv2
+from scipy.ndimage import binary_dilation, binary_erosion
+from pycocotools import mask as maskUtils
+
+from .palette import jitter_color, random_color
+
+
+def _visualize_masks(ax, masks, draw_border=False):
+    for mask in masks:
+        if draw_border:
+            binary_mask = mask[..., 3] > 0
+            dilation = binary_dilation(binary_mask, iterations=2)
+            erosion = binary_erosion(binary_mask, iterations=2)
+            border = dilation & ~erosion
+            
+            for c in range(3):
+                mask[..., c][border] = 1  # Set border color to white
+
+        ax.imshow(mask)
+
+
+def getMasks(coco_api, anns, alpha=1, static_color=False):
+    """
+    Generate and return colored masks for specified annotations with optional transparency.
+    :param anns: Annotations to display, each with segmentation info.
+    :param alpha: Opacity level for the masks.
+    :return: A numpy array of masks with applied colors and alpha transparency.
+    """
+    if len(anns) == 0:
+        return np.zeros((0, 0, 4))
+
+    masks = []
+    for ann in anns:
+        if 'segmentation' not in ann:
+            continue
+
+        t = coco_api.imgs[ann['image_id']]
+        img_height, img_width = t['height'], t['width']
+
+        if isinstance(ann['segmentation'], list):
+            # polygon
+            rle = maskUtils.frPyObjects(ann['segmentation'], img_height, img_width)
+        else:
+            # rle
+            rle = ann['segmentation'] if isinstance(ann['segmentation']['counts'], list) \
+                else [ann['segmentation']]
+        mask = maskUtils.decode(rle)
+
+        if ann['iscrowd'] == 1:
+            color_mask = np.array([2.0,166.0,101.0])/255
+        if ann['iscrowd'] == 0:
+            color_mask = jitter_color([1, 0, 0]) if static_color else random_color()
+        img = np.ones((img_height, img_width, 3)) * color_mask
+
+        mask = np.dstack((img, mask[:, :, 0] * alpha))
+        masks.append(mask)
+
+    return np.array(masks) if masks else np.zeros((0, 0, 4)) 
+
+
+def getNPMasks(masks, static_color=False, alpha=1):
+    colored_masks = []
+    for mask in masks:
+        color_mask = jitter_color([1, 0, 0]) if static_color else random_color()
+
+        img_height, img_width = mask.shape
+        img = np.ones((img_height, img_width, 3)) * color_mask
+        colored_mask = np.dstack((img, mask * alpha))
+        colored_masks.append(colored_mask)
+
+    return np.array(colored_masks)
+
+
+def visualize_coco_anns(coco_api, idx, ax, shape, alpha=1, draw_border=False, static_color=False):
+    if not coco_api: # no instances were detected :(
+        return 
+    
+    annIds = coco_api.getAnnIds(imgIds=[idx])
+    anns = coco_api.loadAnns(annIds)
+    masks = getMasks(coco_api, anns, alpha=alpha, static_color=static_color)
+    _visualize_masks(ax, masks, draw_border)
+
+
+def visualize_masks(img, masks, shape, alpha=1, draw_border=False, static_color=False, path=None):
+    fig, ax = plt.subplots(1, 1, figsize=[20, 10])
+    fig.subplots_adjust(wspace=0, hspace=0, left=0, right=1, bottom=0, top=1)
+
+    ax.imshow(img, cmap='gray')
+
+    masks = getNPMasks(masks, static_color=static_color, alpha=alpha)
+    _visualize_masks(ax, masks, draw_border)
+    
+    ax.axis('off')
+    ax.set_xlim(0, shape[0])
+    ax.set_ylim(shape[1], 0)
+
+    fig.savefig(path, bbox_inches='tight', pad_inches=0)
+    plt.close(fig)
+
+
+
+def save_coco_vis(img, gt_coco, pred_coco, idx, shape, path=None):
+    """
+    Saves a side-by-side visualization of ground truth 
+    and predicted COCO annotations for a given image.
+    """
+    fig, ax = plt.subplots(1, 2, figsize=[20, 10])
+    fig.subplots_adjust(wspace=0, hspace=0, left=0, right=1, bottom=0, top=1)
+
+    ax[0].imshow(img, cmap='gray')
+    visualize_coco_anns(gt_coco, idx, ax[0], shape=shape, alpha=0.65, draw_border=True, static_color=False)
+    
+    ax[1].imshow(img, cmap='gray')
+    visualize_coco_anns(pred_coco, idx, ax[1], shape=shape, alpha=0.65, draw_border=True, static_color=False)
+
+    for a in ax:
+        a.axis('off')
+        a.set_xlim(0, shape[0])
+        a.set_ylim(shape[1], 0)
+
+    fig.savefig(path, bbox_inches='tight', pad_inches=0)
+    plt.close(fig)
