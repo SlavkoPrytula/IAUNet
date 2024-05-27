@@ -476,7 +476,12 @@ class LayerNorm2d(nn.Module):
         return x
 
 
-
+# NOTE: timm.models.helper is modified
+# ...
+# if "model" in state_dict:                         <-----
+#     state_dict = state_dict["model"]
+# model.load_state_dict(state_dict, strict=strict)
+# ...
 @MODELS.register(name="SwinTransformer")
 class SwinTransformer(nn.Module):
     def __init__(self, 
@@ -540,7 +545,6 @@ class SwinTransformer(nn.Module):
         self.out_norm = nn.ModuleList(
             [LayerNorm2d(int(embed_dim * 2 ** i)) for i in range(self.num_layers)]
         )
-
         # ---
         self.apply(self._init_weights)
 

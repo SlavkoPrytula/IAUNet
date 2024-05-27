@@ -139,7 +139,7 @@ def train_one_epoch(
 
         # -----------
         # Pred Masks + BBoxes.
-        vis_preds_cyto = output['pred_masks'].sigmoid().cpu().detach().numpy()
+        vis_preds_inst = output['pred_masks'].sigmoid().cpu().detach().numpy()
         probs = output['pred_logits'].softmax(-1)
         scores = probs[0, :, 0].cpu().detach().numpy()
         scores = np.round(scores, 2)
@@ -160,11 +160,11 @@ def train_one_epoch(
         ]
         
         visualize_grid_v2(
-            masks=vis_preds_cyto[0, ...], 
+            masks=vis_preds_inst[0, ...], 
             bboxes=bboxes[0, ...],
             titles=titles,
             ncols=ncols, 
-            path=f'{cfg.save_dir}/train_visuals/epoch_{epoch}/pred_masks.jpg'
+            path=f'{cfg.save_dir}/train_visuals/epoch_{epoch}/inst/pred_masks.jpg'
         )
 
         plt.figure(figsize=[10, 10])
@@ -188,7 +188,7 @@ def train_one_epoch(
         # Aux Pred Masks.
         if "aux_outputs" in output:
             for i, aux_outputs in enumerate(output['aux_outputs']):
-                vis_preds_cyto = aux_outputs['pred_masks'].sigmoid().cpu().detach().numpy()
+                vis_preds_inst = aux_outputs['pred_masks'].sigmoid().cpu().detach().numpy()
                 probs = aux_outputs['pred_logits'].softmax(-1)
                 scores = probs[0, :, 0].cpu().detach().numpy()
                 scores = np.round(scores, 2)
@@ -203,10 +203,10 @@ def train_one_epoch(
                 ]
                 
                 visualize_grid_v2(
-                    masks=vis_preds_cyto[0, ...], 
+                    masks=vis_preds_inst[0, ...], 
                     titles=titles,
                     ncols=ncols, 
-                    path=f'{cfg.save_dir}/train_visuals/epoch_{epoch}/pred_masks.jpg'
+                    path=f'{cfg.save_dir}/train_visuals/epoch_{epoch}/aux_outputs/inst/pred_masks.jpg'
                 )
 
                 # for loss_name in ["occluders"]:
@@ -230,7 +230,7 @@ def train_one_epoch(
                     masks=vis_preds[0, ...], 
                     titles=titles,
                     ncols=ncols, 
-                    path=f'{cfg.save_dir}/train_visuals/epoch_{epoch}/pred_{inst}.jpg'
+                    path=f'{cfg.save_dir}/train_visuals/epoch_{epoch}/occluders/pred_{inst}.jpg'
                 )
             
             if inst == "overlaps":
@@ -239,7 +239,7 @@ def train_one_epoch(
                     masks=vis_preds[0, ...], 
                     titles=titles,
                     ncols=ncols, 
-                    path=f'{cfg.save_dir}/train_visuals/epoch_{epoch}/pred_{inst}.jpg'
+                    path=f'{cfg.save_dir}/train_visuals/epoch_{epoch}/overlaps/pred_{inst}.jpg'
                 )
 
 
@@ -361,7 +361,7 @@ def train_one_epoch(
                 ax.axis('off')
 
                 if j == 0:
-                    ax.imshow(vis_preds_cyto[0, i, :, :], cmap='viridis')
+                    ax.imshow(vis_preds_inst[0, i, :, :], cmap='viridis')
                     ax.set_title(f'pred {i}', fontsize=10)
                 else:
                     channel_idx = N // groups * (j-1) + i
@@ -384,7 +384,7 @@ def train_one_epoch(
                 ax.axis('off')
 
                 if j == 0:
-                    ax.imshow(vis_preds_cyto[0, i, :, :], cmap='viridis')
+                    ax.imshow(vis_preds_inst[0, i, :, :], cmap='viridis')
                     ax.set_title(f'pred {i}', fontsize=10)
                 else:
                     channel_idx = N // groups * (j-1) + i
@@ -410,7 +410,7 @@ def train_one_epoch(
                 ax.axis('off')
 
                 if j == 0:
-                    ax.imshow(vis_preds_cyto[0, i, :, :], cmap='viridis')
+                    ax.imshow(vis_preds_inst[0, i, :, :], cmap='viridis')
                     ax.set_title(f'pred {i}', fontsize=10)
                 else:
                     channel_idx = N // groups * (j-1) + i

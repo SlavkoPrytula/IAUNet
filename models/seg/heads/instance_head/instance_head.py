@@ -151,8 +151,8 @@ class InstanceHead(nn.Module):
         self.scale_factor = 1
         
         # iam prediction, a simple conv
-        self.inst_iam_conv = IAM(self.dim, self.num_masks * self.num_groups, self.num_groups)
-        self.occl_iam_conv = IAM(self.dim, self.num_masks * self.num_groups, self.num_groups)
+        self.inst_iam_conv = IAM(self.dim, self.num_masks * self.num_groups, groups=self.num_groups)
+        self.occl_iam_conv = IAM(self.dim, self.num_masks * self.num_groups, groups=self.num_groups)
         
         expand_dim = self.dim * self.num_groups
         self.fc = nn.Linear(expand_dim*2, expand_dim)

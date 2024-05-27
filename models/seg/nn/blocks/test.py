@@ -104,6 +104,27 @@ class DoubleConv_v3(nn.Module):
 
         return out
     
+
+class DoubleConv_v3_1(nn.Module):
+    def __init__(self, c_in, c_out, hidden=None, kernel_size=3, padding=1):
+        super(DoubleConv_v3_1, self).__init__()
+        self.c_in = c_in
+        self.c_out = c_out
+        hidden = c_out if not hidden else hidden
+        
+        self.conv = nn.Sequential(
+            nn.Conv2d(c_in, hidden, kernel_size=kernel_size, padding=padding, groups=2),
+            nn.BatchNorm2d(hidden),
+            nn.ReLU(inplace=True),
+            nn.Conv2d(hidden, c_out, kernel_size=kernel_size, padding=padding, groups=2),
+            nn.BatchNorm2d(c_out),
+            nn.ReLU(inplace=True),
+        )
+
+    def forward(self, x):
+        out = self.conv(x)
+        return out
+    
     
 
 class DoubleConv_v4(nn.Module):

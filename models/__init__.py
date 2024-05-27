@@ -246,81 +246,6 @@ def get_model_from_path(cfg: cfg):
     return model
 
 
-# NOTE: should be the same as src directory structure
-# def save_model_files(arch, save_dir):
-#     dst = save_dir / 'model_files'
-#     makedirs(dst, exist_ok=True)
-    
-#     # save config files
-#     config_dst = save_dir / 'config_files'
-#     makedirs(config_dst, exist_ok=True)
-
-#     for src in ["base.py"]:
-#         shutil.copy(
-#             join(CONFIG_FILES, src),
-#             config_dst
-#             )
-
-#     # save augmentation files
-#     aug_dst = save_dir / 'utils'
-#     makedirs(aug_dst, exist_ok=True)
-
-#     for src in ["augmentations.py"]:
-#         shutil.copy(
-#             join(UTILS_FILES, src),
-#             aug_dst
-#             )
-
-#     # save model file (eg. models, heads, losses, ...)
-#     for src in ["__init__.py", "matcher.py", "loss.py"]:
-#         shutil.copy(
-#             join(MODEL_FILES, src),
-#             dst
-#             )
-#     _copy_folder(
-#         src=join(MODEL_FILES, 'heads'),
-#         dst=dst
-#         )
-    
-#     # keep = [arch, '__init__']
-#     # _copy_folder(
-#     #     src=join(MODEL_FILES, 'models'),
-#     #     dst=dst,
-#     #     ignore=lambda src, names: [name for name in names if all(k not in name for k in keep)]
-#     #     )
-
-#     shutil.copy(
-#         src=join(MODEL_FILES, 'models', "__init__.py"),
-#         dst=dst
-#         )
-    
-#     model_file = MODELS.get_path(arch)
-#     _copy_folder(
-#         src=model_file,
-#         dst=dst
-#         )
-#     raise
-    
-    
-#     # change init model imports
-#     init_file = join(dst, 'models', '__init__.py')
-
-#     with open(init_file, 'r') as f:
-#         lines = f.readlines()
-
-#     pattern = rf'from \..* import {arch}(?!\w) as {arch}'
-#     filtered_lines = [
-#         re.sub(pattern, f'from .{arch} import {arch}', line)
-#         if re.search(pattern, line)
-#         else line
-#         for line in lines
-#     ]
-
-#     with open(init_file, 'w') as f:
-#         f.writelines(filtered_lines)
-
-
-
 def save_model_files(model_cfg, save_dir):    
     # save config files
     config_dst = save_dir / "config_files"
@@ -341,13 +266,15 @@ def save_model_files(model_cfg, save_dir):
     # save model file (eg. models, heads, losses, ...)
     model_dst = save_dir / "model_files"
     for src in ["__init__.py", "matcher.py", "loss.py", 
-                "heads", "models/__init__.py", "nn/blocks"]:
+                "heads", "models/__init__.py", "nn/blocks", 
+                "encoders/__init__.py"]:
         _copy_folder(
             src=join(MODEL_FILES, src),
             dst=model_dst,
             base_src_dir=MODEL_FILES
             )
     
+    # save model files.
     model_file = MODELS.get_path(model_cfg.type)
     _copy_folder(
         src=model_file,
@@ -355,6 +282,7 @@ def save_model_files(model_cfg, save_dir):
         base_src_dir=MODEL_FILES
         )
     
+    # save encoder files.
     model_file = MODELS.get_path(model_cfg.backbone.type)
     _copy_folder(
         src=model_file,
@@ -362,195 +290,3 @@ def save_model_files(model_cfg, save_dir):
         base_src_dir=MODEL_FILES
         )
     
-    
-    # # change init model imports
-    # init_file = join(dst, 'models', '__init__.py')
-
-    # with open(init_file, 'r') as f:
-    #     lines = f.readlines()
-
-    # pattern = rf'from \..* import {arch}(?!\w) as {arch}'
-    # filtered_lines = [
-    #     re.sub(pattern, f'from .{arch} import {arch}', line)
-    #     if re.search(pattern, line)
-    #     else line
-    #     for line in lines
-    # ]
-
-    # with open(init_file, 'w') as f:
-    #     f.writelines(filtered_lines)
-
-
-
-
-
-
-    
-
-
-    
-
-# prior_instance_branch_mappings = {
-    #     "prior_instance_branch.0.inst_convs.0":  ["prior_instance_branch.0.0.inst_convs.0", "prior_occluder_branch.0.0.inst_convs.0"],
-    #     "prior_instance_branch.0.inst_convs.1":  ["prior_instance_branch.0.0.inst_convs.1", "prior_occluder_branch.0.0.inst_convs.1"],
-    #     "prior_instance_branch.0.inst_convs.3":  ["prior_instance_branch.0.0.inst_convs.3", "prior_occluder_branch.0.0.inst_convs.3"],
-    #     "prior_instance_branch.0.inst_convs.4":  ["prior_instance_branch.0.0.inst_convs.4", "prior_occluder_branch.0.0.inst_convs.4"],
-    #     "prior_instance_branch.0.inst_convs.6":  ["prior_instance_branch.0.1.inst_convs.0", "prior_occluder_branch.0.1.inst_convs.0"],
-    #     "prior_instance_branch.0.inst_convs.7":  ["prior_instance_branch.0.1.inst_convs.1", "prior_occluder_branch.0.1.inst_convs.1"],
-    #     "prior_instance_branch.0.inst_convs.9":  ["prior_instance_branch.0.1.inst_convs.3", "prior_occluder_branch.0.1.inst_convs.3"],
-    #     "prior_instance_branch.0.inst_convs.10": ["prior_instance_branch.0.1.inst_convs.4", "prior_occluder_branch.0.1.inst_convs.4"],
- 
-    #     "prior_instance_branch.1.inst_convs.0":  ["prior_instance_branch.1.0.inst_convs.0", "prior_occluder_branch.1.0.inst_convs.0"],
-    #     "prior_instance_branch.1.inst_convs.1":  ["prior_instance_branch.1.0.inst_convs.1", "prior_occluder_branch.1.0.inst_convs.1"],
-    #     "prior_instance_branch.1.inst_convs.3":  ["prior_instance_branch.1.0.inst_convs.3", "prior_occluder_branch.1.0.inst_convs.3"],
-    #     "prior_instance_branch.1.inst_convs.4":  ["prior_instance_branch.1.0.inst_convs.4", "prior_occluder_branch.1.0.inst_convs.4"],
-    #     "prior_instance_branch.1.inst_convs.6":  ["prior_instance_branch.1.1.inst_convs.0", "prior_occluder_branch.1.1.inst_convs.0"],
-    #     "prior_instance_branch.1.inst_convs.7":  ["prior_instance_branch.1.1.inst_convs.1", "prior_occluder_branch.1.1.inst_convs.1"],
-    #     "prior_instance_branch.1.inst_convs.9":  ["prior_instance_branch.1.1.inst_convs.3", "prior_occluder_branch.1.1.inst_convs.3"],
-    #     "prior_instance_branch.1.inst_convs.10": ["prior_instance_branch.1.1.inst_convs.4", "prior_occluder_branch.1.1.inst_convs.4"],
-
-    #     "prior_instance_branch.2.inst_convs.0":  ["prior_instance_branch.2.0.inst_convs.0", "prior_occluder_branch.2.0.inst_convs.0"],
-    #     "prior_instance_branch.2.inst_convs.1":  ["prior_instance_branch.2.0.inst_convs.1", "prior_occluder_branch.2.0.inst_convs.1"],
-    #     "prior_instance_branch.2.inst_convs.3":  ["prior_instance_branch.2.0.inst_convs.3", "prior_occluder_branch.2.0.inst_convs.3"],
-    #     "prior_instance_branch.2.inst_convs.4":  ["prior_instance_branch.2.0.inst_convs.4", "prior_occluder_branch.2.0.inst_convs.4"],
-    #     "prior_instance_branch.2.inst_convs.6":  ["prior_instance_branch.2.1.inst_convs.0", "prior_occluder_branch.2.1.inst_convs.0"],
-    #     "prior_instance_branch.2.inst_convs.7":  ["prior_instance_branch.2.1.inst_convs.1", "prior_occluder_branch.2.1.inst_convs.1"],
-    #     "prior_instance_branch.2.inst_convs.9":  ["prior_instance_branch.2.1.inst_convs.3", "prior_occluder_branch.2.1.inst_convs.3"],
-    #     "prior_instance_branch.2.inst_convs.10": ["prior_instance_branch.2.1.inst_convs.4", "prior_occluder_branch.2.1.inst_convs.4"],
-
-    #     "prior_instance_branch.3.inst_convs.0":  ["prior_instance_branch.3.0.inst_convs.0", "prior_occluder_branch.3.0.inst_convs.0"],
-    #     "prior_instance_branch.3.inst_convs.1":  ["prior_instance_branch.3.0.inst_convs.1", "prior_occluder_branch.3.0.inst_convs.1"],
-    #     "prior_instance_branch.3.inst_convs.3":  ["prior_instance_branch.3.0.inst_convs.3", "prior_occluder_branch.3.0.inst_convs.3"],
-    #     "prior_instance_branch.3.inst_convs.4":  ["prior_instance_branch.3.0.inst_convs.4", "prior_occluder_branch.3.0.inst_convs.4"],
-    #     "prior_instance_branch.3.inst_convs.6":  ["prior_instance_branch.3.1.inst_convs.0", "prior_occluder_branch.3.1.inst_convs.0"],
-    #     "prior_instance_branch.3.inst_convs.7":  ["prior_instance_branch.3.1.inst_convs.1", "prior_occluder_branch.3.1.inst_convs.1"],
-    #     "prior_instance_branch.3.inst_convs.9":  ["prior_instance_branch.3.1.inst_convs.3", "prior_occluder_branch.3.1.inst_convs.3"],
-    #     "prior_instance_branch.3.inst_convs.10": ["prior_instance_branch.3.1.inst_convs.4", "prior_occluder_branch.3.1.inst_convs.4"],
-
-    #     "prior_instance_branch.4.inst_convs.0":  ["prior_instance_branch.4.0.inst_convs.0", "prior_occluder_branch.4.0.inst_convs.0"],
-    #     "prior_instance_branch.4.inst_convs.1":  ["prior_instance_branch.4.0.inst_convs.1", "prior_occluder_branch.4.0.inst_convs.1"],
-    #     "prior_instance_branch.4.inst_convs.3":  ["prior_instance_branch.4.0.inst_convs.3", "prior_occluder_branch.4.0.inst_convs.3"],
-    #     "prior_instance_branch.4.inst_convs.4":  ["prior_instance_branch.4.0.inst_convs.4", "prior_occluder_branch.4.0.inst_convs.4"],
-    #     "prior_instance_branch.4.inst_convs.6":  ["prior_instance_branch.4.1.inst_convs.0", "prior_occluder_branch.4.1.inst_convs.0"],
-    #     "prior_instance_branch.4.inst_convs.7":  ["prior_instance_branch.4.1.inst_convs.1", "prior_occluder_branch.4.1.inst_convs.1"],
-    #     "prior_instance_branch.4.inst_convs.9":  ["prior_instance_branch.4.1.inst_convs.3", "prior_occluder_branch.4.1.inst_convs.3"],
-    #     "prior_instance_branch.4.inst_convs.10": ["prior_instance_branch.4.1.inst_convs.4", "prior_occluder_branch.4.1.inst_convs.4"],
-    # }
-
-
-    # prior_instance_branch_mappings = {
-    #     "prior_instance_branch.0.inst_convs.0":  ["prior_instance_branch.0.0.inst_convs.0", "prior_occluder_branch.0.0.inst_convs.0"],
-    #     "prior_instance_branch.0.inst_convs.1":  ["prior_instance_branch.0.0.inst_convs.1", "prior_occluder_branch.0.0.inst_convs.1"],
-    #     "prior_instance_branch.0.inst_convs.3":  ["prior_instance_branch.0.0.inst_convs.3", "prior_occluder_branch.0.0.inst_convs.3"],
-    #     "prior_instance_branch.0.inst_convs.4":  ["prior_instance_branch.0.0.inst_convs.4", "prior_occluder_branch.0.0.inst_convs.4"],
-    #     "prior_instance_branch.0.inst_convs.6":  ["prior_instance_branch.0.1.inst_convs.0", "prior_occluder_branch.0.1.inst_convs.0"],
-    #     "prior_instance_branch.0.inst_convs.7":  ["prior_instance_branch.0.1.inst_convs.1", "prior_occluder_branch.0.1.inst_convs.1"],
-    #     "prior_instance_branch.0.inst_convs.9":  ["prior_instance_branch.0.1.inst_convs.3", "prior_occluder_branch.0.1.inst_convs.3"],
-    #     "prior_instance_branch.0.inst_convs.10": ["prior_instance_branch.0.1.inst_convs.4", "prior_occluder_branch.0.1.inst_convs.4"],
-        
-    #     "prior_instance_branch.0.inst_convs.6":  ["prior_instance_branch.0.2.inst_convs.0", "prior_occluder_branch.0.2.inst_convs.0"],
-    #     "prior_instance_branch.0.inst_convs.7":  ["prior_instance_branch.0.2.inst_convs.1", "prior_occluder_branch.0.2.inst_convs.1"],
-    #     "prior_instance_branch.0.inst_convs.9":  ["prior_instance_branch.0.2.inst_convs.3", "prior_occluder_branch.0.2.inst_convs.3"],
-    #     "prior_instance_branch.0.inst_convs.10": ["prior_instance_branch.0.2.inst_convs.4", "prior_occluder_branch.0.2.inst_convs.4"],
- 
-
-    #     "prior_instance_branch.1.inst_convs.0":  ["prior_instance_branch.1.0.inst_convs.0", "prior_occluder_branch.1.0.inst_convs.0"],
-    #     "prior_instance_branch.1.inst_convs.1":  ["prior_instance_branch.1.0.inst_convs.1", "prior_occluder_branch.1.0.inst_convs.1"],
-    #     "prior_instance_branch.1.inst_convs.3":  ["prior_instance_branch.1.0.inst_convs.3", "prior_occluder_branch.1.0.inst_convs.3"],
-    #     "prior_instance_branch.1.inst_convs.4":  ["prior_instance_branch.1.0.inst_convs.4", "prior_occluder_branch.1.0.inst_convs.4"],
-    #     "prior_instance_branch.1.inst_convs.6":  ["prior_instance_branch.1.1.inst_convs.0", "prior_occluder_branch.1.1.inst_convs.0"],
-    #     "prior_instance_branch.1.inst_convs.7":  ["prior_instance_branch.1.1.inst_convs.1", "prior_occluder_branch.1.1.inst_convs.1"],
-    #     "prior_instance_branch.1.inst_convs.9":  ["prior_instance_branch.1.1.inst_convs.3", "prior_occluder_branch.1.1.inst_convs.3"],
-    #     "prior_instance_branch.1.inst_convs.10": ["prior_instance_branch.1.1.inst_convs.4", "prior_occluder_branch.1.1.inst_convs.4"],
-        
-    #     "prior_instance_branch.1.inst_convs.6":  ["prior_instance_branch.1.2.inst_convs.0", "prior_occluder_branch.1.2.inst_convs.0"],
-    #     "prior_instance_branch.1.inst_convs.7":  ["prior_instance_branch.1.2.inst_convs.1", "prior_occluder_branch.1.2.inst_convs.1"],
-    #     "prior_instance_branch.1.inst_convs.9":  ["prior_instance_branch.1.2.inst_convs.3", "prior_occluder_branch.1.2.inst_convs.3"],
-    #     "prior_instance_branch.1.inst_convs.10": ["prior_instance_branch.1.2.inst_convs.4", "prior_occluder_branch.1.2.inst_convs.4"],
-
-
-    #     "prior_instance_branch.2.inst_convs.0":  ["prior_instance_branch.2.0.inst_convs.0", "prior_occluder_branch.2.0.inst_convs.0"],
-    #     "prior_instance_branch.2.inst_convs.1":  ["prior_instance_branch.2.0.inst_convs.1", "prior_occluder_branch.2.0.inst_convs.1"],
-    #     "prior_instance_branch.2.inst_convs.3":  ["prior_instance_branch.2.0.inst_convs.3", "prior_occluder_branch.2.0.inst_convs.3"],
-    #     "prior_instance_branch.2.inst_convs.4":  ["prior_instance_branch.2.0.inst_convs.4", "prior_occluder_branch.2.0.inst_convs.4"],
-    #     "prior_instance_branch.2.inst_convs.6":  ["prior_instance_branch.2.1.inst_convs.0", "prior_occluder_branch.2.1.inst_convs.0"],
-    #     "prior_instance_branch.2.inst_convs.7":  ["prior_instance_branch.2.1.inst_convs.1", "prior_occluder_branch.2.1.inst_convs.1"],
-    #     "prior_instance_branch.2.inst_convs.9":  ["prior_instance_branch.2.1.inst_convs.3", "prior_occluder_branch.2.1.inst_convs.3"],
-    #     "prior_instance_branch.2.inst_convs.10": ["prior_instance_branch.2.1.inst_convs.4", "prior_occluder_branch.2.1.inst_convs.4"],
-
-    #     "prior_instance_branch.2.inst_convs.6":  ["prior_instance_branch.2.2.inst_convs.0", "prior_occluder_branch.2.2.inst_convs.0"],
-    #     "prior_instance_branch.2.inst_convs.7":  ["prior_instance_branch.2.2.inst_convs.1", "prior_occluder_branch.2.2.inst_convs.1"],
-    #     "prior_instance_branch.2.inst_convs.9":  ["prior_instance_branch.2.2.inst_convs.3", "prior_occluder_branch.2.2.inst_convs.3"],
-    #     "prior_instance_branch.2.inst_convs.10": ["prior_instance_branch.2.2.inst_convs.4", "prior_occluder_branch.2.2.inst_convs.4"],
-
-
-    #     "prior_instance_branch.3.inst_convs.0":  ["prior_instance_branch.3.0.inst_convs.0", "prior_occluder_branch.3.0.inst_convs.0"],
-    #     "prior_instance_branch.3.inst_convs.1":  ["prior_instance_branch.3.0.inst_convs.1", "prior_occluder_branch.3.0.inst_convs.1"],
-    #     "prior_instance_branch.3.inst_convs.3":  ["prior_instance_branch.3.0.inst_convs.3", "prior_occluder_branch.3.0.inst_convs.3"],
-    #     "prior_instance_branch.3.inst_convs.4":  ["prior_instance_branch.3.0.inst_convs.4", "prior_occluder_branch.3.0.inst_convs.4"],
-    #     "prior_instance_branch.3.inst_convs.6":  ["prior_instance_branch.3.1.inst_convs.0", "prior_occluder_branch.3.1.inst_convs.0"],
-    #     "prior_instance_branch.3.inst_convs.7":  ["prior_instance_branch.3.1.inst_convs.1", "prior_occluder_branch.3.1.inst_convs.1"],
-    #     "prior_instance_branch.3.inst_convs.9":  ["prior_instance_branch.3.1.inst_convs.3", "prior_occluder_branch.3.1.inst_convs.3"],
-    #     "prior_instance_branch.3.inst_convs.10": ["prior_instance_branch.3.1.inst_convs.4", "prior_occluder_branch.3.1.inst_convs.4"],
-        
-    #     "prior_instance_branch.3.inst_convs.6":  ["prior_instance_branch.3.2.inst_convs.0", "prior_occluder_branch.3.2.inst_convs.0"],
-    #     "prior_instance_branch.3.inst_convs.7":  ["prior_instance_branch.3.2.inst_convs.1", "prior_occluder_branch.3.2.inst_convs.1"],
-    #     "prior_instance_branch.3.inst_convs.9":  ["prior_instance_branch.3.2.inst_convs.3", "prior_occluder_branch.3.2.inst_convs.3"],
-    #     "prior_instance_branch.3.inst_convs.10": ["prior_instance_branch.3.2.inst_convs.4", "prior_occluder_branch.3.2.inst_convs.4"],
-
-
-    #     "prior_instance_branch.4.inst_convs.0":  ["prior_instance_branch.4.0.inst_convs.0", "prior_occluder_branch.4.0.inst_convs.0"],
-    #     "prior_instance_branch.4.inst_convs.1":  ["prior_instance_branch.4.0.inst_convs.1", "prior_occluder_branch.4.0.inst_convs.1"],
-    #     "prior_instance_branch.4.inst_convs.3":  ["prior_instance_branch.4.0.inst_convs.3", "prior_occluder_branch.4.0.inst_convs.3"],
-    #     "prior_instance_branch.4.inst_convs.4":  ["prior_instance_branch.4.0.inst_convs.4", "prior_occluder_branch.4.0.inst_convs.4"],
-    #     "prior_instance_branch.4.inst_convs.6":  ["prior_instance_branch.4.1.inst_convs.0", "prior_occluder_branch.4.1.inst_convs.0"],
-    #     "prior_instance_branch.4.inst_convs.7":  ["prior_instance_branch.4.1.inst_convs.1", "prior_occluder_branch.4.1.inst_convs.1"],
-    #     "prior_instance_branch.4.inst_convs.9":  ["prior_instance_branch.4.1.inst_convs.3", "prior_occluder_branch.4.1.inst_convs.3"],
-    #     "prior_instance_branch.4.inst_convs.10": ["prior_instance_branch.4.1.inst_convs.4", "prior_occluder_branch.4.1.inst_convs.4"],
-        
-    #     "prior_instance_branch.4.inst_convs.6":  ["prior_instance_branch.4.2.inst_convs.0", "prior_occluder_branch.4.2.inst_convs.0"],
-    #     "prior_instance_branch.4.inst_convs.7":  ["prior_instance_branch.4.2.inst_convs.1", "prior_occluder_branch.4.2.inst_convs.1"],
-    #     "prior_instance_branch.4.inst_convs.9":  ["prior_instance_branch.4.2.inst_convs.3", "prior_occluder_branch.4.2.inst_convs.3"],
-    #     "prior_instance_branch.4.inst_convs.10": ["prior_instance_branch.4.2.inst_convs.4", "prior_occluder_branch.4.2.inst_convs.4"],
-    # }
-
-
-
-# NOTE: needed to refactor older version file structure in model_files -- done
-def modify_import_statements(cfg: cfg, model_files):
-    """
-    Dynamically load model files
-    """
-    model_file = f'{model_files}/{cfg.model.arch}.py'
-
-    # Read the content of the model.py file
-    with open(model_file, 'r') as f:
-        model_content = f.read()
-
-    # Modify the import statements
-    # model_content = model_content.replace(
-    #     f"{MODEL_FILES}/heads/instance_head/instance_head.py",
-    #     f"{model_files}/instance_head.py"
-    # )
-
-    # model_content = model_content.replace(
-    #     "from models.seg.heads.instance_head import InstanceBranch, PriorInstanceBranch, GroupInstanceBranch",
-    #     '# Specify the path to instance_head.py\n'
-    #     f'instance_head_file = "{model_files}/instance_head.py"\n\n'
-    #     '# Load the instance_head.py file as a module\n'
-    #     'spec = importlib.util.spec_from_file_location("instance_head", instance_head_file)\n'
-    #     'instance_head = importlib.util.module_from_spec(spec)\n'
-    #     'spec.loader.exec_module(instance_head)\n\n'
-    #     'InstanceBranch = instance_head.InstanceBranch\n'
-    #     'PriorInstanceBranch = instance_head.PriorInstanceBranch\n'
-    #     'GroupInstanceBranch = instance_head.GroupInstanceBranch'
-    # )
-
-    # if cfg.verbose: 
-    #     print(f"Modified imports: "
-    #           f"\n- {model_file} "
-    #           f"\n[{MODEL_FILES}/heads/instance_head/instance_head.py] -> [{model_files}/instance_head.py]")
-
-    # Create a temporary modified file
-    with open(model_file, 'w') as f:
-        f.write(model_content)

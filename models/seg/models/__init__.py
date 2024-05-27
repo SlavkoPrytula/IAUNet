@@ -17,10 +17,8 @@
 # from .custom.resnet.resnet_iaunet_multitask_ml import IAUNet
 # from .custom.resnet.resnet_iaunet_occluders import IAUNet
 
-from ..encoders.resnet import ResNet
-from ..encoders.swin import SwinTransformer
-
 from .iaunet.iaunet import IAUNet
+from .iaunet.iaunet_ml import IAUNet
 
 
 # __all__ = ["SparseSEUnet", "IAUNet", "IAUNetDeepSupervision", "IAUNetLarge", "SparseSEUnetResidual"]

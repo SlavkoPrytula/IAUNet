@@ -59,22 +59,30 @@ class Model:
     # inst_dim: int     = 256
 
     # backbone.
+    backbone=dict(
+        type='ResNet',
+        depth=50,
+        num_stages=4,
+        out_indices=(1, 2, 3, 4),
+        pretrained=True
+    )
     # backbone=dict(
-    #     type='ResNet',
-    #     depth=50,
-    #     num_stages=4,
-    #     out_indices=(0, 1, 2, 3, 4),
+    #     type='SwinTransformer',
+    #     embed_dim=96,
+    #     depths=[2, 2, 18, 2],
+    #     num_heads=[3, 6, 12, 24],
+    #     # embed_dim=128,
+    #     # depths=[2, 2, 18, 2],
+    #     # num_heads=[4, 8, 16, 32],
+    #     out_indices=(0, 1, 2, 3),
     #     pretrained=True
     # )
-    backbone=dict(
-        type='SwinTransformer',
-    )
 
     # instance head.
     instance_head=dict(
-        type="InstanceHead-v1.1",
+        # type="InstanceHead-v1.1",
         # type="InstanceHead-v3-multiheaded",
-        # type="InstanceHead-v1.2-occluders",
+        type="InstanceHead-v1.2-occluders",
         in_channels=256,
         num_convs=2,
         num_classes=num_classes,

@@ -3,25 +3,27 @@ import torch
 from torch import nn
 from torch.nn import functional as F
 from fvcore.nn.weight_init import c2_msra_fill
+from torch.nn import init
 
 import sys
 sys.path.append("./")
 
-# from models.seg.heads.instance_head import InstanceHead, InstanceBranch
-# from models.seg.heads.mask_head import MaskBranch
-
-# from models.seg.models.base import DoubleConv, SE_block
-# from models.seg.blocks.tests import (PyramidPooling, PyramidPooling_v3, PyramidPooling_v5, 
-#                              DoubleConv_v2, DoubleConv_v3, DoubleConvModule)
-
-
-from ...heads.instance_head import InstanceHead, InstanceBranch
-from ...heads.mask_head import MaskBranch
-
+from models.seg.heads.instance_head import InstanceHead, InstanceBranch
+from models.seg.heads.mask_head import MaskBranch
 from models.seg.models.base import BaseModel
+
 from models.seg.models.base import DoubleConv, SE_block
-from ...nn.blocks import (PyramidPooling, PyramidPooling_v3, PyramidPooling_v5, 
-                             DoubleConv_v2, DoubleConv_v3, DoubleConvModule)
+from models.seg.nn.blocks import (PyramidPooling, PyramidPooling_v3, PyramidPooling_v5, 
+                             DoubleConv_v2, DoubleConv_v3, DoubleConv_v3_1, DoubleConvModule)
+
+
+# from ...heads.instance_head import InstanceHead, InstanceBranch
+# from ...heads.mask_head import MaskBranch
+
+# from models.seg.models.base import BaseModel
+# from models.seg.models.base import DoubleConv, SE_block
+# from ...nn.blocks import (PyramidPooling, PyramidPooling_v3, PyramidPooling_v5, 
+#                              DoubleConv_v2, DoubleConv_v3, DoubleConv_v4, DoubleConvModule)
 
 from configs import cfg
 from utils.registry import MODELS, HEADS
@@ -42,6 +44,8 @@ class IAUNet(BaseModel):
             SE_block(num_features=embed_dims[-1]),
         )
         
+        # TODO: all of this should go into the decoder (struct)
+        # eg. decoder=(type="iadecoder"), decoder=(type="iadecoder-ml")
         embed_dims = embed_dims[::-1]
         self.up_conv_layers = nn.ModuleList([])
         for i in range(self.n_levels):
@@ -103,12 +107,19 @@ class IAUNet(BaseModel):
 
 
     def _init_weights(self):
-        for modules in [self.up_conv_layers]:
-            for l in modules.modules():
-                if isinstance(l, nn.Conv2d):
-                    torch.nn.init.normal_(l.weight, std=0.01)
-                    if l.bias is not None:
-                        nn.init.constant_(l.bias, 0)
+        for modules in [self.up_conv_layers, self.bridge]:
+            for m in modules.modules():
+                if isinstance(m, nn.Conv2d):
+                    init.kaiming_normal_(m.weight, mode='fan_out', nonlinearity='relu')
+                    if m.bias is not None:
+                        init.constant_(m.bias, 0)
+                elif isinstance(m, nn.BatchNorm2d):
+                    init.constant_(m.weight, 1)
+                    init.constant_(m.bias, 0)
+                elif isinstance(m, nn.Linear):
+                    init.normal_(m.weight, std=0.01)
+                    if m.bias is not None:
+                        init.constant_(m.bias, 0)
 
         c2_msra_fill(self.projection)
         
