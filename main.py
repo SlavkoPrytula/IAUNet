@@ -19,7 +19,8 @@ from dataset.dataloaders import (build_loader,
                                  build_loader_ms,
                                  empty_collate_fn, 
                                  metadata_collate_fn, 
-                                 trivial_batch_collator)
+                                 trivial_batch_collator, 
+                                 worker_init_fn)
 from utils.augmentations import train_transforms, valid_transforms
 from utils.augmentations import normalize
 
@@ -80,7 +81,7 @@ makedirs(cfg.save_dir / 'checkpoints', exist_ok=True)
 makedirs(cfg.save_dir / 'results', exist_ok=True)
 
 # save results.
-cfg.csv = cfg.save_dir / 'results.csv'
+# cfg.csv = cfg.save_dir / 'results.csv'
 
 # set logger.
 # cfg.log = cfg.save_dir / 'output.log'
@@ -95,7 +96,6 @@ cfg.csv = cfg.save_dir / 'results.csv'
 #     )
 
 
-
 # @hydra.main(version_base=None, config_name="config")
 def run(cfg: cfg):
 # def run(rank, world_size):
@@ -104,7 +104,6 @@ def run(cfg: cfg):
     set_seed(cfg.seed)
 
     # - get dataloaders
-    # train_loader, valid_loader = get_dataloaders(cfg, df, fold=fold_i)
     print(DATASETS)
     dataset = DATASETS.get(cfg.dataset.type)
 
@@ -122,11 +121,13 @@ def run(cfg: cfg):
     train_dataloader = build_loader(train_dataset, 
                                     batch_size=cfg.train.batch_size, 
                                     num_workers=2, 
-                                    collate_fn=trivial_batch_collator) #empty_collate_fn)
+                                    collate_fn=trivial_batch_collator, 
+                                    seed=cfg.seed)
     valid_dataloader = build_loader(valid_dataset, 
                                     batch_size=cfg.valid.batch_size, 
                                     num_workers=2, 
-                                    collate_fn=trivial_batch_collator) #empty_collate_fn)
+                                    collate_fn=trivial_batch_collator, 
+                                    seed=cfg.seed)
     
     # - build and prepare model
     model = build_model(cfg)

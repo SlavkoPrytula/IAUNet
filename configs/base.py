@@ -31,8 +31,8 @@ class Valid:
 # resnet50 + DoubleConv_v2 + num_convs=2
 # num_heads=8, InstanceHead-v3-multiheaded + IAM
 class Model:
-    # type: str         = 'iaunet'
-    type: str         = 'iaunet_ml'
+    type: str         = 'iaunet'
+    # type: str         = 'iaunet_ml'
     # type: str         = 'iaunet_occluders'
     # type: str         = 'custom-truncated_decoder-iaunet'
     # type: str         = 'custom-truncated_decoder-iaunet_double_decoder'
@@ -74,11 +74,11 @@ class Model:
 
     # instance head.
     instance_head=dict(
-        # type="InstanceHead-v1.1",
+        type="InstanceHead-v1.1",
         # type="InstanceHead-v3-multiheaded",
         # type="InstanceHead-v1.2-occluders",
         # type="InstanceHead-v1.3-overlaps",
-        type="Refiner",
+        # type="Refiner",
         in_channels=256,
         num_convs=2,
         num_classes=num_classes,
