@@ -1,23 +1,14 @@
 import os
 from os.path import join
+import re
 from datetime import datetime
 import sys
 sys.path.append("./")
-from configs.utils import BaseConfig, _dict as dict
+from configs.utils import BaseConfig, dict
 
 
 TIME = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
 JOB_ID = os.environ.get('SLURM_JOB_ID')
-
-
-class Image:
-    size: int   = 1080
-
-
-class Project:
-    home_dir: str    = '/gpfs/space/home/prytula'
-    work_dir: str    = join(home_dir, 'data/mask_labels/x63_fl') # home_dir + data_dir
-    project_id: str = 'project-2-at-2022-05-20-09-23-83cd15f1'
 
 
 # TODO: add Visuals cfg
@@ -25,7 +16,7 @@ class Project:
 
             
 class Train:
-    epochs: int     = 2000
+    epochs: int     = 250
     n_folds: int    = 5
     size: int       = [512, 512]
     batch_size: int = 16
@@ -35,13 +26,16 @@ class Train:
 class Valid:
     size: int       = [512, 512]
     batch_size: int = 1
-        
+    
 
 # resnet50 + DoubleConv_v2 + num_convs=2
-# num_heads=1, InstanceHead-v1.1 + IAM
+# num_heads=8, InstanceHead-v3-multiheaded + IAM
 class Model:
-    type: str         = 'iaunet'
-    # arch: str         = 'resnet_iaunet_occluders'
+    # type: str         = 'iaunet'
+    type: str         = 'iaunet_ml'
+    # type: str         = 'iaunet_occluders'
+    # type: str         = 'custom-truncated_decoder-iaunet'
+    # type: str         = 'custom-truncated_decoder-iaunet_double_decoder'
     
     # model structure.
     in_channels: int  = 3
@@ -82,7 +76,9 @@ class Model:
     instance_head=dict(
         # type="InstanceHead-v1.1",
         # type="InstanceHead-v3-multiheaded",
-        type="InstanceHead-v1.2-occluders",
+        # type="InstanceHead-v1.2-occluders",
+        # type="InstanceHead-v1.3-overlaps",
+        type="Refiner",
         in_channels=256,
         num_convs=2,
         num_classes=num_classes,
@@ -103,8 +99,10 @@ class Model:
         # losses=["masks"], 
         losses=["labels", "masks"], 
         # losses=["labels", "masks", "iou"], 
+        # losses=["labels", "masks", "occluders"], 
         # losses=["labels", "masks", "overlaps"], 
-        # losses=["labels", "masks", "borders"], 
+        # losses=["labels", "masks", "occluders", "overlaps"], 
+        # losses=["labels", "masks", "iams"], 
         # losses=["labels", "masks", "bboxes"], 
         weights=dict(
             labels=2.0,
@@ -181,13 +179,14 @@ class Dataset:
 
 class Run:
     runs_dir: str           = 'runs'
-    experiment_name: str    = f'{"/".join(f"[{i}]" for i in Model.type.split("-"))}'
+    experiment_name: str    = f'{"/".join(f"[{i}]" for i in re.split("-/", Model.type))}'
     run_name: str           = f'[{Model.backbone.type}]/[{Dataset.name}]/[{Model.instance_head.activation}_iam]/[kernel_dim={Model.instance_head.kernel_dim}]-[multi_level={Model.multi_level}]-[coord_conv={Model.coord_conv}]-[losses={Model.criterion.losses}]'
-    group_name: str           = f'[base]'
+    # group_name: str           = f'[base]'
     # group_name: str           = f'[experimental]'
     # group_name: str           = f'[resnet_encoder]'
-    # group_name: str           = f'[ia_groups]'
+    # group_name: str           = f'[multihead-iam]'
     # group_name: str           = f'[occluders]'
+    group_name: str           = f'[{Model.instance_head.type}]'
     exist_ok: bool          = False
     comment: str            = """
                                 - new bf dataset (brightfield_coco_v2.0)
@@ -204,8 +203,6 @@ class cfg(BaseConfig):
     model: Model           = Model
     train: Train           = Train
     valid: Valid           = Valid
-    project: Project       = Project
-    image: Image           = Image
     run: Run               = Run
     dataset: Dataset       = Dataset
     
@@ -230,8 +227,10 @@ class cfg(BaseConfig):
 
     seed: int = 3407
     device: str = "cuda"
+    gpus: int = 2
     verbose: bool = True
     wandb: Wandb = Wandb
+
     
 
 cfg = cfg()

@@ -8,7 +8,7 @@ from zipfile import ZipFile
 import shutil
 
 
-def increment_path(path, exist_ok=False, sep='', mkdir=False):
+def increment_path(path, exist_ok=False, sep='_', mkdir=False):
     """
     Increments a file or directory path, i.e. runs/exp --> runs/exp{sep}2, runs/exp{sep}3, ... etc.
     If the path exists and exist_ok is not set to True, the path will be incremented by appending a number and sep to

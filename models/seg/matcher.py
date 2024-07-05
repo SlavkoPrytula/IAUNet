@@ -273,7 +273,7 @@ class PointSampleHungarianMatcher(nn.Module):
                 out_mask = out_mask.float()
                 tgt_mask = tgt_mask.float()
 
-                # Compute the focal loss between masks
+                # Compute the bce loss between masks
                 cost_mask = batch_sigmoid_ce_loss_jit(out_mask, tgt_mask)
 
                 # Compute the dice loss betwen masks

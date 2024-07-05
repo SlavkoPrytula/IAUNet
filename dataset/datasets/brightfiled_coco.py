@@ -141,6 +141,7 @@ class BrightfieldCOCO(BaseCOCODataset):
 
 if __name__ == "__main__":
     from utils.visualise import visualize, visualize_grid_v2, plot3d
+    from visualizations import visualize_masks
     from utils.augmentations import normalize
     from utils.augmentations import train_transforms, valid_transforms
     from utils.registry import DATASETS_CFG
@@ -150,14 +151,14 @@ if __name__ == "__main__":
     
     cfg.dataset = DATASETS_CFG.get("brightfield_coco_v2.0")
 
-    dataset = BrightfieldCOCO(cfg, dataset_type="train",
+    dataset = BrightfieldCOCO(cfg, dataset_type="valid",
                       normalization=normalize,
-                      transform=train_transforms(cfg)
+                      transform=valid_transforms(cfg)
                       )
     
     print(len(dataset))
 
-    targets = dataset[0]
+    targets = dataset[5]
 
     time_e = time.time()
     print(f'loaded in {time_e - time_s}(s)')
@@ -171,8 +172,26 @@ if __name__ == "__main__":
     print(f'std: {targets["image"].std(dim=(1, 2))}, mean: {targets["image"].mean(dim=(1, 2))}')
 
     
-    visualize(images=targets["image"][0, ...], path='./test_image.jpg', cmap='gray',)
-    visualize(images=flatten_mask(targets["masks"].numpy(), axis=0)[0], path='./test_mask.jpg', cmap='gray',)
+    # visualize(images=targets["image"][0, ...], path='./test_image.jpg', cmap='gray',)
+    import matplotlib.pyplot as plt
+    plt.figure(figsize=(30, 30))
+    plt.imshow(targets["image"][0, ...], cmap='gray')
+    plt.axis('off')
+    plt.tight_layout()
+    
+    plt.savefig(f"./test_image.jpg", bbox_inches='tight', pad_inches=0)
+    plt.close()
+    
+    mask = flatten_mask(targets["masks"].numpy(), axis=0)[0]
+    mask[mask > 1] = 1
+    plt.figure(figsize=(30, 30))
+    plt.imshow(mask, cmap='viridis')
+    plt.axis('off')
+    plt.tight_layout()
+    
+    plt.savefig(f"./test_mask.jpg", bbox_inches='tight', pad_inches=0)
+    plt.close()
+    # visualize(images=mask, path='./test_mask.jpg', cmap='viridis',)
     # visualize(images=flatten_mask(targets["masks"].numpy(), axis=0)[0], path='./test_mask.jpg', cmap='gray',)
 
     
@@ -181,12 +200,12 @@ if __name__ == "__main__":
     bboxes = box_cxcywh_to_xyxy(targets["bboxes"])
     bboxes = bboxes * torch.tensor([w, h, w, h], dtype=torch.float32)
 
-    visualize_grid_v2(
-        masks=targets["masks"].numpy(), 
-        bboxes=bboxes.numpy(), 
-        path='./test_inst.jpg',
-        ncols=5
-    )
+    # visualize_grid_v2(
+    #     masks=targets["masks"].numpy(), 
+    #     bboxes=bboxes.numpy(), 
+    #     path='./test_inst.jpg',
+    #     ncols=5
+    # )
 
     # visualize_grid_v2(
     #     masks=targets["occluders"].numpy(), 
@@ -194,4 +213,15 @@ if __name__ == "__main__":
     #     ncols=5
     # )
     
+
+    # H, W = targets["ori_shape"]
+    # visualize_masks(
+    #     img=targets["image"][0, ...],
+    #     masks=targets["masks"],
+    #     shape=[H, W],
+    #     alpha=0.65,
+    #     draw_border=True, 
+    #     static_color=False,
+    #     path='./test_mask.jpg'
+    # )
     

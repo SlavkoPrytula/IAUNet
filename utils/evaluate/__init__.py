@@ -1,6 +1,9 @@
 from .mmdet_dataloader_evaluator import MMDetDataloaderEvaluator
-from .analysis_dataloader_evaluator import AnalysisDataloaderEvaluator
+from .custom.analysis_dataloader_evaluator import AnalysisDataloaderEvaluator
+from .custom.one2one_matching_evaluator import One2OneMatchingEvaluator
+from .custom.iterative_evaluator import IterativeEvaluator
 
 
 
-__all__ = ["MMDetDataloaderEvaluator", "AnalysisDataloaderEvaluator"]
+__all__ = ["MMDetDataloaderEvaluator", "AnalysisDataloaderEvaluator", 
+           "One2OneMatchingEvaluator", "IterativeEvaluator"]

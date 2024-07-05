@@ -25,6 +25,7 @@ def run_training(
         optimizer, 
         scheduler,
         evaluators,
+        device
         ):
     
     num_epochs = cfg.train.epochs + 1
@@ -45,7 +46,7 @@ def run_training(
                                   optimizer=optimizer, 
                                   scheduler=scheduler,
                                   dataloader=train_dataloader,
-                                  device=cfg.device, 
+                                  device=device, 
                                   epoch=epoch
                                   )
 
@@ -53,7 +54,7 @@ def run_training(
                                   optimizer=optimizer, 
                                   scheduler=scheduler,
                                   dataloader=valid_dataloader,
-                                  device=cfg.device, 
+                                  device=device, 
                                   epoch=epoch,
                                   evaluators=evaluators
                                   )

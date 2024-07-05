@@ -1,6 +1,5 @@
 from os.path import join
-from .base import Project, Image, dict
-# from configs.base import Project, Image, dict
+from .base import dict
 from utils.registry import DATASETS_CFG
 
 
@@ -11,28 +10,28 @@ class COCODataset:
 
 
 # ==================== Brightfield v1.0 ====================
-class Brightfield(COCODataset):
-    name: str = 'brightfield' # loading cfg
-    type: str = 'brightfield' # loading dataset
-    coco_dataset: str      = join(Project.work_dir, f'coco/{Project.project_id}', 'result.json')
+# class Brightfield(COCODataset):
+#     name: str = 'brightfield' # loading cfg
+#     type: str = 'brightfield' # loading dataset
+#     coco_dataset: str      = join(Project.work_dir, f'coco/{Project.project_id}', 'result.json')
 
-    # ---------------
-    # original data
-    bf_images: str         = join(Project.work_dir, f'np/plane_images/{Project.project_id}/bf_lower_higher')
-    bf_image_name: str     = f'X_{Image.size}_bf_lower_higher_v1'
-    masks: str             = join(Project.work_dir, f'np/multi_headed_segmentation/4_channel_segmentation/{Project.project_id}')
-    masks_name: str        = f'Y_{Image.size}_bordered_masks_bsz-4_v1'
+#     # ---------------
+#     # original data
+#     bf_images: str         = join(Project.work_dir, f'np/plane_images/{Project.project_id}/bf_lower_higher')
+#     bf_image_name: str     = f'X_{Image.size}_bf_lower_higher_v1'
+#     masks: str             = join(Project.work_dir, f'np/multi_headed_segmentation/4_channel_segmentation/{Project.project_id}')
+#     masks_name: str        = f'Y_{Image.size}_bordered_masks_bsz-4_v1'
 
-    # ---------------
-    # flow maps
-    flow_masks: str        = join(Project.work_dir, f'np/overlap_segmentation/flow_maps')
-    flow_masks_name: str   = f'Y_{Image.size}_flow_grad_map_[cellpose]'
+#     # ---------------
+#     # flow maps
+#     flow_masks: str        = join(Project.work_dir, f'np/overlap_segmentation/flow_maps')
+#     flow_masks_name: str   = f'Y_{Image.size}_flow_grad_map_[cellpose]'
 
-    # ---------------
-    # fl
-    fl_masks: str          = '/gpfs/space/projects/PerkinElmer/exhaustive_dataset/exhaustive_dataset_gt/acapella/63x_water_nc_41FOV_NIH3T3/Nuclei'
-    dataset_x63_dir: str   = join('/gpfs/space/projects/PerkinElmer/exhaustive_dataset/PhaseImagesDL/', 'e696ed04-bec0-4061-adc4-4ee935973439/')
-    csv_dataset_dir: str   = join(dataset_x63_dir, '63x_water_nc_41FOV.csv')
+#     # ---------------
+#     # fl
+#     fl_masks: str          = '/gpfs/space/projects/PerkinElmer/exhaustive_dataset/exhaustive_dataset_gt/acapella/63x_water_nc_41FOV_NIH3T3/Nuclei'
+#     dataset_x63_dir: str   = join('/gpfs/space/projects/PerkinElmer/exhaustive_dataset/PhaseImagesDL/', 'e696ed04-bec0-4061-adc4-4ee935973439/')
+#     csv_dataset_dir: str   = join(dataset_x63_dir, '63x_water_nc_41FOV.csv')
 
 
 class BrightfieldCOCO(COCODataset):
@@ -55,34 +54,34 @@ class BrightfieldCOCO(COCODataset):
 
 
 
-class Synthetic_Brightfield(Brightfield):
-    name: str = 'synthetic_brightfield'
+# class Synthetic_Brightfield(Brightfield):
+#     name: str = 'synthetic_brightfield'
     
-    images: str = "/gpfs/space/home/prytula/data/datasets/cytoplasm_segmentation/synthetic_brightfield/[1024x1024]_[bf]_[not_normalized]_[aug4_scale]_[29.05.23]/images"
-    masks: str  = "/gpfs/space/home/prytula/data/datasets/cytoplasm_segmentation/synthetic_brightfield/[1024x1024]_[bf]_[not_normalized]_[aug4_scale]_[29.05.23]/masks"
+#     images: str = "/gpfs/space/home/prytula/data/datasets/cytoplasm_segmentation/synthetic_brightfield/[1024x1024]_[bf]_[not_normalized]_[aug4_scale]_[29.05.23]/images"
+#     masks: str  = "/gpfs/space/home/prytula/data/datasets/cytoplasm_segmentation/synthetic_brightfield/[1024x1024]_[bf]_[not_normalized]_[aug4_scale]_[29.05.23]/masks"
 
 
-class OriginalPlusSynthetic_Brightfield(Brightfield):
-    name: str = 'original_plus_synthetic_brightfield'
+# class OriginalPlusSynthetic_Brightfield(Brightfield):
+#     name: str = 'original_plus_synthetic_brightfield'
     
-    coco_dataset: str = join(Project.work_dir, f'coco/{Project.project_id}', 'result.json')
+#     coco_dataset: str = join(Project.work_dir, f'coco/{Project.project_id}', 'result.json')
 
-    images: str = "/gpfs/space/home/prytula/data/datasets/cytoplasm_segmentation/synthetic_brightfield/[1024x1024]_[bf]_[not_normalized]_[aug4_scale]_[29.05.23]/images"
-    masks: str  = "/gpfs/space/home/prytula/data/datasets/cytoplasm_segmentation/synthetic_brightfield/[1024x1024]_[bf]_[not_normalized]_[aug4_scale]_[29.05.23]/masks"
+#     images: str = "/gpfs/space/home/prytula/data/datasets/cytoplasm_segmentation/synthetic_brightfield/[1024x1024]_[bf]_[not_normalized]_[aug4_scale]_[29.05.23]/images"
+#     masks: str  = "/gpfs/space/home/prytula/data/datasets/cytoplasm_segmentation/synthetic_brightfield/[1024x1024]_[bf]_[not_normalized]_[aug4_scale]_[29.05.23]/masks"
 
 
 
 
 # ==================== Brightfield v2.0 ====================
-class Brightfield_v2(COCODataset):
-    name: str = 'brightfield_v2.0' # loading cfg
-    type: str = 'brightfield' # loading dataset
+# class Brightfield_v2(COCODataset):
+#     name: str = 'brightfield_v2.0' # loading cfg
+#     type: str = 'brightfield' # loading dataset
 
-    project_id: str = 'project-13-at-2024-02-01-10-11-c755c30f'
+#     project_id: str = 'project-13-at-2024-02-01-10-11-c755c30f'
     
-    coco_dataset: str      = join(Project.work_dir, f'coco/{project_id}', 'result.json')
-    dataset_x63_dir: str   = join('/gpfs/space/projects/PerkinElmer/exhaustive_dataset/PhaseImagesDL/', 'e696ed04-bec0-4061-adc4-4ee935973439/')
-    csv_dataset_dir: str   = join(dataset_x63_dir, '63x_water_nc_41FOV.csv')
+#     coco_dataset: str      = join(Project.work_dir, f'coco/{project_id}', 'result.json')
+#     dataset_x63_dir: str   = join('/gpfs/space/projects/PerkinElmer/exhaustive_dataset/PhaseImagesDL/', 'e696ed04-bec0-4061-adc4-4ee935973439/')
+#     csv_dataset_dir: str   = join(dataset_x63_dir, '63x_water_nc_41FOV.csv')
 
 
 class BrightfieldCOCO_v2(COCODataset):
@@ -387,8 +386,9 @@ class Worms(COCODataset):
 
     valid_dataset=dict(
         images=None,
-        ann_file=join(data_root, "worms_[valid]_[max_s=3]_[min_l=0.01_max_l=0.5]_[min_t=30_max_t=30]_[n=1000]_[R_min=1_R_max=25]_[25.04.24].json")
-        # ann_file=join(data_root, "worms_[valid]_[max_s=4]_[min_l=0.01_max_l=0.5]_[min_t=30_max_t=30]_[n=1000]_[R_min=10_R_max=35]_[25.04.24].json")
+        # ann_file=join(data_root, "worms_[valid]_[max_s=3]_[min_l=0.01_max_l=0.5]_[min_t=30_max_t=30]_[n=1000]_[R_min=1_R_max=25]_[25.04.24].json")
+        ann_file=join(data_root, "worms_[valid]_[max_s=4]_[min_l=0.01_max_l=0.5]_[min_t=30_max_t=30]_[n=1000]_[R_min=10_R_max=35]_[25.04.24].json")
+        # ann_file=join(data_root, "worms_[valid]_[max_s=4]_[min_l=0.01_max_l=0.5]_[min_t=20_max_t=30]_[min_d=8]_[n=1000]_[R_min=10_R_max=35]_[19.06.24].json")
     )
 
     eval_dataset=valid_dataset
@@ -397,11 +397,11 @@ class Worms(COCODataset):
 
 
 # ==================== Exhaustive ====================
-DATASETS_CFG.register(Brightfield.name, Brightfield)
+# DATASETS_CFG.register(Brightfield.name, Brightfield)
 DATASETS_CFG.register(BrightfieldCOCO.name, BrightfieldCOCO)
-DATASETS_CFG.register(OriginalPlusSynthetic_Brightfield.name, OriginalPlusSynthetic_Brightfield)
+# DATASETS_CFG.register(OriginalPlusSynthetic_Brightfield.name, OriginalPlusSynthetic_Brightfield)
 
-DATASETS_CFG.register(Brightfield_v2.name, Brightfield_v2)
+# DATASETS_CFG.register(Brightfield_v2.name, Brightfield_v2)
 DATASETS_CFG.register(BrightfieldCOCO_v2.name, BrightfieldCOCO_v2)
 
 

@@ -241,7 +241,7 @@ def get_model_from_path(cfg: cfg):
 
     # import the module to register the model from model_files
     module = import_from_file(model_file, clear_cache=True)
-    model = MODELS.get(cfg.model.arch)(cfg=cfg)
+    model = MODELS.get(cfg.model.type)(cfg=cfg)
     
     return model
 

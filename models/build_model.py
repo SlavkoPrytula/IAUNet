@@ -3,9 +3,9 @@ from os import makedirs
 import shutil
 
 import torch
-from torch.nn.parallel import DistributedDataParallel
+from torch.nn.parallel import DistributedDataParallel as DDP
 
-from utils import comm
+from utils.comm import get_world_size, get_local_rank
 from configs import cfg
 
 from . import get_model, load_weights, save_model_files
@@ -16,12 +16,12 @@ __all__ = [
 
 
 def create_ddp_model(model, *, fp16_compression=False, **kwargs):
-    if comm.get_world_size() == 1:
+    if get_world_size() == 1:
         return model
     
     if "device_ids" not in kwargs:
-        kwargs["device_ids"] = [comm.get_local_rank()]
-    ddp = DistributedDataParallel(model, **kwargs)
+        kwargs["device_ids"] = [get_local_rank()]
+    ddp = DDP(model, **kwargs)
     if fp16_compression:
         from torch.distributed.algorithms.ddp_comm_hooks import default as comm_hooks
 
@@ -30,7 +30,7 @@ def create_ddp_model(model, *, fp16_compression=False, **kwargs):
 
 
 
-def build_model(cfg: cfg):
+def build_model(cfg: cfg, rank=None, world_size=None):
     model = get_model(cfg)
     print(model)
     
@@ -47,7 +47,11 @@ def build_model(cfg: cfg):
     if cfg.model.save_model_files:
         save_model_files(model_cfg=cfg.model, save_dir=cfg.save_dir)
 
+    # device = torch.device(f'cuda:{rank}' if torch.cuda.is_available() else 'cpu')
     model.to(cfg.device)
+    
+    # if rank is not None:
+    #     model = create_ddp_model(model, device_ids=[rank])
 
     return model
 

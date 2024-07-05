@@ -1,8 +1,12 @@
 from typing import Any, Callable, List, Optional
+import torch.utils
 from torch.utils.data import DataLoader, Dataset
 from torch.utils.data import Sampler, RandomSampler, SequentialSampler
-import numpy as np
+import torch
 import random
+
+import torch.utils.data
+import torch.utils.data.sampler
 
 
 def trivial_batch_collator(batch):
@@ -133,6 +137,7 @@ def build_loader(
     batch_size: int = 1,
     num_workers: int = 0,
     collate_fn: Optional[Callable[[List[Any]], Any]] = None,
+    sampler = torch.utils.data.Sampler
 ) -> DataLoader:
     """
     Similar to `build_detection_train_loader`, with default batch size = 1,
@@ -168,4 +173,5 @@ def build_loader(
         num_workers=num_workers,
         collate_fn=trivial_batch_collator if collate_fn is None else collate_fn,
         pin_memory=True, 
+        # sampler=sampler
     )

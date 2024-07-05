@@ -209,7 +209,7 @@ class SparseInstCriterion(nn.Module):
     
     def loss_overlaps(self, outputs, targets, indices, num_masks, **kwargs):
         return self._loss_masks(outputs, targets, indices, num_masks, name="overlap_masks")
-
+    
 
     def loss_boxes(self, outputs, targets, indices, num_boxes, **kwargs):
         """Compute the losses related to the bounding boxes, the L1 regression loss and the GIoU loss
@@ -239,7 +239,6 @@ class SparseInstCriterion(nn.Module):
             "bboxes": self.loss_boxes,
             "occluders": self.loss_occluders,
             "overlaps": self.loss_overlaps,
-            # "borders": self.loss_borders,
             "iou": self.loss_iou,
         }
         

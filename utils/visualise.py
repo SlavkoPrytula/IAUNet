@@ -80,7 +80,8 @@ def visualize_grid(figsize=(30, 30), images=None, path='./', rows=1):
 #     plt.close()
     
 
-def visualize_grid_v2(figsize=(10, 10), masks=None, bboxes=None, titles=None, ncols=5, nrows=None, path='./', **params):
+def visualize_grid_v2(figsize=(10, 10), masks=None, bboxes=None, titles=None, 
+                      ncols=5, nrows=None, path='./', **params):
     """
     Plots a grid of binary masks with bounding box annotations.
 
@@ -130,7 +131,6 @@ def visualize_grid_v2(figsize=(10, 10), masks=None, bboxes=None, titles=None, nc
     fig.tight_layout(pad=0.5)
     
     os.makedirs(os.path.dirname(path), exist_ok=True)
-
     plt.savefig(path)
     plt.close()
 

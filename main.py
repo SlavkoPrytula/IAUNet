@@ -27,6 +27,8 @@ from utils.augmentations import normalize
 from utils.seed import set_seed
 from configs.utils import save_config
 from utils.files import increment_path
+from utils.comm import setup, cleanup
+import torch.multiprocessing as mp
 
 from utils.optimizers import *
 from utils.schedulers import *
@@ -64,16 +66,16 @@ else:
     cfg.save_dir = join(cfg.save_dir, "temp")
 
 cfg.save_dir = Path(cfg.save_dir)
-makedirs(cfg.save_dir, exist_ok=True)
 print(f"Saving to {cfg.save_dir}\n")
 
 
 # save config.
 print(cfg)
 
-# save visuals.
+# create directories.
+makedirs(cfg.save_dir, exist_ok=True)
 makedirs(cfg.save_dir / 'train_visuals', exist_ok=True)
-makedirs(cfg.save_dir / 'valid_visuals', exist_ok=True)
+# makedirs(cfg.save_dir / 'valid_visuals', exist_ok=True)
 makedirs(cfg.save_dir / 'checkpoints', exist_ok=True)
 makedirs(cfg.save_dir / 'results', exist_ok=True)
 
@@ -96,6 +98,8 @@ cfg.csv = cfg.save_dir / 'results.csv'
 
 # @hydra.main(version_base=None, config_name="config")
 def run(cfg: cfg):
+# def run(rank, world_size):
+    # setup(rank, world_size)
     # set seed for reproducibility
     set_seed(cfg.seed)
 
@@ -117,13 +121,13 @@ def run(cfg: cfg):
 
     train_dataloader = build_loader(train_dataset, 
                                     batch_size=cfg.train.batch_size, 
-                                    num_workers=0, 
+                                    num_workers=2, 
                                     collate_fn=trivial_batch_collator) #empty_collate_fn)
     valid_dataloader = build_loader(valid_dataset, 
                                     batch_size=cfg.valid.batch_size, 
-                                    num_workers=0, 
+                                    num_workers=2, 
                                     collate_fn=trivial_batch_collator) #empty_collate_fn)
-
+    
     # - build and prepare model
     model = build_model(cfg)
 
@@ -144,7 +148,7 @@ def run(cfg: cfg):
     # TODO: this needs to be refactored
     # the evaluation should have information about the dataset
     # evaluator = EVALUATORS.get(cfg.model.evaluator.type)(cfg=cfg.model.evaluator)
-    # potentially with this you an add multiple datasets.
+    # potentially with this you can add multiple datasets.
     evaluators = {
         "valid": EVALUATORS.get(cfg.model.evaluator.type)(cfg=cfg, model=model, dataset=valid_dataset)
     }
@@ -167,8 +171,11 @@ def run(cfg: cfg):
                          valid_dataloader=valid_dataloader,
                          optimizer=optimizer, 
                          scheduler=scheduler,
-                         evaluators=evaluators
+                         evaluators=evaluators,
+                         device=cfg.device
                          )
+    # cleanup()
+    wandb.finish()
 
 
 
@@ -177,6 +184,10 @@ if __name__ == '__main__':
     run(cfg)
     wandb.finish()
 
+
+# if __name__ == "__main__":
+#     world_size = cfg.gpus
+#     mp.spawn(run, args=(world_size,), nprocs=world_size, join=True)
 
 
 # Examples:

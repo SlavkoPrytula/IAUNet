@@ -40,19 +40,20 @@ from visualizations.coco_vis import save_coco_vis
 
 def run(cfg: _cfg):
     # create directories.
-    # cfg.save_dir = increment_path(
-    #     join(cfg.run.runs_dir, "evals", cfg.run.experiment_name, cfg.run.run_name, cfg.run.group_name), 
-    #     exist_ok=cfg.run.exist_ok
-    #     )
-    # print(cfg.save_dir)
+    cfg.save_dir = Path(cfg.save_dir)
+    print(f"Saving to {cfg.save_dir}\n")
 
-    # cfg.visuals_dir = cfg.save_dir / 'visuals'
-    # makedirs(cfg.visuals_dir, exist_ok=True)
-    # makedirs(cfg.save_dir / 'results', exist_ok=True)
+    cfg.visuals_dir = cfg.save_dir / 'visuals'
+    cfg.results_dir = cfg.save_dir / 'results'
+    
+    increment_path(cfg.save_dir, exist_ok=True)
+    makedirs(cfg.visuals_dir, exist_ok=True)
+    makedirs(cfg.results_dir, exist_ok=True)
+
 
     # set seed for reproducibility.
     set_seed(cfg.seed)
-    
+
 
     # get dataloaders
     dataset = DATASETS.get(cfg.dataset.type)
@@ -61,11 +62,6 @@ def run(cfg: _cfg):
                             normalization=normalize, 
                             transform=valid_transforms(cfg)
                             )
-    # valid_dataset = dataset(cfg, 
-    #                         dataset_type="valid",
-    #                         normalization=normalize, 
-    #                         transform=valid_transforms(cfg)
-    #                         )
     
     valid_dataset = dataset(cfg, 
                             dataset_type="valid",
@@ -85,31 +81,30 @@ def run(cfg: _cfg):
     evaluator(valid_dataloader)
     evaluator.evaluate(verbose=True)
     
-
-    # # save results.
-    # stats = evaluator.stats
-    # results_dir = join(cfg.save_dir, 'results', 'evaluation_results.json')
-    # with open(results_dir, 'w') as file:
-    #     json.dump(stats, file, indent=4)
+    # save results.
+    stats = evaluator.stats
+    results_dir = join(cfg.results_dir, 'evaluation_results.json')
+    with open(results_dir, 'w') as file:
+        json.dump(stats, file, indent=4)
     
 
-    # # plot results.
-    # gt_coco = evaluator.gt_coco
-    # pred_coco = evaluator.pred_coco
+    # plot results.
+    gt_coco = evaluator.gt_coco
+    pred_coco = evaluator.pred_coco
 
-    # # TODO: 2config : Visualizations {n_samples: int = 5}
-    # # n_samples = len(valid_dataset)
-    # n_samples = 6
-    # for batch in islice(valid_dataloader, n_samples):
-    #     targets = batch[0]
+    # TODO: 2config : Visualizations {n_samples: int = 5}
+    # n_samples = len(valid_dataset)
+    n_samples = 6
+    for batch in islice(valid_dataloader, n_samples):
+        targets = batch[0]
         
-    #     img = targets["image"][0]
-    #     fname = targets["file_name"]
-    #     idx = targets["coco_id"]
-    #     H, W = targets["ori_shape"]
-    #     out_file = join(cfg.visuals_dir, f'{fname}.jpg')
+        img = targets["image"][0]
+        fname = targets["file_name"]
+        idx = targets["coco_id"]
+        H, W = targets["ori_shape"]
+        out_file = join(cfg.visuals_dir, f'{fname}.jpg')
 
-    #     save_coco_vis(img, gt_coco, pred_coco, idx, shape=[H, W], path=out_file)
+        save_coco_vis(img, gt_coco, pred_coco, idx, shape=[H, W], path=out_file)
 
 
 def get_config_from_path(path: str) -> _cfg:
@@ -133,7 +128,7 @@ if __name__ == '__main__':
     sys.path.append("./")
     args = parse_args()
 
-    experiment_path = Path("runs/[resnet_iaunet_occluders]/[worms]/[softmax_iam]/[kernel_dim=256]-[multi_level=True]-[coord_conv=True]-[losses=['labels', 'masks', 'overlaps']]/[base]/[job=51258314]-[2024-05-14 11:43:44]")
+    experiment_path = Path("runs/[iaunet_ml]/[ResNet]/[worms]/[softmax_iam]/[kernel_dim=256]-[multi_level=True]-[coord_conv=True]-[losses=['labels', 'masks']]/[Refiner]/[job=51697023]-[2024-07-04 11:04:31]")
     cfg = get_config_from_path(experiment_path)
     old_dataset = cfg.dataset.name
     
@@ -156,24 +151,29 @@ if __name__ == '__main__':
     cfg.model.evaluator=dict(
         type="MMDetDataloaderEvaluator",
         # type="AnalysisDataloaderEvaluator",
+        # type="One2OneMatchingEvaluator",
+        # type="IterativeEvaluator",
         mask_thr=0.5,
         score_thr=0.1,
-        nms_thr=0.7,
+        nms_thr=0.5,
         metric='segm', 
         classwise=True,
-        outfile_prefix="results/coco"
+        outfile_prefix="results/coco",
+        max_iters=100
     )
 
     cfg.model.criterion.matcher=dict(
         type='HungarianMatcher',
-        cost_dice=5.0,
+        cost_dice=2.0,
         cost_cls=2.0,
         cost_mask=5.0
     )
 
-
+    # not the cleanest way to do this
     cfg.run.run_name = join(cfg.run.run_name.replace(old_dataset, cfg.dataset.name))
     cfg.run.exist_ok = False
+    cfg.save_dir = join(cfg.run.runs_dir, "evals", cfg.run.experiment_name, 
+                        cfg.run.run_name, cfg.run.group_name, str(experiment_path).split("/")[-1])
     
     # TODO: make load_pretrained unified from loading pretrained model and model from file (weights_path)
     cfg.model.weights = experiment_path / "checkpoints/best.pth" 

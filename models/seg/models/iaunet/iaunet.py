@@ -8,22 +8,21 @@ from torch.nn import init
 import sys
 sys.path.append("./")
 
-from models.seg.heads.instance_head import InstanceHead, InstanceBranch
-from models.seg.heads.mask_head import MaskBranch
-from models.seg.models.base import BaseModel
-
-from models.seg.models.base import DoubleConv, SE_block
-from models.seg.nn.blocks import (PyramidPooling, PyramidPooling_v3, PyramidPooling_v5, 
-                             DoubleConv_v2, DoubleConv_v3, DoubleConv_v3_1, DoubleConvModule)
-
-
-# from ...heads.instance_head import InstanceHead, InstanceBranch
-# from ...heads.mask_head import MaskBranch
-
+# from models.seg.heads.instance_head import InstanceHead, InstanceBranch
+# from models.seg.heads.mask_head import MaskBranch
 # from models.seg.models.base import BaseModel
-# from models.seg.models.base import DoubleConv, SE_block
-# from ...nn.blocks import (PyramidPooling, PyramidPooling_v3, PyramidPooling_v5, 
-#                              DoubleConv_v2, DoubleConv_v3, DoubleConv_v4, DoubleConvModule)
+
+# from models.seg.nn.blocks import (DoubleConv, SE_block, 
+#                                   DoubleConv_v2, DoubleConv_v3, DoubleConv_v3_1, DoubleConvModule)
+
+
+from ...heads.instance_head import InstanceHead, InstanceBranch
+from ...heads.mask_head import MaskBranch
+
+from models.seg.models.base import BaseModel
+from ...nn.blocks import (DoubleConv, SE_block, 
+                          DoubleConv_v1, DoubleConv_v2, 
+                          DoubleConv_v3_1, DoubleConvModule)
 
 from configs import cfg
 from utils.registry import MODELS, HEADS
@@ -39,10 +38,10 @@ class IAUNet(BaseModel):
         embed_dims = self.encoder.embed_dims
         self.embed_dims = embed_dims
 
-        self.bridge = nn.Sequential(
-            DoubleConv_v2(embed_dims[-1], embed_dims[-1]),
-            SE_block(num_features=embed_dims[-1]),
-        )
+        # self.bridge = nn.Sequential(
+        #     DoubleConv_v1(embed_dims[-1], embed_dims[-1]),
+        #     SE_block(num_features=embed_dims[-1]),
+        # )
         
         # TODO: all of this should go into the decoder (struct)
         # eg. decoder=(type="iadecoder"), decoder=(type="iadecoder-ml")
@@ -57,7 +56,7 @@ class IAUNet(BaseModel):
                 out_channels = embed_dims[i]
                 
             upconv = nn.Sequential(
-                DoubleConv_v2(in_channels, out_channels),
+                DoubleConv_v1(in_channels, out_channels),
                 SE_block(num_features=out_channels)
             )
             self.up_conv_layers.append(upconv)
@@ -107,7 +106,7 @@ class IAUNet(BaseModel):
 
 
     def _init_weights(self):
-        for modules in [self.up_conv_layers, self.bridge]:
+        for modules in [self.up_conv_layers]:
             for m in modules.modules():
                 if isinstance(m, nn.Conv2d):
                     init.kaiming_normal_(m.weight, mode='fan_out', nonlinearity='relu')
@@ -129,7 +128,8 @@ class IAUNet(BaseModel):
         skips = self.encoder(x)
 
         # middle
-        x = self.bridge(skips[-1])
+        # x = self.bridge(skips[-1])
+        x = skips[-1]
 
         # go up
         for i in range(self.n_levels):

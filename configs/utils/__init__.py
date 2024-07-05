@@ -15,7 +15,7 @@ ROOT = FILE.parents[2]
 DEFAULT_CONFIG = ROOT / "default.yaml"
 
 
-class _dict(dict):
+class dict(dict):
     """
     Custom dict wrapper to enable dot notation
 
@@ -29,9 +29,9 @@ class _dict(dict):
     __getattr__ = dict.get
     __setattr__ = dict.__setitem__
     __delattr__ = dict.__delitem__
+    
 
-
-class BaseConfig:
+class _BaseConfig:
     # @staticmethod
     def get_class_attributes(self, class_obj):
         attributes = {}
@@ -44,7 +44,20 @@ class BaseConfig:
                     attributes[member_name] = member_value
         return attributes
 
-    def create_cfg_dict(self):
+    def to_dict(self):
+        cfg_dict = dict()
+        cfg_members = inspect.getmembers(self)
+        for member_name, member_value in cfg_members:
+            if not member_name.startswith('__') and not inspect.ismethod(member_value):
+                if inspect.isclass(member_value):
+                    attributes = self.get_class_attributes(member_value)
+                    cfg_dict[member_name] = dict(attributes)
+                else:
+                    cfg_dict[member_name] = member_value
+        return cfg_dict
+    
+    
+    def __dict__(self):
         cfg_dict = {}
         cfg_members = inspect.getmembers(self)
         for member_name, member_value in cfg_members:
@@ -56,9 +69,9 @@ class BaseConfig:
         return cfg_dict
 
 
-    def __dict__(self):
-        cfg_dict = self.create_cfg_dict()
-        return cfg_dict
+    # def __dict__(self):
+    #     cfg_dict = self.to_dict()
+    #     return cfg_dict
     
 
     @staticmethod
@@ -91,6 +104,11 @@ class BaseConfig:
                 else:
                     setattr(obj, key, value)
 
+
+class BaseConfig(_BaseConfig):
+    save_dir: str
+    visuals_dir: str
+    results_dir: str
 
 
 def yaml_load(file='data.yaml', append_filename=False):

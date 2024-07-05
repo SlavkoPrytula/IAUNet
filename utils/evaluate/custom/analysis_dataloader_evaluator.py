@@ -7,7 +7,7 @@ import torch.nn.functional as F
 from utils.coco.mask2coco import masks2coco
 # from pycocotools.cocoeval import COCOeval
 
-from .mmdet_dataloader_evaluator import MMDetDataloaderEvaluator
+from ..mmdet_dataloader_evaluator import MMDetDataloaderEvaluator
 from utils.utils import nested_tensor_from_tensor_list
 
 from configs import cfg

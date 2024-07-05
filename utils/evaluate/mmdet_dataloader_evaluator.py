@@ -84,8 +84,8 @@ class MMDetDataloaderEvaluator(Evaluator):
         iou_scores = iou_scores[0, ...].flatten(0, 1)
         bboxes_pred = bboxes_pred[0, ...]
 
-        labels = torch.arange(self.num_classes, device=scores.device).unsqueeze(0).repeat(cfg.model.instance_head.num_masks, 1).flatten(0, 1)
-        scores, topk_indices = scores.flatten(0, 1).topk(cfg.model.instance_head.num_masks, sorted=False)
+        labels = torch.arange(self.num_classes, device=scores.device).unsqueeze(0).repeat(masks_pred.shape[0], 1).flatten(0, 1)
+        scores, topk_indices = scores.flatten(0, 1).topk(masks_pred.shape[0], sorted=False)
         labels = labels[topk_indices]
 
         topk_indices = topk_indices // self.num_classes

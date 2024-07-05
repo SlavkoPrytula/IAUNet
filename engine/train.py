@@ -14,6 +14,7 @@ import matplotlib.pyplot as plt
 
 from utils.utils import compute_mask_iou, flatten_mask, nested_tensor_from_tensor_list, nested_masks_from_list
 from utils.visualise import visualize, visualize_grid, visualize_grid_v2
+from configs import cfg
 
 from utils.evaluate.coco_evaluator import Evaluator
 
@@ -26,7 +27,7 @@ logger = setup_logger(name=LOGGING_NAME)
 from models.seg.loss import box_cxcywh_to_xyxy
 
 def train_one_epoch(
-        cfg, 
+        cfg: cfg, 
         model, 
         criterion,
         optimizer, 
@@ -60,7 +61,7 @@ def train_one_epoch(
         for i in range(len(batch)):
             target = batch[i]
             ignore = ["img_id", "img_path", "ori_shape", "file_name", "coco_id"]
-            target = {k: v.to(cfg.device) if k not in ignore else v 
+            target = {k: v.to(device) if k not in ignore else v 
                     for k, v in target.items()}
             images.append(target["image"])
             targets.append(target)
@@ -242,16 +243,8 @@ def train_one_epoch(
                     path=f'{cfg.save_dir}/train_visuals/epoch_{epoch}/overlaps/pred_{inst}.jpg'
                 )
 
-
-                # occulders.
-                # iam = output['pred_occluders_iam']
+                # iam = output['pred_iam']
                 # B, N, H, W = iam.shape
-                
-                # probs = output['pred_logits'].softmax(-1)
-                # scores = probs[0, ...].cpu().detach().numpy()
-                # scores = np.round(scores, 3)
-                # titles = [', '.join([f"({class_idx}, {score:.2f})" for class_idx, score in 
-                #                         zip(range(scores.shape[1]), score)]) for score in scores]
                 
                 # # -----------
                 # # IAM Logits. 
@@ -261,7 +254,7 @@ def train_one_epoch(
                 #     masks=vis_preds_iams[0, ...], 
                 #     titles=titles,
                 #     ncols=ncols, 
-                #     path=f'{cfg.save_dir}/train_visuals/epoch_{epoch}/[pred_occluders_iam]_logits.jpg',
+                #     path=f'{cfg.save_dir}/train_visuals/epoch_{epoch}/inst/[pred_iam]_logits.jpg',
                 #     cmap='jet',
                 # )
 
@@ -276,7 +269,7 @@ def train_one_epoch(
                 #     masks=vis_preds_iams[0, ...], 
                 #     titles=titles,
                 #     ncols=ncols, 
-                #     path=f'{cfg.save_dir}/train_visuals/epoch_{epoch}/[pred_occluders_iam]_softmax.jpg',
+                #     path=f'{cfg.save_dir}/train_visuals/epoch_{epoch}/inst/[pred_iam]_softmax.jpg',
                 #     cmap='jet',
                 # )
                 
@@ -288,9 +281,10 @@ def train_one_epoch(
                 #     masks=vis_preds_iams[0, ...], 
                 #     titles=titles,
                 #     ncols=ncols, 
-                #     path=f'{cfg.save_dir}/train_visuals/epoch_{epoch}/[pred_occluders_iam]_sigmoid.jpg',
+                #     path=f'{cfg.save_dir}/train_visuals/epoch_{epoch}/inst/[pred_iam]_sigmoid.jpg',
                 #     cmap='jet', # plasma
                 # )
+            
 
 
         
@@ -315,7 +309,7 @@ def train_one_epoch(
             masks=vis_preds_iams[0, ...], 
             titles=titles,
             ncols=ncols, 
-            path=f'{cfg.save_dir}/train_visuals/epoch_{epoch}/[pred_iam]_logits.jpg',
+            path=f'{cfg.save_dir}/train_visuals/epoch_{epoch}/inst/[pred_iam]_logits.jpg',
             cmap='jet',
         )
 
@@ -330,7 +324,7 @@ def train_one_epoch(
             masks=vis_preds_iams[0, ...], 
             titles=titles,
             ncols=ncols, 
-            path=f'{cfg.save_dir}/train_visuals/epoch_{epoch}/[pred_iam]_softmax.jpg',
+            path=f'{cfg.save_dir}/train_visuals/epoch_{epoch}/inst/[pred_iam]_softmax.jpg',
             cmap='jet',
         )
         
@@ -342,14 +336,14 @@ def train_one_epoch(
             masks=vis_preds_iams[0, ...], 
             titles=titles,
             ncols=ncols, 
-            path=f'{cfg.save_dir}/train_visuals/epoch_{epoch}/[pred_iam]_sigmoid.jpg',
+            path=f'{cfg.save_dir}/train_visuals/epoch_{epoch}/inst/[pred_iam]_sigmoid.jpg',
             cmap='jet', # plasma
         )
 
 
 
         n = 15
-        groups = cfg.model.instance_head.num_groups
+        groups = iam.shape[1] // cfg.model.instance_head.num_masks #cfg.model.instance_head.num_groups
         # -----------
         # IAM Logits [Grouped]. 
         vis_preds_iams = iam.clone().cpu().detach().numpy()
@@ -369,7 +363,7 @@ def train_one_epoch(
                     ax.set_title(f'head {j-1}', fontsize=10)
         
         fig.tight_layout(pad=0.5)
-        plt.savefig(f'{cfg.save_dir}/train_visuals/epoch_{epoch}/[pred_iam]_logits_grouped.jpg')
+        plt.savefig(f'{cfg.save_dir}/train_visuals/epoch_{epoch}/inst/[pred_iam]_logits_grouped.jpg')
         plt.close()
 
 
@@ -392,7 +386,7 @@ def train_one_epoch(
                     ax.set_title(f'head {j-1}', fontsize=10)
         
         fig.tight_layout(pad=0.5)
-        plt.savefig(f'{cfg.save_dir}/train_visuals/epoch_{epoch}/[pred_iam]_sigmoid_grouped.jpg')
+        plt.savefig(f'{cfg.save_dir}/train_visuals/epoch_{epoch}/inst/[pred_iam]_sigmoid_grouped.jpg')
         plt.close()
 
 
@@ -419,7 +413,7 @@ def train_one_epoch(
                     ax.set_title(f'head {j-1}', fontsize=10)
         
         fig.tight_layout(pad=0.5)
-        plt.savefig(f'{cfg.save_dir}/train_visuals/epoch_{epoch}/[pred_iam]_softmax_grouped.jpg')
+        plt.savefig(f'{cfg.save_dir}/train_visuals/epoch_{epoch}/inst/[pred_iam]_softmax_grouped.jpg')
         plt.close()
         
 
@@ -447,7 +441,7 @@ def train_one_epoch(
                     masks=vis_preds_iams[0, ...], 
                     titles=titles,
                     ncols=ncols, 
-                    path=f'{cfg.save_dir}/train_visuals/epoch_{epoch}/[aux_pred_iam_{i}]_logits.jpg',
+                    path=f'{cfg.save_dir}/train_visuals/epoch_{epoch}/aux_outputs/inst/[aux_pred_iam_{i}]_logits.jpg',
                     cmap='jet',
                 )
 
@@ -462,7 +456,7 @@ def train_one_epoch(
                     masks=vis_preds_iams[0, ...], 
                     titles=titles,
                     ncols=ncols, 
-                    path=f'{cfg.save_dir}/train_visuals/epoch_{epoch}/[aux_pred_iam_{i}]_softmax.jpg',
+                    path=f'{cfg.save_dir}/train_visuals/epoch_{epoch}/aux_outputs/inst/[aux_pred_iam_{i}]_softmax.jpg',
                     cmap='jet',
                 )
                 
@@ -474,7 +468,7 @@ def train_one_epoch(
                     masks=vis_preds_iams[0, ...], 
                     titles=titles,
                     ncols=ncols, 
-                    path=f'{cfg.save_dir}/train_visuals/epoch_{epoch}/[aux_pred_iam_{i}]_sigmoid.jpg',
+                    path=f'{cfg.save_dir}/train_visuals/epoch_{epoch}/aux_outputs/inst/[aux_pred_iam_{i}]_sigmoid.jpg',
                     cmap='jet', # plasma
                 )
     

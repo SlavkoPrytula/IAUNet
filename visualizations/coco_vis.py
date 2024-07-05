@@ -1,6 +1,6 @@
 import numpy as np
 import matplotlib.pyplot as plt
-import cv2
+import os
 from scipy.ndimage import binary_dilation, binary_erosion
 from pycocotools import mask as maskUtils
 
@@ -101,24 +101,43 @@ def visualize_masks(img, masks, shape, alpha=1, draw_border=False, static_color=
 
 
 
-def save_coco_vis(img, gt_coco, pred_coco, idx, shape, path=None):
+def save_coco_vis(img, gt_coco, pred_coco, idx, shape, path=None, show_img=False):
     """
     Saves a side-by-side visualization of ground truth 
-    and predicted COCO annotations for a given image.
+    and predicted COCO annotations for a given image, with an option to show the image separately.
     """
-    fig, ax = plt.subplots(1, 2, figsize=[20, 10])
-    fig.subplots_adjust(wspace=0, hspace=0, left=0, right=1, bottom=0, top=1)
+    if show_img:
+        fig, ax = plt.subplots(1, 3, figsize=[30, 10])
+        fig.subplots_adjust(wspace=0, hspace=0, left=0, right=1, bottom=0, top=1)
 
-    ax[0].imshow(img, cmap='gray')
-    visualize_coco_anns(gt_coco, idx, ax[0], shape=shape, alpha=0.65, draw_border=True, static_color=False)
+        ax[0].imshow(img, cmap='gray')
+        ax[0].axis('off')
+        ax[0].set_xlim(0, shape[0])
+        ax[0].set_ylim(shape[1], 0)
+
+        ax[1].imshow(img, cmap='gray')
+        visualize_coco_anns(gt_coco, idx, ax[1], shape=shape, alpha=0.65, draw_border=True, static_color=False)
+
+        ax[2].imshow(img, cmap='gray')
+        visualize_coco_anns(pred_coco, idx, ax[2], shape=shape, alpha=0.65, draw_border=True, static_color=False)
+
+    else:
+        fig, ax = plt.subplots(1, 2, figsize=[20, 10])
+        fig.subplots_adjust(wspace=0, hspace=0, left=0, right=1, bottom=0, top=1)
+
+        ax[0].imshow(img, cmap='gray')
+        visualize_coco_anns(gt_coco, idx, ax[0], shape=shape, alpha=0.65, draw_border=True, static_color=False)
     
-    ax[1].imshow(img, cmap='gray')
-    visualize_coco_anns(pred_coco, idx, ax[1], shape=shape, alpha=0.65, draw_border=True, static_color=False)
+        ax[1].imshow(img, cmap='gray')
+        visualize_coco_anns(pred_coco, idx, ax[1], shape=shape, alpha=0.65, draw_border=True, static_color=False)
 
     for a in ax:
         a.axis('off')
         a.set_xlim(0, shape[0])
         a.set_ylim(shape[1], 0)
 
-    fig.savefig(path, bbox_inches='tight', pad_inches=0)
+    if path:
+        os.makedirs(os.path.dirname(path), exist_ok=True)
+        fig.savefig(path, bbox_inches='tight', pad_inches=0)
+    
     plt.close(fig)

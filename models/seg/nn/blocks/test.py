@@ -4,28 +4,34 @@ import torch.nn.functional as F
 
 
 class DoubleConv_v1(nn.Module):
-    def __init__(self, c_in, c_out, kernel_size=3, stride=1, padding=1):
+    def __init__(self, c_in, c_out, hidden=None, kernel_size=3, padding=1):
         super(DoubleConv_v1, self).__init__()
-        self.conv1 = nn.Sequential(
-            nn.Conv2d(c_in, c_out, kernel_size=kernel_size, stride=stride, padding=padding),
-            nn.BatchNorm2d(c_out)
+        self.c_in = c_in
+        self.c_out = c_out
+        hidden = c_out if not hidden else hidden
+
+        self.layer_1 = nn.Sequential(
+            nn.Conv2d(c_in, hidden, kernel_size=kernel_size, padding=padding),
+            nn.BatchNorm2d(hidden),
+            nn.ReLU(inplace=True),
         )
-        self.conv2 = nn.Sequential(
-            nn.Conv2d(c_out, c_out, kernel_size=kernel_size, stride=stride, padding=padding),
-            nn.BatchNorm2d(c_out)
+
+        self.layer_2 = nn.Sequential(
+            nn.Conv2d(hidden, c_out, kernel_size=kernel_size, padding=padding),
+            nn.BatchNorm2d(c_out),
+            nn.ReLU(inplace=True),
         )
-        self.relu = nn.ReLU(inplace=True)
+
+        if c_in != c_out:
+            self.projection = nn.Conv2d(c_in, c_out, kernel_size=1, stride=1)
+        else:
+            self.projection = nn.Identity()
 
     def forward(self, x):
-        identity = x
-        
-        out = self.conv1(x)
-        out = self.relu(out + identity)
-        
-        identity = out
-        out = self.conv2(out)
-        out = self.relu(out + identity)
+        out = self.layer_1(x)
+        out = self.layer_2(out)
 
+        out = out + self.projection(x)
         return out
 
     
@@ -37,40 +43,31 @@ class DoubleConv_v2(nn.Module):
         self.c_out = c_out
         hidden = c_out if not hidden else hidden
         
-        self.depthwise_conv1 = nn.Conv2d(c_in, c_in, kernel_size=kernel_size, padding=padding, groups=c_in)
-        self.pointwise_conv1 = nn.Conv2d(c_in, hidden, kernel_size=1)
-        self.norm_relu1 = nn.Sequential(
+        self.dw_layer_1 = nn.Sequential(
+            nn.Conv2d(c_in, c_in, kernel_size=kernel_size, padding=padding, groups=c_in),
+            nn.Conv2d(c_in, hidden, kernel_size=1),
             nn.BatchNorm2d(hidden),
             nn.ReLU(inplace=True),
         )
         
-        self.depthwise_conv2 = nn.Conv2d(hidden, hidden, kernel_size=kernel_size, padding=padding, groups=hidden)
-        self.pointwise_conv2 = nn.Conv2d(hidden, c_out, kernel_size=1)
-        self.norm_relu2 = nn.Sequential(
+        self.dw_layer_2 = nn.Sequential(
+            nn.Conv2d(hidden, hidden, kernel_size=kernel_size, padding=padding, groups=hidden), 
+            nn.Conv2d(hidden, c_out, kernel_size=1),
             nn.BatchNorm2d(c_out),
             nn.ReLU(inplace=True),
         )
         
-        # if c_in != c_out:
-        #     self.projection = nn.Conv2d(c_in, c_out, kernel_size=1, stride=1)
-        # else:
-        #     self.projection = nn.Identity()
+        if c_in != c_out:
+            self.projection = nn.Conv2d(c_in, c_out, kernel_size=1, stride=1)
+        else:
+            self.projection = nn.Identity()
 
     def forward(self, x):
-        # residual = self.projection(x)
-
-        out = self.depthwise_conv1(x)
-        out = self.pointwise_conv1(out)
-        out1 = self.norm_relu1(out)
-
-        out = self.depthwise_conv2(out1)
-        out = self.pointwise_conv2(out)
-        out2 = self.norm_relu2(out)
+        out = self.dw_layer_1(x)
+        out = self.dw_layer_2(out)
         
-        # out2 = out2 + residual
-        # out2 = self.relu(out2)
-        
-        return out2
+        out = out + self.projection(x)
+        return out
     
 
 
@@ -106,24 +103,61 @@ class DoubleConv_v3(nn.Module):
     
 
 class DoubleConv_v3_1(nn.Module):
-    def __init__(self, c_in, c_out, hidden=None, kernel_size=3, padding=1):
+    def __init__(self, c_in, c_out, hidden=None):
         super(DoubleConv_v3_1, self).__init__()
         self.c_in = c_in
         self.c_out = c_out
-        hidden = c_out if not hidden else hidden
-        
-        self.conv = nn.Sequential(
-            nn.Conv2d(c_in, hidden, kernel_size=kernel_size, padding=padding, groups=2),
+        hidden = c_out if hidden is None else hidden
+
+        self.depthwise_conv1 = nn.Conv2d(c_in, c_in, kernel_size=7, padding=3, groups=c_in)
+        self.pointwise_conv1 = nn.Conv2d(c_in, hidden, kernel_size=1)
+        self.norm_relu1 = nn.Sequential(
             nn.BatchNorm2d(hidden),
             nn.ReLU(inplace=True),
-            nn.Conv2d(hidden, c_out, kernel_size=kernel_size, padding=padding, groups=2),
+        )
+
+        self.depthwise_conv2 = nn.Conv2d(hidden, hidden, kernel_size=3, padding=1, groups=hidden)
+        self.pointwise_conv2 = nn.Conv2d(hidden, hidden, kernel_size=1)
+        self.norm_relu2 = nn.Sequential(
             nn.BatchNorm2d(c_out),
             nn.ReLU(inplace=True),
         )
 
+        self.depthwise_conv3 = nn.Conv2d(hidden, hidden, kernel_size=3, padding=1, groups=hidden)
+        self.pointwise_conv3 = nn.Conv2d(hidden, hidden, kernel_size=1)
+        self.norm_relu3 = nn.Sequential(
+            nn.BatchNorm2d(c_out),
+            nn.ReLU(inplace=True),
+        )
+
+        self.depthwise_conv4 = nn.Conv2d(hidden, hidden, kernel_size=3, padding=1, groups=hidden)
+        self.pointwise_conv4 = nn.Conv2d(hidden, c_out, kernel_size=1)
+        self.norm_relu4 = nn.Sequential(
+            nn.BatchNorm2d(c_out),
+            nn.ReLU(inplace=True),
+        )
+
+
     def forward(self, x):
-        out = self.conv(x)
+
+        out = self.depthwise_conv1(x)
+        out = self.pointwise_conv1(out)
+        out = self.norm_relu1(out)
+
+        out = self.depthwise_conv2(out)
+        out = self.pointwise_conv2(out)
+        out = self.norm_relu2(out)
+
+        out = self.depthwise_conv3(out)
+        out = self.pointwise_conv3(out)
+        out = self.norm_relu3(out)
+
+        out = self.depthwise_conv4(out)
+        out = self.pointwise_conv4(out)
+        out = self.norm_relu4(out)
+
         return out
+
     
     
 

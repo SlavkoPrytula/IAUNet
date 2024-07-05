@@ -7,25 +7,8 @@ from fvcore.nn.weight_init import c2_msra_fill
 import sys
 sys.path.append("./")
 
-# from models.seg.heads.instance_head import InstanceHead, InstanceBranch
-# from models.seg.heads.mask_head import MaskBranch
-# from models.seg.models.base import BaseModel
-
-# from models.seg.models.base import DoubleConv, SE_block
-# from models.seg.nn.blocks import (PyramidPooling, PyramidPooling_v3, PyramidPooling_v5, 
-#                              DoubleConv_v2, DoubleConv_v3, DoubleConvModule)
-
-
-from ...heads.instance_head import InstanceHead, InstanceBranch
-from ...heads.mask_head import MaskBranch
-
-from models.seg.models.base import BaseModel
-from models.seg.models.base import DoubleConv, SE_block
-from ...nn.blocks import (PyramidPooling, PyramidPooling_v3, PyramidPooling_v5, 
-                             DoubleConv_v2, DoubleConv_v3, DoubleConvModule)
-
-from .iaunet import IAUNet as BaseModel
-
+from ...heads.instance_head import Refiner
+from models.seg.models.iaunet.iaunet import IAUNet as BaseModel
 from configs import cfg
 from utils.registry import MODELS, HEADS
 
@@ -37,6 +20,7 @@ class IAUNet(BaseModel):
 
         # instance head.
         self.instance_head = nn.ModuleList([])
+        print(self.n_levels)
         for i in range(self.n_levels):
             instance_head = HEADS.build(cfg.model.instance_head)
             self.instance_head.append(instance_head)
@@ -49,7 +33,8 @@ class IAUNet(BaseModel):
         skips = self.encoder(x)
 
         # middle
-        x = self.bridge(skips[-1])
+        # x = self.bridge(skips[-1])
+        x = skips[-1]
 
         # go up
         for i in range(self.n_levels):
@@ -83,12 +68,22 @@ class IAUNet(BaseModel):
                 inst_feats = torch.cat([coord_features, x], dim=1)
                 inst_feats = self.instance_branch[i](inst_feats)
 
-            if i != 0:
-                results = self.instance_head[i](inst_feats, inst_embed)
-                inst_embed = results["inst_feats"]
+            # if i != 0:
+            #     results = self.instance_head[i](inst_feats, inst_embed)
+            #     inst_embed = results["inst_feats"]
+            # else:
+            #     results = self.instance_head[i](inst_feats)
+            #     inst_embed = results["inst_feats"]
+
+
+            if i == 0:
+                results = self.instance_head[i](inst_feats, last_stage=False)
+            elif i == self.n_levels - 1:
+                results = self.instance_head[i](inst_feats, iam, last_stage=True)
             else:
-                results = self.instance_head[i](inst_feats)
-                inst_embed = results["inst_feats"]
+                results = self.instance_head[i](inst_feats, iam, last_stage=False)
+            iam = results["iam"]
+                
 
 
         logits = results["logits"]

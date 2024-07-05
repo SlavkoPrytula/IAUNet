@@ -1,33 +1,13 @@
 # copied from 45966022
 import torch
 from torch import nn
-from torch.nn import functional as F
-from fvcore.nn.weight_init import c2_msra_fill
 
 import sys
 sys.path.append("./")
 
-# from models.seg.heads.instance_head import InstanceHead, InstanceBranch
-# from models.seg.heads.mask_head import MaskBranch
-# from models.seg.models.base import BaseModel
-
-# from models.seg.models.base import DoubleConv, SE_block
-# from models.seg.nn.blocks import (PyramidPooling, PyramidPooling_v3, PyramidPooling_v5, 
-#                              DoubleConv_v2, DoubleConv_v3, DoubleConvModule)
-
-
-from ...heads.instance_head import InstanceHead, InstanceBranch
-from ...heads.mask_head import MaskBranch
-
-from models.seg.models.base import BaseModel
-from models.seg.models.base import DoubleConv, SE_block
-from ...nn.blocks import (PyramidPooling, PyramidPooling_v3, PyramidPooling_v5, 
-                             DoubleConv_v2, DoubleConv_v3, DoubleConvModule)
-
-from models.seg.models.iaunet.iaunet import IAUNet as BaseModel
-
+from .iaunet import IAUNet as BaseModel
 from configs import cfg
-from utils.registry import MODELS, HEADS
+from utils.registry import MODELS
 
 
 @MODELS.register(name="iaunet_occluders")
@@ -80,7 +60,7 @@ class IAUNet(BaseModel):
 
         logits = results["logits"]
         mask_kernel = results["mask_kernel"]
-        occluder_kernel = results["occluder_kernel"]
+        # occluder_kernel = results["occluder_kernel"]
         overlap_kernel = results["overlap_kernel"]
         scores = results["objectness_scores"]
         bboxes = results["bboxes"]
@@ -97,8 +77,8 @@ class IAUNet(BaseModel):
         inst_masks = inst_masks.view(B, N, H, W)
 
         # overlap + occluder
-        occluder_masks = torch.bmm(occluder_kernel, mask_feats.view(B, C, H * W))
-        occluder_masks = occluder_masks.view(B, N, H, W)
+        # occluder_masks = torch.bmm(occluder_kernel, mask_feats.view(B, C, H * W))
+        # occluder_masks = occluder_masks.view(B, N, H, W)
 
         overlap_masks = torch.bmm(overlap_kernel, mask_feats.view(B, C, H * W))
         overlap_masks = overlap_masks.view(B, N, H, W)
@@ -106,7 +86,7 @@ class IAUNet(BaseModel):
         bboxes = bboxes.sigmoid()
 
         inst_masks = nn.UpsamplingBilinear2d(scale_factor=4)(inst_masks)
-        occluder_masks = nn.UpsamplingBilinear2d(scale_factor=4)(occluder_masks)
+        # occluder_masks = nn.UpsamplingBilinear2d(scale_factor=4)(occluder_masks)
         overlap_masks = nn.UpsamplingBilinear2d(scale_factor=4)(overlap_masks)
         iam = nn.UpsamplingBilinear2d(scale_factor=4)(iam)
 
@@ -116,7 +96,7 @@ class IAUNet(BaseModel):
             'pred_scores': scores,
             'pred_iam': iam,
             'pred_masks': inst_masks,
-            'pred_occluder_masks': occluder_masks,
+            # 'pred_occluder_masks': occluder_masks,
             'pred_overlap_masks': overlap_masks,
             'pred_bboxes': bboxes,
         }
