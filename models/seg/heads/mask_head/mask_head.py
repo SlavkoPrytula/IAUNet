@@ -20,7 +20,6 @@ class MaskBranch(nn.Module):
         self.mask_convs = nn.Sequential(
             DoubleConv_v1(in_channels, out_channels), 
             DoubleConv_v1(out_channels, out_channels), 
-            DoubleConv_v1(out_channels, out_channels), 
             nn.Conv2d(out_channels, out_channels, 3, padding=1),
             nn.BatchNorm2d(out_channels),
             nn.ReLU(inplace=True)

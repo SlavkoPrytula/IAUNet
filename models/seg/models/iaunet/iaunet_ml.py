@@ -29,6 +29,8 @@ class IAUNet(BaseModel):
 
 
     def forward(self, x):
+        ori_shape = x.shape
+
         # go down
         skips = self.encoder(x)
 
@@ -68,21 +70,21 @@ class IAUNet(BaseModel):
                 inst_feats = torch.cat([coord_features, x], dim=1)
                 inst_feats = self.instance_branch[i](inst_feats)
 
-            # if i != 0:
-            #     results = self.instance_head[i](inst_feats, inst_embed)
-            #     inst_embed = results["inst_feats"]
-            # else:
-            #     results = self.instance_head[i](inst_feats)
-            #     inst_embed = results["inst_feats"]
-
-
-            if i == 0:
-                results = self.instance_head[i](inst_feats, last_stage=False)
-            elif i == self.n_levels - 1:
-                results = self.instance_head[i](inst_feats, iam, last_stage=True)
+            if i != 0:
+                results = self.instance_head[i](inst_feats, inst_embed)
+                inst_embed = results["inst_feats"]
             else:
-                results = self.instance_head[i](inst_feats, iam, last_stage=False)
-            iam = results["iam"]
+                results = self.instance_head[i](inst_feats)
+                inst_embed = results["inst_feats"]
+
+
+            # if i == 0:
+            #     results = self.instance_head[i](inst_feats, last_stage=False)
+            # elif i == self.n_levels - 1:
+            #     results = self.instance_head[i](inst_feats, iam, last_stage=True)
+            # else:
+            #     results = self.instance_head[i](inst_feats, iam, last_stage=False)
+            # iam = results["iam"]
                 
 
 
@@ -95,7 +97,7 @@ class IAUNet(BaseModel):
         mask_feats = self.projection(mask_feats)
 
 
-        # Predicting instance masks
+        # instance masks.
         N = mask_kernel.shape[1]
         B, C, H, W = mask_feats.shape
 
@@ -104,8 +106,10 @@ class IAUNet(BaseModel):
         
         bboxes = bboxes.sigmoid()
 
-        inst_masks = nn.UpsamplingBilinear2d(scale_factor=4)(inst_masks)
-        iam = nn.UpsamplingBilinear2d(scale_factor=4)(iam)
+        inst_masks = F.interpolate(inst_masks, size=ori_shape[-2:], 
+                                   mode="bilinear", align_corners=False)
+        iam = F.interpolate(iam, size=ori_shape[-2:], 
+                            mode="bilinear", align_corners=False)
 
         output = {
             'pred_logits': logits,

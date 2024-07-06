@@ -387,8 +387,8 @@ class Worms(COCODataset):
     valid_dataset=dict(
         images=None,
         # ann_file=join(data_root, "worms_[valid]_[max_s=3]_[min_l=0.01_max_l=0.5]_[min_t=30_max_t=30]_[n=1000]_[R_min=1_R_max=25]_[25.04.24].json")
-        ann_file=join(data_root, "worms_[valid]_[max_s=4]_[min_l=0.01_max_l=0.5]_[min_t=30_max_t=30]_[n=1000]_[R_min=10_R_max=35]_[25.04.24].json")
-        # ann_file=join(data_root, "worms_[valid]_[max_s=4]_[min_l=0.01_max_l=0.5]_[min_t=20_max_t=30]_[min_d=8]_[n=1000]_[R_min=10_R_max=35]_[19.06.24].json")
+        # ann_file=join(data_root, "worms_[valid]_[max_s=4]_[min_l=0.01_max_l=0.5]_[min_t=30_max_t=30]_[n=1000]_[R_min=10_R_max=35]_[25.04.24].json")
+        ann_file=join(data_root, "worms_[valid]_[max_s=4]_[min_l=0.01_max_l=0.5]_[min_t=20_max_t=30]_[min_d=8]_[n=1000]_[R_min=10_R_max=35]_[19.06.24].json")
     )
 
     eval_dataset=valid_dataset

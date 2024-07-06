@@ -124,6 +124,8 @@ class IAUNet(BaseModel):
         
 
     def forward(self, x):
+        ori_shape = x.shape
+
         # go down
         skips = self.encoder(x)
 
@@ -169,7 +171,6 @@ class IAUNet(BaseModel):
 
         logits = results["logits"]
         mask_kernel = results["mask_kernel"]
-        # border_kernel = results["border_kernel"]
         scores = results["objectness_scores"]
         bboxes = results["bboxes"]
         iam = results["iam"]
@@ -177,29 +178,24 @@ class IAUNet(BaseModel):
         mask_feats = self.projection(mask_feats)
 
         
-        # Predicting instance masks
+        # instance masks.
         N = mask_kernel.shape[1]
         B, C, H, W = mask_feats.shape
 
         inst_masks = torch.bmm(mask_kernel, mask_feats.view(B, C, H * W))
         inst_masks = inst_masks.view(B, N, H, W)
-
-        # borders_masks = torch.bmm(border_kernel, mask_feats.view(B, C, H * W))
-        # borders_masks = borders_masks.view(B, N, H, W)
-        
         bboxes = bboxes.sigmoid()
 
-        inst_masks = nn.UpsamplingBilinear2d(scale_factor=4)(inst_masks)
-        # borders_masks = nn.UpsamplingBilinear2d(scale_factor=2)(borders_masks)
-        iam = nn.UpsamplingBilinear2d(scale_factor=4)(iam)
-
+        inst_masks = F.interpolate(inst_masks, size=ori_shape[-2:], 
+                                   mode="bilinear", align_corners=False)
+        iam = F.interpolate(iam, size=ori_shape[-2:], 
+                            mode="bilinear", align_corners=False)
 
         output = {
             'pred_logits': logits,
             'pred_scores': scores,
             'pred_iam': iam,
             'pred_masks': inst_masks,
-            # 'pred_borders_masks': borders_masks,
             'pred_bboxes': bboxes,
         }
     

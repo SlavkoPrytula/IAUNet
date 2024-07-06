@@ -81,7 +81,7 @@ makedirs(cfg.save_dir / 'checkpoints', exist_ok=True)
 makedirs(cfg.save_dir / 'results', exist_ok=True)
 
 # save results.
-# cfg.csv = cfg.save_dir / 'results.csv'
+cfg.csv = cfg.save_dir / 'results.csv'
 
 # set logger.
 # cfg.log = cfg.save_dir / 'output.log'

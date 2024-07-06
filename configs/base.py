@@ -31,11 +31,10 @@ class Valid:
 # resnet50 + DoubleConv_v2 + num_convs=2
 # num_heads=8, InstanceHead-v3-multiheaded + IAM
 class Model:
-    type: str         = 'iaunet'
-    # type: str         = 'iaunet_ml'
+    # type: str         = 'iaunet'
+    type: str         = 'iaunet_ml'
     # type: str         = 'iaunet_occluders'
-    # type: str         = 'custom-truncated_decoder-iaunet'
-    # type: str         = 'custom-truncated_decoder-iaunet_double_decoder'
+    # type: str         = 'custom/truncated_decoder/iaunet'
     
     # model structure.
     in_channels: int  = 3
@@ -179,7 +178,7 @@ class Dataset:
 
 class Run:
     runs_dir: str           = 'runs'
-    experiment_name: str    = f'{"/".join(f"[{i}]" for i in re.split("-/", Model.type))}'
+    experiment_name: str    = f'{"/".join(f"[{i}]" for i in re.split(r"[/-]", Model.type))}'
     run_name: str           = f'[{Model.backbone.type}]/[{Dataset.name}]/[{Model.instance_head.activation}_iam]/[kernel_dim={Model.instance_head.kernel_dim}]-[multi_level={Model.multi_level}]-[coord_conv={Model.coord_conv}]-[losses={Model.criterion.losses}]'
     # group_name: str           = f'[base]'
     # group_name: str           = f'[experimental]'

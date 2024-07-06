@@ -27,7 +27,6 @@ class InstanceBranch(nn.Module):
         self.inst_convs = nn.Sequential(
             DoubleConv_v1(in_channels, out_channels), 
             DoubleConv_v1(out_channels, out_channels), 
-            DoubleConv_v1(out_channels, out_channels), 
             nn.Conv2d(out_channels, out_channels, 3, padding=1),
             nn.BatchNorm2d(out_channels),
             nn.ReLU(inplace=True)
@@ -72,8 +71,8 @@ class InstanceHead(nn.Module):
         
         expand_dim = self.dim * self.num_groups
         self.fc = nn.Linear(expand_dim, expand_dim)
-        self.fc_fuse = nn.Linear(expand_dim*2, expand_dim)
-        # self.fc_fuse = MLP(expand_dim*2, expand_dim*4, expand_dim, 2)
+        # self.fc_fuse = nn.Linear(expand_dim*2, expand_dim)
+        self.fc_fuse = MLP(expand_dim*2, expand_dim*4, expand_dim, 3)
 
         # Outputs
         self.cls_score = nn.Linear(expand_dim, self.num_classes)
@@ -98,7 +97,7 @@ class InstanceHead(nn.Module):
         init.constant_(self.border_kernel.bias, 0.0)
 
         c2_xavier_fill(self.fc)
-        c2_xavier_fill(self.fc_fuse)
+        # c2_xavier_fill(self.fc_fuse)
 
 
     def forward(self, features, prev_inst_features=None):
@@ -477,12 +476,12 @@ class InstanceHead(nn.Module):
         self.num_classes = num_classes + 1
         self.activation = activation
         
-        self.head_transforms = nn.ModuleList([
+        self.proj = nn.ModuleList([
             nn.Conv2d(self.dim, self.dim, kernel_size=1) 
             for _ in range(self.num_groups)
         ])
         
-        self.convs = nn.ModuleList([
+        self.iam_convs = nn.ModuleList([
             nn.Conv2d(self.dim, self.num_masks, 3, padding=1, stride=1)
             for _ in range(self.num_groups)
         ])
@@ -506,7 +505,7 @@ class InstanceHead(nn.Module):
         nn.init.normal_(self.cls_score.weight, std=0.01)
         nn.init.constant_(self.cls_score.bias, bias_value)
         
-        for transform, conv in zip(self.head_transforms, self.convs):
+        for transform, conv in zip(self.proj, self.iam_convs):
             init.normal_(transform.weight, std=0.01)
             init.constant_(transform.bias, 0.0)
             init.normal_(conv.weight, std=0.01)
@@ -525,10 +524,10 @@ class InstanceHead(nn.Module):
         B, C, H, W = features.size()
         
         # proj.
-        transformed_features = [transform(features) for transform in self.head_transforms]
+        transformed_features = [transform(features) for transform in self.proj]
 
         # mha.
-        conv_outputs = [conv(transformed_features[g]) for g, conv in enumerate(self.convs)]
+        conv_outputs = [conv(transformed_features[g]) for g, conv in enumerate(self.iam_convs)]
         conv_outputs = torch.stack(conv_outputs, dim=1)  # (B, G, N, H, W)
         
         inst_features = []

@@ -5,7 +5,7 @@
 #SBATCH --mem=24GB
 #SBATCH --cpus-per-task=4
 #SBATCH --job-name=iaunet
-#SBATCH --output=./outputs/train/job_%j.out
+#SBATCH --output=./outputs/train/job_%j.log
 
 #SBATCH -A revvity
 
