@@ -1,6 +1,7 @@
 # copied from 45966022
 import torch
 from torch import nn
+from torch.nn import functional as F
 
 import sys
 sys.path.append("./")
@@ -17,13 +18,11 @@ class IAUNet(BaseModel):
         self._init_weights()
 
     def forward(self, x):
-        # go down
+        ori_shape = x.shape
+
         skips = self.encoder(x)
+        x = skips[-1]
 
-        # middle
-        x = self.bridge(skips[-1])
-
-        # go up
         for i in range(self.n_levels):
             if i != 0:
                 x = nn.UpsamplingBilinear2d(scale_factor=2)(x)
@@ -54,14 +53,15 @@ class IAUNet(BaseModel):
                 coord_features = self.compute_coordinates(x)
                 inst_feats = torch.cat([coord_features, x], dim=1)
                 inst_feats = self.instance_branch[i](inst_feats)
+                    
 
         # out layer.
         results = self.instance_head(inst_feats)
 
         logits = results["logits"]
         mask_kernel = results["mask_kernel"]
-        # occluder_kernel = results["occluder_kernel"]
-        overlap_kernel = results["overlap_kernel"]
+        overlap_mask_kernel = results["overlap_mask_kernel"]
+        visible_mask_kernel = results["visible_mask_kernel"]
         scores = results["objectness_scores"]
         bboxes = results["bboxes"]
         iam = results["iam"]
@@ -69,38 +69,40 @@ class IAUNet(BaseModel):
         mask_feats = self.projection(mask_feats)
 
         
-        # Predicting instance masks
+        # instance masks.
         N = mask_kernel.shape[1]
         B, C, H, W = mask_feats.shape
 
         inst_masks = torch.bmm(mask_kernel, mask_feats.view(B, C, H * W))
         inst_masks = inst_masks.view(B, N, H, W)
 
-        # overlap + occluder
-        # occluder_masks = torch.bmm(occluder_kernel, mask_feats.view(B, C, H * W))
-        # occluder_masks = occluder_masks.view(B, N, H, W)
-
-        overlap_masks = torch.bmm(overlap_kernel, mask_feats.view(B, C, H * W))
+        overlap_masks = torch.bmm(overlap_mask_kernel, mask_feats.view(B, C, H * W))
         overlap_masks = overlap_masks.view(B, N, H, W)
-        
+
+        visible_masks = torch.bmm(visible_mask_kernel, mask_feats.view(B, C, H * W))
+        visible_masks = visible_masks.view(B, N, H, W)
+
         bboxes = bboxes.sigmoid()
 
-        inst_masks = nn.UpsamplingBilinear2d(scale_factor=4)(inst_masks)
-        # occluder_masks = nn.UpsamplingBilinear2d(scale_factor=4)(occluder_masks)
-        overlap_masks = nn.UpsamplingBilinear2d(scale_factor=4)(overlap_masks)
-        iam = nn.UpsamplingBilinear2d(scale_factor=4)(iam)
-
+        inst_masks = F.interpolate(inst_masks, size=ori_shape[-2:], 
+                                   mode="bilinear", align_corners=False)
+        overlap_masks = F.interpolate(overlap_masks, size=ori_shape[-2:], 
+                                      mode="bilinear", align_corners=False)
+        visible_masks = F.interpolate(visible_masks, size=ori_shape[-2:], 
+                                      mode="bilinear", align_corners=False)
+        iam = F.interpolate(iam, size=ori_shape[-2:], 
+                            mode="bilinear", align_corners=False)
 
         output = {
             'pred_logits': logits,
             'pred_scores': scores,
             'pred_iam': iam,
             'pred_masks': inst_masks,
-            # 'pred_occluder_masks': occluder_masks,
             'pred_overlap_masks': overlap_masks,
+            'pred_visible_masks': visible_masks,
             'pred_bboxes': bboxes,
         }
-
+    
         return output
         
 

@@ -77,7 +77,8 @@ class Rectangle(BaseCOCODataset):
 
         # (H, W, M) -> (H, W, N)
         mask, keep = self.filter_empty_masks(mask, return_idx=True) 
-        # overlaps = self.get_overlaps(mask)
+        overlaps = self.get_overlaps(mask)
+        visible_mask = self.get_visible_mask(mask)
         # occluders = self.get_occluders(mask)
         # borders_mask = self.get_borders(mask)
         # bboxes = self.masks_to_boxes(mask)
@@ -88,10 +89,12 @@ class Rectangle(BaseCOCODataset):
         mask = mask.transpose((2, 0, 1))
         mask = torch.tensor(mask, dtype=torch.float32)
 
-        # overlaps = np.transpose(overlaps, (2, 0, 1))
-        # overlaps = torch.tensor(overlaps, dtype=torch.float32)
+        overlaps = np.transpose(overlaps, (2, 0, 1))
+        overlaps = torch.tensor(overlaps, dtype=torch.float32)
         # occluders = np.transpose(occluders, (2, 0, 1))
         # occluders = torch.tensor(occluders, dtype=torch.float32)
+        visible_mask = np.transpose(visible_mask, (2, 0, 1))
+        visible_mask = torch.tensor(visible_mask, dtype=torch.float32)
 
         # borders_mask = np.transpose(borders_mask, (2, 0, 1))
         # borders_mask = torch.tensor(borders_mask, dtype=torch.float32)
@@ -111,7 +114,8 @@ class Rectangle(BaseCOCODataset):
             "image": image,
             "masks": mask,
             # "occluder_masks": occluders,
-            # "overlap_masks": overlaps,
+            "overlap_masks": overlaps,
+            "visible_masks": visible_mask,
             "labels": labels,
             # "borders_masks": borders_mask,
             # "occluders_bounds": occluder_bound
@@ -126,19 +130,26 @@ class Rectangle(BaseCOCODataset):
     def get_overlaps(self, masks):
         _, _, N = masks.shape
         overlaps = np.zeros_like(masks, dtype=bool)
-
         all_masks_summed = np.sum(masks, axis=-1)
-
         for i in range(N):
             overlaps[:, :, i] = masks[:, :, i] & (all_masks_summed - masks[:, :, i] > 0)
 
         return overlaps
+    
+
+    def get_visible_mask(self, masks):
+        _, _, N = masks.shape
+        visible = np.zeros_like(masks, dtype=bool)
+        all_masks_summed = np.sum(masks, axis=-1)
+        for i in range(N):
+            visible[:, :, i] = masks[:, :, i] - (masks[:, :, i] & (all_masks_summed - masks[:, :, i] > 0))
+
+        return visible
 
 
     def get_occluders(self, masks):
         _, _, N = masks.shape
         occluders = np.zeros_like(masks, dtype=bool)
-
         overlap_matrix = np.logical_and(masks[:, :, None], masks[:, :, :, None])
         overlap_any = np.any(overlap_matrix, axis=(0, 1))
         np.fill_diagonal(overlap_any, False)
@@ -184,7 +195,7 @@ if __name__ == "__main__":
     
     print(len(dataset))
     
-    targets = dataset[5]
+    targets = dataset[4]
     time_e = time.time()
     print(f'loaded in {time_e - time_s}(s)')
 
@@ -229,15 +240,15 @@ if __name__ == "__main__":
     #     ncols=5
     # )
 
-    # visualize_grid_v2(
-    #     masks=targets["overlap_masks"].numpy(), 
-    #     path='./test_ovlp.jpg',
-    #     ncols=5
-    # )
+    visualize_grid_v2(
+        masks=targets["overlap_masks"].numpy(), 
+        path='./test_overlap_mask.jpg',
+        ncols=5
+    )
 
-    # visualize_grid_v2(
-    #     masks=targets["borders_masks"].numpy(), 
-    #     path='./test_border.jpg',
-    #     ncols=5
-    # )
+    visualize_grid_v2(
+        masks=targets["visible_masks"].numpy(), 
+        path='./test_visible_mask.jpg',
+        ncols=5
+    )
     

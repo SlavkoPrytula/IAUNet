@@ -19,7 +19,7 @@ from utils.common.decorators import timeit_evaluator, memory_evaluator
 class IterativeEvaluator(MMDetDataloaderEvaluator):
     def __init__(self, cfg: cfg, model=None, dataset=None, **kwargs):
         super().__init__(cfg, model, dataset, **kwargs)
-        self.max_iters = cfg.model.evaluator.max_iters if hasattr(cfg.model.evaluator, 'max_iters') else len(dataset)
+        self.max_iters = cfg.model.evaluator.max_iters if cfg.model.evaluator.max_iters is not None else len(dataset)
         # remove gt annotations to use only one gt anns per iteration (gt by id).
         self.reset()
 

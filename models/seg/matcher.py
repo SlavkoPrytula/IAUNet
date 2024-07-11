@@ -268,6 +268,8 @@ class PointSampleHungarianMatcher(nn.Module):
                 point_coords.repeat(out_mask.shape[0], 1, 1),
                 align_corners=False,
             ).squeeze(1)
+            # tgt_mask = tgt_mask.flatten(1)
+            # out_mask = out_mask.flatten(1)
 
             with amp.autocast(enabled=False):
                 out_mask = out_mask.float()

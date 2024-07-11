@@ -243,6 +243,15 @@ def train_one_epoch(
                     path=f'{cfg.save_dir}/train_visuals/epoch_{epoch}/overlaps/pred_{inst}.jpg'
                 )
 
+            if inst == "visible":
+                vis_preds = output['pred_visible_masks'].sigmoid().cpu().detach().numpy()
+                visualize_grid_v2(
+                    masks=vis_preds[0, ...], 
+                    titles=titles,
+                    ncols=ncols, 
+                    path=f'{cfg.save_dir}/train_visuals/epoch_{epoch}/visible/pred_{inst}.jpg'
+                )
+
                 # iam = output['pred_iam']
                 # B, N, H, W = iam.shape
                 

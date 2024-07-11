@@ -72,12 +72,11 @@ class InstanceHead(nn.Module):
         expand_dim = self.dim * self.num_groups
         self.fc = nn.Linear(expand_dim, expand_dim)
         # self.fc_fuse = nn.Linear(expand_dim*2, expand_dim)
-        self.fc_fuse = MLP(expand_dim*2, expand_dim*4, expand_dim, 3)
+        self.fc_fuse = MLP(expand_dim*2, expand_dim*4, expand_dim, 2)
 
         # Outputs
         self.cls_score = nn.Linear(expand_dim, self.num_classes)
         self.mask_kernel = nn.Linear(expand_dim, self.kernel_dim)
-        self.border_kernel = nn.Linear(expand_dim, self.kernel_dim)
         self.objectness = nn.Linear(expand_dim, 1)
         self.bbox_pred = nn.Linear(expand_dim, 4)
         
@@ -93,8 +92,8 @@ class InstanceHead(nn.Module):
         init.normal_(self.cls_score.weight, std=0.01)
         init.constant_(self.cls_score.bias, bias_value)
 
-        init.normal_(self.border_kernel.weight, std=0.01)
-        init.constant_(self.border_kernel.bias, 0.0)
+        init.normal_(self.mask_kernel.weight, std=0.01)
+        init.constant_(self.mask_kernel.bias, 0.0)
 
         c2_xavier_fill(self.fc)
         # c2_xavier_fill(self.fc_fuse)
@@ -123,14 +122,12 @@ class InstanceHead(nn.Module):
         # predictions.
         pred_logits = self.cls_score(inst_features)
         pred_mask_kernel = self.mask_kernel(inst_features)
-        pred_border_kernel = self.border_kernel(inst_features)
         pred_scores = self.objectness(inst_features)
         pred_bboxes = self.bbox_pred(inst_features)
 
         results = {
             'logits': pred_logits,
             'mask_kernel': pred_mask_kernel,
-            'border_kernel': pred_border_kernel,
             'objectness_scores': pred_scores,
             'bboxes': pred_bboxes,
             'iam': iam,
@@ -141,7 +138,7 @@ class InstanceHead(nn.Module):
 
 
 
-
+# TODO: add mask_kernel init to all.
 @HEADS.register(name="InstanceHead-v1.1-multi-iam")
 class InstanceHead(nn.Module):
     def __init__(self, 
@@ -680,6 +677,125 @@ class InstanceHead(nn.Module):
         
 #         return results
 
+
+@HEADS.register(name="InstanceHead-v2.0-overlaps")
+class InstanceHead(nn.Module):
+    def __init__(self, 
+                 in_channels: int = 256, 
+                 num_convs: int = 4, 
+                 num_classes: int = 80, 
+                 kernel_dim: int = 256, 
+                 num_masks: int = 100, 
+                 num_groups: int = 1,
+                 activation: str = "softmax"):
+        super().__init__()
+        self.dim = in_channels
+        self.num_convs = num_convs
+        self.num_masks = num_masks
+        self.kernel_dim = kernel_dim
+        self.num_groups = num_groups
+        self.num_classes = num_classes + 1
+        self.activation = activation
+        self.scale_factor = 1
+        
+        # iam prediction, a simple conv
+        self.full_mask_iam = IAM(self.dim, self.num_masks * self.num_groups, groups=self.num_groups)
+        self.overlap_mask_iam = IAM(self.dim, self.num_masks * self.num_groups, groups=self.num_groups)
+        self.visible_mask_iam = IAM(self.dim, self.num_masks * self.num_groups, groups=self.num_groups)
+        
+        expand_dim = self.dim * self.num_groups
+        self.fc_f = nn.Linear(expand_dim, expand_dim)
+        self.fc_o = nn.Linear(expand_dim, expand_dim)
+        self.fc_v = nn.Linear(expand_dim, expand_dim)
+        self.fc_fuse = nn.Linear(expand_dim*2, expand_dim)
+
+        # Outputs
+        self.cls_score = nn.Linear(expand_dim, self.num_classes)
+        self.full_mask_kernel = nn.Linear(expand_dim, self.kernel_dim)
+        self.overlap_mask_kernel = nn.Linear(expand_dim, self.kernel_dim)
+        self.visible_mask_kernel = nn.Linear(expand_dim, self.kernel_dim)
+        self.objectness = nn.Linear(expand_dim, 1)
+        self.bbox_pred = nn.Linear(expand_dim, 4)
+        
+        self.prior_prob = 0.01
+        self._init_weights()
+        
+        self.softmax_bias = nn.Parameter(torch.ones([1, ]))
+        print("v2.0-overlaps")
+
+
+    def _init_weights(self):
+        bias_value = -np.log((1 - self.prior_prob) / self.prior_prob)
+        init.normal_(self.cls_score.weight, std=0.01)
+        init.constant_(self.cls_score.bias, bias_value)
+
+        init.normal_(self.full_mask_kernel.weight, std=0.01)
+        init.constant_(self.full_mask_kernel.bias, 0.0)
+
+        init.normal_(self.overlap_mask_kernel.weight, std=0.01)
+        init.constant_(self.overlap_mask_kernel.bias, 0.0)
+
+        init.normal_(self.visible_mask_kernel.weight, std=0.01)
+        init.constant_(self.visible_mask_kernel.bias, 0.0)
+
+        c2_xavier_fill(self.fc_f)
+        c2_xavier_fill(self.fc_o)
+        c2_xavier_fill(self.fc_v)
+        c2_xavier_fill(self.fc_fuse)
+
+
+    def forward(self, features, prev_inst_features=None):
+        full_mask_iam = self.full_mask_iam(features)
+        overlap_mask_iam = self.overlap_mask_iam(features)
+        visible_mask_iam = self.visible_mask_iam(features)
+
+        B, N, H, W = full_mask_iam.shape
+        C = features.size(1)
+        
+        if self.activation == "softmax":
+            full_mask_iam_prob = F.softmax(full_mask_iam.view(B, N, -1) + self.softmax_bias, dim=-1)
+            overlap_mask_iam_prob = F.softmax(overlap_mask_iam.view(B, N, -1) + self.softmax_bias, dim=-1)
+            visible_mask_iam_prob = F.softmax(visible_mask_iam.view(B, N, -1) + self.softmax_bias, dim=-1)
+        else:
+            raise NotImplementedError(f"No activation {self.activation} found!")
+        
+        full_mask_inst_features = torch.bmm(full_mask_iam_prob, features.view(B, C, -1).permute(0, 2, 1))
+        full_mask_inst_features = full_mask_inst_features.reshape(B, self.num_groups, N // self.num_groups, -1).transpose(1, 2).reshape(B, N // self.num_groups, -1)
+
+        overlap_mask_inst_features = torch.bmm(overlap_mask_iam_prob, features.view(B, C, -1).permute(0, 2, 1))
+        overlap_mask_inst_features = overlap_mask_inst_features.reshape(B, self.num_groups, N // self.num_groups, -1).transpose(1, 2).reshape(B, N // self.num_groups, -1)
+
+        visible_mask_inst_features = torch.bmm(visible_mask_iam_prob, features.view(B, C, -1).permute(0, 2, 1))
+        visible_mask_inst_features = visible_mask_inst_features.reshape(B, self.num_groups, N // self.num_groups, -1).transpose(1, 2).reshape(B, N // self.num_groups, -1)
+
+
+        full_mask_inst_features = F.relu_(self.fc_f(full_mask_inst_features))
+        overlap_mask_inst_features = F.relu_(self.fc_o(overlap_mask_inst_features))
+        visible_mask_inst_features = F.relu_(self.fc_v(visible_mask_inst_features))
+
+
+        # predictions.
+        pred_logits = self.cls_score(full_mask_inst_features)
+        
+        pred_full_mask_kernel = self.full_mask_kernel(full_mask_inst_features)
+        pred_overlap_mask_kernel = self.overlap_mask_kernel(overlap_mask_inst_features)
+        pred_visible_mask_kernel = self.visible_mask_kernel(visible_mask_inst_features)
+
+        pred_scores = self.objectness(full_mask_inst_features)
+        pred_bboxes = self.bbox_pred(full_mask_inst_features)
+
+        results = {
+            'logits': pred_logits,
+            'mask_kernel': pred_full_mask_kernel,
+            'overlap_mask_kernel': pred_overlap_mask_kernel,
+            'visible_mask_kernel': pred_visible_mask_kernel,
+            'objectness_scores': pred_scores,
+            'bboxes': pred_bboxes,
+            'iam': full_mask_iam,
+            'inst_feats': full_mask_inst_features
+        }
+
+        return results
 
 
 

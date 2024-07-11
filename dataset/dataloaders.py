@@ -195,8 +195,8 @@ def build_loader(
         num_workers=num_workers,
         collate_fn=trivial_batch_collator if collate_fn is None else collate_fn,
         pin_memory=True, 
-        worker_init_fn=init_fn,
+        # worker_init_fn=init_fn,
         # sampler=sampler,
-        generator=generator
+        # generator=generator
     )
 

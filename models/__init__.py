@@ -1,17 +1,15 @@
-from os.path import join, dirname, isfile
-from os import makedirs
-import os.path 
-import shutil
+from os.path import join, isfile
 import importlib.util
-import re
 import sys
 import uuid
-from inspect import isclass, getmembers
+import modulefinder
 
 from types import ModuleType
 from typing import Type, cast
 from typing_extensions import Protocol
 
+import sys
+sys.path.append("./")
 import torch
 from models.seg import *
 from utils.files import _copy_folder
@@ -40,6 +38,22 @@ def import_from_file(file_path, clear_cache=False) -> Type[ModuleType]:
     return module
 
 
+def find_module_dependencies(module_file, base_dir):
+    import sys
+    from configs import PROJECT_DIR
+    sys.path.append(PROJECT_DIR)
+
+    finder = modulefinder.ModuleFinder()
+    finder.run_script(module_file)
+
+    dependent_files = set()
+    for name, mod in finder.modules.items():
+        if mod.__file__ and mod.__file__.startswith(base_dir):
+            dependent_files.add(mod.__file__)
+    
+    return dependent_files
+
+
 def get_model(cfg: cfg):
     if cfg.model.load_from_files:
         model = get_model_from_path(cfg)
@@ -54,159 +68,6 @@ def load_weights(model, weights_path):
 
     current_model_dict = model.state_dict()
     loaded_state_dict = torch.load(weights_path) #["state_dict"]
-
-    
-    module_mapping = {
-            "down_conv_layers": [],
-            "down_se_blocks": [],
-            "down_pp_layers": [],
-            "pp_se_blocks": [],
-
-            "middleConv": [],
-            "middleSE": [],
-
-            "up_se_blocks": ["up_se_blocks_occluders"],
-            "up_conv_layers": ["up_conv_layers_occluders"],
-
-            "mask_branch": ["mask_branch_occluder"], # , "out_mask_branch_occluder", "out_mask_branch"],
-            "prior_instance_branch": ["prior_occluder_branch"], #, "out_instance_branch", "out_occluder_branch"],
-            "instance_branch": ["occluder_branch"],
-        }
-    
-    prior_instance_branch_mappings = {
-        "prior_instance_branch.0.inst_convs.0":  ["prior_instance_branch.0.0.inst_convs.0", "prior_occluder_branch.0.0.inst_convs.0"],
-        "prior_instance_branch.0.inst_convs.1":  ["prior_instance_branch.0.0.inst_convs.1", "prior_occluder_branch.0.0.inst_convs.1"],
-        "prior_instance_branch.0.inst_convs.3":  ["prior_instance_branch.0.0.inst_convs.3", "prior_occluder_branch.0.0.inst_convs.3"],
-        "prior_instance_branch.0.inst_convs.4":  ["prior_instance_branch.0.0.inst_convs.4", "prior_occluder_branch.0.0.inst_convs.4"],
-        "prior_instance_branch.0.inst_convs.6":  ["prior_instance_branch.0.1.inst_convs.0", "prior_occluder_branch.0.1.inst_convs.0"],
-        "prior_instance_branch.0.inst_convs.7":  ["prior_instance_branch.0.1.inst_convs.1", "prior_occluder_branch.0.1.inst_convs.1"],
-        "prior_instance_branch.0.inst_convs.9":  ["prior_instance_branch.0.1.inst_convs.3", "prior_occluder_branch.0.1.inst_convs.3"],
-        "prior_instance_branch.0.inst_convs.10": ["prior_instance_branch.0.1.inst_convs.4", "prior_occluder_branch.0.1.inst_convs.4"],
-        
-        "prior_instance_branch.0.inst_convs.12":  ["prior_instance_branch.0.2.inst_convs.0", "prior_occluder_branch.0.2.inst_convs.0"],
-        "prior_instance_branch.0.inst_convs.13":  ["prior_instance_branch.0.2.inst_convs.1", "prior_occluder_branch.0.2.inst_convs.1"],
-        "prior_instance_branch.0.inst_convs.15":  ["prior_instance_branch.0.2.inst_convs.3", "prior_occluder_branch.0.2.inst_convs.3"],
-        "prior_instance_branch.0.inst_convs.16":  ["prior_instance_branch.0.2.inst_convs.4", "prior_occluder_branch.0.2.inst_convs.4"],
- 
-
-        "prior_instance_branch.1.inst_convs.0":  ["prior_instance_branch.1.0.inst_convs.0", "prior_occluder_branch.1.0.inst_convs.0"],
-        "prior_instance_branch.1.inst_convs.1":  ["prior_instance_branch.1.0.inst_convs.1", "prior_occluder_branch.1.0.inst_convs.1"],
-        "prior_instance_branch.1.inst_convs.3":  ["prior_instance_branch.1.0.inst_convs.3", "prior_occluder_branch.1.0.inst_convs.3"],
-        "prior_instance_branch.1.inst_convs.4":  ["prior_instance_branch.1.0.inst_convs.4", "prior_occluder_branch.1.0.inst_convs.4"],
-        "prior_instance_branch.1.inst_convs.6":  ["prior_instance_branch.1.1.inst_convs.0", "prior_occluder_branch.1.1.inst_convs.0"],
-        "prior_instance_branch.1.inst_convs.7":  ["prior_instance_branch.1.1.inst_convs.1", "prior_occluder_branch.1.1.inst_convs.1"],
-        "prior_instance_branch.1.inst_convs.9":  ["prior_instance_branch.1.1.inst_convs.3", "prior_occluder_branch.1.1.inst_convs.3"],
-        "prior_instance_branch.1.inst_convs.10": ["prior_instance_branch.1.1.inst_convs.4", "prior_occluder_branch.1.1.inst_convs.4"],
-        
-        "prior_instance_branch.1.inst_convs.12":  ["prior_instance_branch.1.2.inst_convs.0", "prior_occluder_branch.1.2.inst_convs.0"],
-        "prior_instance_branch.1.inst_convs.13":  ["prior_instance_branch.1.2.inst_convs.1", "prior_occluder_branch.1.2.inst_convs.1"],
-        "prior_instance_branch.1.inst_convs.15":  ["prior_instance_branch.1.2.inst_convs.3", "prior_occluder_branch.1.2.inst_convs.3"],
-        "prior_instance_branch.1.inst_convs.16":  ["prior_instance_branch.1.2.inst_convs.4", "prior_occluder_branch.1.2.inst_convs.4"],
-
-
-        "prior_instance_branch.2.inst_convs.0":  ["prior_instance_branch.2.0.inst_convs.0", "prior_occluder_branch.2.0.inst_convs.0"],
-        "prior_instance_branch.2.inst_convs.1":  ["prior_instance_branch.2.0.inst_convs.1", "prior_occluder_branch.2.0.inst_convs.1"],
-        "prior_instance_branch.2.inst_convs.3":  ["prior_instance_branch.2.0.inst_convs.3", "prior_occluder_branch.2.0.inst_convs.3"],
-        "prior_instance_branch.2.inst_convs.4":  ["prior_instance_branch.2.0.inst_convs.4", "prior_occluder_branch.2.0.inst_convs.4"],
-        "prior_instance_branch.2.inst_convs.6":  ["prior_instance_branch.2.1.inst_convs.0", "prior_occluder_branch.2.1.inst_convs.0"],
-        "prior_instance_branch.2.inst_convs.7":  ["prior_instance_branch.2.1.inst_convs.1", "prior_occluder_branch.2.1.inst_convs.1"],
-        "prior_instance_branch.2.inst_convs.9":  ["prior_instance_branch.2.1.inst_convs.3", "prior_occluder_branch.2.1.inst_convs.3"],
-        "prior_instance_branch.2.inst_convs.10": ["prior_instance_branch.2.1.inst_convs.4", "prior_occluder_branch.2.1.inst_convs.4"],
-
-        "prior_instance_branch.2.inst_convs.12":  ["prior_instance_branch.2.2.inst_convs.0", "prior_occluder_branch.2.2.inst_convs.0"],
-        "prior_instance_branch.2.inst_convs.13":  ["prior_instance_branch.2.2.inst_convs.1", "prior_occluder_branch.2.2.inst_convs.1"],
-        "prior_instance_branch.2.inst_convs.15":  ["prior_instance_branch.2.2.inst_convs.3", "prior_occluder_branch.2.2.inst_convs.3"],
-        "prior_instance_branch.2.inst_convs.16":  ["prior_instance_branch.2.2.inst_convs.4", "prior_occluder_branch.2.2.inst_convs.4"],
-
-
-        "prior_instance_branch.3.inst_convs.0":  ["prior_instance_branch.3.0.inst_convs.0", "prior_occluder_branch.3.0.inst_convs.0"],
-        "prior_instance_branch.3.inst_convs.1":  ["prior_instance_branch.3.0.inst_convs.1", "prior_occluder_branch.3.0.inst_convs.1"],
-        "prior_instance_branch.3.inst_convs.3":  ["prior_instance_branch.3.0.inst_convs.3", "prior_occluder_branch.3.0.inst_convs.3"],
-        "prior_instance_branch.3.inst_convs.4":  ["prior_instance_branch.3.0.inst_convs.4", "prior_occluder_branch.3.0.inst_convs.4"],
-        "prior_instance_branch.3.inst_convs.6":  ["prior_instance_branch.3.1.inst_convs.0", "prior_occluder_branch.3.1.inst_convs.0"],
-        "prior_instance_branch.3.inst_convs.7":  ["prior_instance_branch.3.1.inst_convs.1", "prior_occluder_branch.3.1.inst_convs.1"],
-        "prior_instance_branch.3.inst_convs.9":  ["prior_instance_branch.3.1.inst_convs.3", "prior_occluder_branch.3.1.inst_convs.3"],
-        "prior_instance_branch.3.inst_convs.10": ["prior_instance_branch.3.1.inst_convs.4", "prior_occluder_branch.3.1.inst_convs.4"],
-        
-        "prior_instance_branch.3.inst_convs.12":  ["prior_instance_branch.3.2.inst_convs.0", "prior_occluder_branch.3.2.inst_convs.0"],
-        "prior_instance_branch.3.inst_convs.13":  ["prior_instance_branch.3.2.inst_convs.1", "prior_occluder_branch.3.2.inst_convs.1"],
-        "prior_instance_branch.3.inst_convs.15":  ["prior_instance_branch.3.2.inst_convs.3", "prior_occluder_branch.3.2.inst_convs.3"],
-        "prior_instance_branch.3.inst_convs.16":  ["prior_instance_branch.3.2.inst_convs.4", "prior_occluder_branch.3.2.inst_convs.4"],
-
-
-        "prior_instance_branch.4.inst_convs.0":  ["prior_instance_branch.4.0.inst_convs.0", "prior_occluder_branch.4.0.inst_convs.0"],
-        "prior_instance_branch.4.inst_convs.1":  ["prior_instance_branch.4.0.inst_convs.1", "prior_occluder_branch.4.0.inst_convs.1"],
-        "prior_instance_branch.4.inst_convs.3":  ["prior_instance_branch.4.0.inst_convs.3", "prior_occluder_branch.4.0.inst_convs.3"],
-        "prior_instance_branch.4.inst_convs.4":  ["prior_instance_branch.4.0.inst_convs.4", "prior_occluder_branch.4.0.inst_convs.4"],
-        "prior_instance_branch.4.inst_convs.6":  ["prior_instance_branch.4.1.inst_convs.0", "prior_occluder_branch.4.1.inst_convs.0"],
-        "prior_instance_branch.4.inst_convs.7":  ["prior_instance_branch.4.1.inst_convs.1", "prior_occluder_branch.4.1.inst_convs.1"],
-        "prior_instance_branch.4.inst_convs.9":  ["prior_instance_branch.4.1.inst_convs.3", "prior_occluder_branch.4.1.inst_convs.3"],
-        "prior_instance_branch.4.inst_convs.10": ["prior_instance_branch.4.1.inst_convs.4", "prior_occluder_branch.4.1.inst_convs.4"],
-        
-        "prior_instance_branch.4.inst_convs.12":  ["prior_instance_branch.4.2.inst_convs.0", "prior_occluder_branch.4.2.inst_convs.0"],
-        "prior_instance_branch.4.inst_convs.13":  ["prior_instance_branch.4.2.inst_convs.1", "prior_occluder_branch.4.2.inst_convs.1"],
-        "prior_instance_branch.4.inst_convs.15":  ["prior_instance_branch.4.2.inst_convs.3", "prior_occluder_branch.4.2.inst_convs.3"],
-        "prior_instance_branch.4.inst_convs.16":  ["prior_instance_branch.4.2.inst_convs.4", "prior_occluder_branch.4.2.inst_convs.4"],
-    }
-
-    # module_mapping.update(prior_instance_branch_mappings)
-    
-    # module_mapping = {
-    #     "up_se_blocks": ["up_se_blocks_occluders"],
-    #     "up_conv_layers": ["up_conv_layers_occluders"],
-    #     "mask_branch": ["mask_branch_occluder", "out_mask_branch_occluder", "out_mask_branch"],
-    #     # "prior_instance_branch": ["prior_occluder_branch", "out_instance_branch", "out_occluder_branch"],
-    #     "prior_instance_branch.0": ["prior_instance_branch.0"
-    #                                 "prior_occluder_branch.0"],
-    #     "prior_instance_branch.1": ["prior_instance_branch.0", "prior_instance_branch.1", "prior_instance_branch.2", "prior_instance_branch.3", "prior_instance_branch.4",
-    #                                 "prior_occluder_branch.0", "prior_occluder_branch.1", "prior_occluder_branch.2", "prior_occluder_branch.3", "prior_occluder_branch.4"],
-    #     "instance_branch": ["occluder_branch"],
-
-    #     # "up_se_blocks": "up_se_block_overlaps",
-    #     # "up_conv_layers": "up_conv_layers_overlaps",
-    #     # "mask_branch": "mask_branch_overlap",
-    #     # "prior_instance_branch": "prior_overlap_branch",
-    #     # "instance_branch": "overlap_branch"
-    # }
-
-    # for k, v in loaded_state_dict.items():
-    #     # Load weights for modules in module_mapping
-    #     for key, values in module_mapping.items():
-    #         if k.startswith(key):
-    #             if k in current_model_dict and v.size() == current_model_dict[k].size():
-    #                 print(f'Loading original value {k}')
-    #                 print(k in current_model_dict)
-    #                 current_model_dict[k] = v
-    
-    #             elif k in current_model_dict:
-    #                 print(f"WARNING: Skipping loading weights for parameter '{k}' due to size mismatch.")
-    #                 print(f"Expected size: {current_model_dict[k].size()}, but got size: {v.size()}")
-    #             else:
-    #                 print(f"WARNING: Skipping loading weights for parameter '{k}' as it was not found in the current model.")
-            
-    #             for value in values:
-    #                 mapped_name = k.replace(key, value)
-    #                 print(f'{mapped_name in current_model_dict}: Mapping {k} to {mapped_name}')
-    #                 if mapped_name in current_model_dict and v.size() == current_model_dict[mapped_name].size():
-    #                     current_model_dict[mapped_name] = v
-
-    #                 elif mapped_name in current_model_dict:
-    #                     print(f"WARNING: Skipping loading weights for parameter '{mapped_name}' due to size mismatch.")
-    #                     print(f"Expected size: {current_model_dict[mapped_name].size()}, but got size: {v.size()}")
-    #                 else:
-    #                     print(f"WARNING: Skipping loading weights for parameter '{mapped_name}' as it was not found in the current model.")
-            
-
-        # Load weights for all other modules
-        # if k in current_model_dict and v.size() == current_model_dict[k].size():
-        #     current_model_dict[k] = v
-        # elif k in current_model_dict:
-        #     print(f"WARNING: Skipping loading weights for parameter '{k}' due to size mismatch.")
-        #     print(f"Expected size: {current_model_dict[k].size()}, but got size: {v.size()}")
-        # else:
-        #     print(f"WARNING: Skipping loading weights for parameter '{k}' as it was not found in the current model.")
-    
-
 
     for k, v in loaded_state_dict.items():
         if k in current_model_dict and v.size() == current_model_dict[k].size():
@@ -230,7 +91,7 @@ def load_weights(model, weights_path):
 
 
 def get_model_from_path(cfg: cfg):
-    # runs/.../sparse_seunet.py
+    # runs/.../iaunet.py
     model_file = f"{cfg.model.model_files}/__init__.py"
     assert isfile(model_file), FileNotFoundError(f"Model file not found: {model_file}")
 
@@ -290,3 +151,11 @@ def save_model_files(model_cfg, save_dir):
         base_src_dir=MODEL_FILES
         )
     
+
+
+if __name__ == "__main__":
+    model_file = MODELS.get_path(cfg.model.type)
+    print(model_file)
+    dependent_files = find_module_dependencies(model_file, MODEL_FILES)
+    for i, f in enumerate(dependent_files):
+        print(f)

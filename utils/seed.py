@@ -10,13 +10,13 @@ def set_seed(seed=42):
     This is for REPRODUCIBILITY
     """
     os.environ["PYTHONHASHSEED"] = str(seed)
-    os.environ["CUBLAS_WORKSPACE_CONFIG"] = ":4096:8"
+    # os.environ["CUBLAS_WORKSPACE_CONFIG"] = ":4096:8"
     
     np.random.seed(seed)
     random.seed(seed)
     torch.manual_seed(seed)
     torch.cuda.manual_seed(seed)
-    torch.cuda.manual_seed_all(seed)
+    # torch.cuda.manual_seed_all(seed)
 
     # When running on the CuDNN backend, two further options must be set
     torch.backends.cudnn.deterministic = True

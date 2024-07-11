@@ -32,8 +32,8 @@ class Valid:
 # num_heads=8, InstanceHead-v3-multiheaded + IAM
 class Model:
     # type: str         = 'iaunet'
-    type: str         = 'iaunet_ml'
-    # type: str         = 'iaunet_occluders'
+    # type: str         = 'iaunet_ml'
+    type: str         = 'iaunet_occluders'
     # type: str         = 'custom/truncated_decoder/iaunet'
     
     # model structure.
@@ -73,10 +73,10 @@ class Model:
 
     # instance head.
     instance_head=dict(
-        type="InstanceHead-v1.1",
+        # type="InstanceHead-v1.1",
         # type="InstanceHead-v3-multiheaded",
         # type="InstanceHead-v1.2-occluders",
-        # type="InstanceHead-v1.3-overlaps",
+        type="InstanceHead-v2.0-overlaps",
         # type="Refiner",
         in_channels=256,
         num_convs=2,
@@ -96,10 +96,10 @@ class Model:
     criterion=dict(
         type='SparseCriterion',
         # losses=["masks"], 
-        losses=["labels", "masks"], 
+        # losses=["labels", "masks"], 
         # losses=["labels", "masks", "iou"], 
         # losses=["labels", "masks", "occluders"], 
-        # losses=["labels", "masks", "overlaps"], 
+        losses=["labels", "masks", "overlaps", "visible"], 
         # losses=["labels", "masks", "occluders", "overlaps"], 
         # losses=["labels", "masks", "iams"], 
         # losses=["labels", "masks", "bboxes"], 

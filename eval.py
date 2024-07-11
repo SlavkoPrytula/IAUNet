@@ -38,6 +38,37 @@ from configs.datasets import DATASETS_CFG
 from visualizations.coco_vis import save_coco_vis
 
 
+def load_results(file_path):
+    if os.path.isfile(file_path):
+        try:
+            with open(file_path, 'r') as file:
+                content = file.read().strip()
+                if content:
+                    return json.loads(content)
+                else:
+                    return {}
+        except json.JSONDecodeError:
+            return {}
+    return {}
+
+def save_results(file_path, results):
+    sorted_results = {}
+    for dataset_name in sorted(results):
+        sorted_results[dataset_name] = {}
+        for dataset_path in sorted(results[dataset_name]):
+            sorted_results[dataset_name][dataset_path] = results[dataset_name][dataset_path]
+
+    with open(file_path, 'w') as file:
+        json.dump(sorted_results, file, indent=4)
+
+def update_results(existing_results, dataset_name, new_results, dataset_path):
+    if dataset_name not in existing_results:
+        existing_results[dataset_name] = {}
+
+    existing_results[dataset_name][dataset_path] = new_results
+    return existing_results
+
+
 def run(cfg: _cfg):
     # create directories.
     cfg.save_dir = Path(cfg.save_dir)
@@ -46,7 +77,7 @@ def run(cfg: _cfg):
     cfg.visuals_dir = cfg.save_dir / 'visuals'
     cfg.results_dir = cfg.save_dir / 'results'
     
-    increment_path(cfg.save_dir, exist_ok=True)
+    makedirs(cfg.save_dir, exist_ok=True)
     makedirs(cfg.visuals_dir, exist_ok=True)
     makedirs(cfg.results_dir, exist_ok=True)
 
@@ -66,11 +97,11 @@ def run(cfg: _cfg):
     valid_dataset = dataset(cfg, 
                             dataset_type="valid",
                             normalization=normalize, 
-                            transform=valid_transforms(cfg)
+                            transform=valid_transforms(cfg),
                             )
     
-    train_dataloader = build_loader(train_dataset, batch_size=cfg.train.batch_size, num_workers=1)
-    valid_dataloader = build_loader(valid_dataset, batch_size=cfg.valid.batch_size, num_workers=1)
+    train_dataloader = build_loader(train_dataset, batch_size=cfg.train.batch_size, num_workers=1, seed=cfg.seed)
+    valid_dataloader = build_loader(valid_dataset, batch_size=cfg.valid.batch_size, num_workers=1, seed=cfg.seed)
 
     # build and prepare model.
     model = build_model(cfg)
@@ -83,11 +114,15 @@ def run(cfg: _cfg):
     
     # save results.
     stats = evaluator.stats
-    results_dir = join(cfg.results_dir, 'evaluation_results.json')
-    with open(results_dir, 'w') as file:
-        json.dump(stats, file, indent=4)
-    
+    results_file = cfg.results_dir / 'evaluation_results.json'
+    dataset_name = cfg.dataset.name
+    dataset_path = cfg.dataset.eval_dataset.ann_file
 
+    results = load_results(results_file)
+    results = update_results(results, dataset_name, stats, dataset_path)
+    save_results(results_file, results)
+
+    
     # plot results.
     gt_coco = evaluator.gt_coco
     pred_coco = evaluator.pred_coco
@@ -128,7 +163,7 @@ if __name__ == '__main__':
     sys.path.append("./")
     args = parse_args()
 
-    experiment_path = Path("runs/[iaunet_ml]/[ResNet]/[worms]/[softmax_iam]/[kernel_dim=256]-[multi_level=True]-[coord_conv=True]-[losses=['labels', 'masks']]/[Refiner]/[job=51697023]-[2024-07-04 11:04:31]")
+    experiment_path = Path("runs/[iaunet_occluders]/[ResNet]/[worms]/[softmax_iam]/[kernel_dim=256]-[multi_level=True]-[coord_conv=True]-[losses=['labels', 'masks', 'overlaps', 'visible']]/[InstanceHead-v2.0-overlaps]/[job=51724647]-[2024-07-09 15:39:18]")
     cfg = get_config_from_path(experiment_path)
     old_dataset = cfg.dataset.name
     
@@ -159,7 +194,7 @@ if __name__ == '__main__':
         metric='segm', 
         classwise=True,
         outfile_prefix="results/coco",
-        max_iters=100
+        # max_iters=100
     )
 
     cfg.model.criterion.matcher=dict(
@@ -171,6 +206,7 @@ if __name__ == '__main__':
 
     # not the cleanest way to do this
     cfg.run.run_name = join(cfg.run.run_name.replace(old_dataset, cfg.dataset.name))
+    # cfg.run.run_name = '/'.join([seg for seg in cfg.run.run_name.split('/') if old_dataset not in seg])
     cfg.run.exist_ok = False
     cfg.save_dir = join(cfg.run.runs_dir, "evals", cfg.run.experiment_name, 
                         cfg.run.run_name, cfg.run.group_name, str(experiment_path).split("/")[-1])
