@@ -1,3 +1,4 @@
+import os
 import numpy as np
 from matplotlib import pyplot as plt
 from mpl_toolkits.mplot3d import Axes3D
@@ -15,6 +16,7 @@ def visualize(figsize=(30, 30), path='./', cmap='viridis', **images):
         plt.imshow(image, cmap=cmap)
     # plt.show()
     plt.tight_layout()
+    os.makedirs(os.path.dirname(path), exist_ok=True)
     plt.savefig(path)
     plt.close()
 
@@ -28,6 +30,7 @@ def visualize_grid(figsize=(30, 30), images=None, path='./', rows=1):
         plt.xticks([])
         plt.yticks([])
     # plt.show()
+    os.makedirs(os.path.dirname(path), exist_ok=True)
     plt.savefig(path)
     plt.close()
 
@@ -77,7 +80,8 @@ def visualize_grid(figsize=(30, 30), images=None, path='./', rows=1):
 #     plt.close()
     
 
-def visualize_grid_v2(figsize=(10, 10), masks=None, bboxes=None, titles=None, ncols=5, nrows=None, path='./', **params):
+def visualize_grid_v2(figsize=(10, 10), masks=None, bboxes=None, titles=None, 
+                      ncols=5, nrows=None, path='./', **params):
     """
     Plots a grid of binary masks with bounding box annotations.
 
@@ -126,6 +130,7 @@ def visualize_grid_v2(figsize=(10, 10), masks=None, bboxes=None, titles=None, nc
     # Adjust the spacing between subplots
     fig.tight_layout(pad=0.5)
     
+    os.makedirs(os.path.dirname(path), exist_ok=True)
     plt.savefig(path)
     plt.close()
 
@@ -164,5 +169,6 @@ def plot3d(image, fig_size=[10, 10], path='./', **params):
     fig.colorbar(plot, shrink=0.5, aspect=20)
 
     plt.tight_layout()
+    os.makedirs(os.path.dirname(path), exist_ok=True)
     plt.savefig(path)
     plt.close()

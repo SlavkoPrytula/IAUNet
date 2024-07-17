@@ -1,0 +1,9 @@
+
+
+backbone = dict(
+    type='ResNet',
+    depth=101,
+    num_stages=4,
+    out_indices=(1, 2, 3, 4),
+    pretrained=True
+)

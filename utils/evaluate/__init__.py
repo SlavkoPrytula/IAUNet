@@ -1,11 +1,9 @@
-from .dataloader_evaluator import DataloaderEvaluator#, DataloaderEvaluatorNMS
-from .memory_efficient_dataloader_evaluator import MemoryEfficientDataloaderEvaluator
-from .experimental_evaluator import ExperimentalEvaluator
 from .mmdet_dataloader_evaluator import MMDetDataloaderEvaluator
-from .analysis_dataloader_evaluator import AnalysisDataloaderEvaluator
+from .custom.analysis_dataloader_evaluator import AnalysisDataloaderEvaluator
+from .custom.one2one_matching_evaluator import One2OneMatchingEvaluator
+from .custom.iterative_evaluator import IterativeEvaluator
 
 
 
-__all__ = ["DataloaderEvaluator", "MemoryEfficientDataloaderEvaluator", 
-           "ExperimentalEvaluator", "MMDetDataloaderEvaluator", 
-           "AnalysisDataloaderEvaluator"]#, "DataloaderEvaluatorNMS"]
+__all__ = ["MMDetDataloaderEvaluator", "AnalysisDataloaderEvaluator", 
+           "One2OneMatchingEvaluator", "IterativeEvaluator"]

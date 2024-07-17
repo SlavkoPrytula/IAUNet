@@ -6,11 +6,9 @@ import numpy as np
 import sys
 sys.path.append("./")
 
-from utils.utils import nested_masks_from_list, nested_tensor_from_tensor_list, compute_mask_iou
+from utils.utils import nested_tensor_from_tensor_list, compute_mask_iou
 from utils.comm import is_dist_avail_and_initialized, get_world_size
-from utils.losses import (dice_loss, sigmoid_focal_loss_jit, 
-                          sigmoid_focal_loss_hdetr, dice_loss_jit,
-                          sigmoid_ce_loss_jit)
+from utils.losses import sigmoid_ce_loss_jit, dice_loss_jit, sigmoid_focal_loss
 from utils.box_ops import box_cxcywh_to_xyxy, generalized_box_iou
 
 from configs import cfg
@@ -47,7 +45,8 @@ class SparseInstCriterion(nn.Module):
             # "loss_ce", "loss_focal_masks", "loss_bce_masks", "loss_dice_masks", "loss_objectness_masks", 
             # "loss_ce_occluders", "loss_focal_occluders", "loss_bce_occluders", "loss_dice_occluders", "loss_objectness_occluders", 
             "loss_bce_occluder_masks", "loss_dice_occluder_masks",
-            "loss_bce_overlap_masks", "loss_dice_overlap_masks",
+            "loss_bce_overlap_masks", "loss_dice_overlap_masks", "loss_focal_overlap_masks",
+            "loss_bce_occluder_masks", "loss_dice_visible_masks" ,"loss_focal_visible_masks",
             "loss_bce_borders_masks", "loss_dice_borders_masks",
             )
         weight_dict = {}
@@ -74,6 +73,12 @@ class SparseInstCriterion(nn.Module):
         # overlaps.
         bce_overlap_masks_weight = bce_masks_weight
         dice_overlap_masks_weight = dice_masks_weight
+        focal_overlap_masks_weight = bce_masks_weight
+
+        # visible mask.
+        bce_visible_masks_weight = bce_masks_weight
+        dice_visible_masks_weight = dice_masks_weight
+        focal_visible_masks_weight = bce_masks_weight
 
         # borders.
         bce_borders_masks_weight = bce_masks_weight
@@ -86,7 +91,8 @@ class SparseInstCriterion(nn.Module):
                 # ce_weight, focal_masks_weight, bce_masks_weight, dice_masks_weight, objectness_masks_weight, 
                 # ce_occluders_weight, focal_occluders_weight, bce_occluders_weight, dice_occluders_weight, objectness_occluders_weight,
                 bce_occluder_masks_weight, dice_occluder_masks_weight,
-                bce_overlap_masks_weight, dice_overlap_masks_weight,
+                bce_overlap_masks_weight, dice_overlap_masks_weight, focal_overlap_masks_weight,
+                bce_visible_masks_weight, dice_visible_masks_weight, focal_visible_masks_weight,
                 bce_borders_masks_weight, dice_borders_masks_weight
                 )))
         return weight_dict
@@ -109,7 +115,7 @@ class SparseInstCriterion(nn.Module):
         """Classification loss (NLL)
         targets dicts must contain the key "labels" containing a tensor of dim [nb_target_boxes]
         """
-        assert "pred_logits" in outputs
+        assert "pred_logits" in outputs, f"logits not found."
         src_logits = outputs["pred_logits"].float()
 
         idx = self._get_src_permutation_idx(indices)
@@ -130,75 +136,9 @@ class SparseInstCriterion(nn.Module):
         return losses
 
 
-
-    # def loss_labels(self, outputs, targets, indices, num_masks, input_shape, **kwargs):
-    #     """Classification loss (Binary focal loss)
-    #     targets dicts must contain the key "labels" containing a tensor of dim [nb_target_boxes]
-    #     """
-    #     assert 'pred_logits' in outputs
-    #     src_logits = outputs['pred_logits']
-
-    #     idx = self._get_src_permutation_idx(indices)
-    #     target_classes_o = torch.cat([t["labels"][J] for t, (_, J) in zip(targets, indices)])
-    #     target_classes = torch.full(src_logits.shape[:2], self.num_classes,
-    #                                 dtype=torch.int64, device=src_logits.device)
-    #     target_classes[idx] = target_classes_o
-
-    #     target_classes_onehot = torch.zeros([src_logits.shape[0], src_logits.shape[1], src_logits.shape[2]+1],
-    #                                         dtype=src_logits.dtype, layout=src_logits.layout, device=src_logits.device)
-    #     target_classes_onehot.scatter_(2, target_classes.unsqueeze(-1), 1)
-
-    #     target_classes_onehot = target_classes_onehot[:,:,:-1]
-    #     loss_ce = sigmoid_focal_loss_hdetr(src_logits, target_classes_onehot, num_masks, alpha=0.25, gamma=2) * src_logits.shape[1]
-    #     losses = {'loss_ce': loss_ce}
-    #     return losses
-    
-
-
-    # def loss_iou(self, outputs, targets, indices, num_masks, input_shape, **kwargs):
-    #     assert "pred_masks" in outputs
-    #     assert "pred_scores" in outputs
-
-    #     src_idx = self._get_src_permutation_idx(indices)
-    #     tgt_idx = self._get_tgt_permutation_idx(indices)
-    #     src_masks = outputs["pred_masks"]
-    #     src_masks = src_masks[src_idx]
-
-    #     src_iou_scores = outputs["pred_scores"]
-
-    #     masks = [t["masks"] for t in targets]
-    #     target_masks, valid = nested_tensor_from_tensor_list(masks).decompose()
-    #     target_masks = target_masks.to(src_masks)
-    #     target_masks = target_masks[tgt_idx]
-
-    #     src_masks = F.interpolate(src_masks[:, None], size=target_masks.shape[-2:],
-    #                                 mode="bilinear", align_corners=False)
-
-    #     src_masks = src_masks.squeeze(1)
-    #     target_masks = target_masks.squeeze(1)
-    #     src_masks = src_masks.flatten(1)
-    #     target_masks = target_masks.flatten(1)
-
-    #     # compute ious.
-    #     with torch.no_grad():
-    #         ious = compute_mask_iou(src_masks, target_masks)
-
-    #     tgt_iou_scores = torch.full(
-    #         src_iou_scores.shape[:2], 0, dtype=torch.float32, device=src_iou_scores.device
-    #     )
-    #     tgt_iou_scores[src_idx] = ious
-
-    #     src_iou_scores = src_iou_scores.flatten(0)
-    #     tgt_iou_scores = tgt_iou_scores.flatten(0)
-
-    #     iou_loss = F.binary_cross_entropy_with_logits(src_iou_scores, tgt_iou_scores, reduction='mean')
-    #     losses = {"loss_iou_masks": iou_loss}
-    #     return losses
-
-
     def loss_iou(self, outputs, targets, indices, num_masks, input_shape, **kwargs):
-        assert "pred_masks" in outputs
-        assert "pred_scores" in outputs
+        assert "pred_masks" in outputs, f"masks not found in losses."
+        assert "pred_scores" in outputs, f"scores not found."
 
         src_idx = self._get_src_permutation_idx(indices)
         tgt_idx = self._get_tgt_permutation_idx(indices)
@@ -235,111 +175,12 @@ class SparseInstCriterion(nn.Module):
         return losses
     
 
-    # def loss_masks(self, outputs, targets, indices, num_masks, input_shape, epoch):
-    #     """
-    #     Compute the losses related to the masks: the focal loss and the dice loss.
-    #     targets dicts must contain the key "masks" containing a tensor of dim [nb_target_boxes, h, w]
-    #     """
-    #     assert "pred_masks" in outputs
-    #     assert "pred_scores" in outputs
-
-    #     src_idx = self._get_src_permutation_idx(indices)
-    #     tgt_idx = self._get_tgt_permutation_idx(indices)
-    #     src_masks = outputs["pred_masks"]
-    #     src_masks = src_masks[src_idx]
-
-    #     masks = [t["masks"] for t in targets]
-    #     # TODO use valid to mask invalid areas due to padding in loss
-    #     target_masks, valid = nested_tensor_from_tensor_list(masks).decompose()
-    #     target_masks = target_masks.to(src_masks)
-    #     target_masks = target_masks[tgt_idx]
-
-    #     # upsample predictions to the target size
-    #     src_masks = F.interpolate(src_masks[:, None], size=target_masks.shape[-2:],
-    #                                 mode="bilinear", align_corners=False)
-
-    #     src_masks = src_masks.squeeze(1)
-    #     target_masks = target_masks.squeeze(1)
-    #     src_masks = src_masks.flatten(1)
-    #     target_masks = target_masks.flatten(1)
-
-    #     losses = {
-    #         "loss_bce_masks": sigmoid_ce_loss_jit(src_masks, target_masks, num_masks),
-    #         "loss_dice_masks": dice_loss_jit(src_masks, target_masks, num_masks),
-    #     }
-    #     return losses
-
-
-    # def loss_occluders(self, outputs, targets, indices, num_masks, input_shape, epoch):
-    #     """
-    #     Compute the losses related to the masks: the focal loss and the dice loss.
-    #     targets dicts must contain the key "masks" containing a tensor of dim [nb_target_boxes, h, w]
-    #     """
-    #     assert "pred_occluders_masks" in outputs
-
-    #     src_idx = self._get_src_permutation_idx(indices)
-    #     tgt_idx = self._get_tgt_permutation_idx(indices)
-    #     src_masks = outputs["pred_occluders_masks"]
-    #     src_masks = src_masks[src_idx]
-
-    #     masks = [t["occluders"] for t in targets]
-    #     # TODO use valid to mask invalid areas due to padding in loss
-    #     target_masks, valid = nested_tensor_from_tensor_list(masks).decompose()
-    #     target_masks = target_masks.to(src_masks)
-    #     target_masks = target_masks[tgt_idx]
-
-    #     # upsample predictions to the target size
-    #     src_masks = F.interpolate(src_masks[:, None], size=target_masks.shape[-2:],
-    #                                 mode="bilinear", align_corners=False)
-
-    #     src_masks = src_masks.squeeze(1)
-    #     target_masks = target_masks.squeeze(1)
-    #     src_masks = src_masks.flatten(1)
-    #     target_masks = target_masks.flatten(1)
-
-    #     losses = {
-    #         "loss_bce_occluders": sigmoid_ce_loss_jit(src_masks, target_masks, num_masks),
-    #         "loss_dice_occluders": dice_loss_jit(src_masks, target_masks, num_masks),
-    #     }
-    #     return losses
-    
-
-    # def loss_borders(self, outputs, targets, indices, num_masks, input_shape, epoch):
-    #     assert "pred_borders_masks" in outputs
-
-    #     src_idx = self._get_src_permutation_idx(indices)
-    #     tgt_idx = self._get_tgt_permutation_idx(indices)
-    #     src_masks = outputs["pred_borders_masks"]
-    #     src_masks = src_masks[src_idx]
-
-    #     masks = [t["borders_masks"] for t in targets]
-    #     # TODO use valid to mask invalid areas due to padding in loss
-    #     target_masks, valid = nested_tensor_from_tensor_list(masks).decompose()
-    #     target_masks = target_masks.to(src_masks)
-    #     target_masks = target_masks[tgt_idx]
-
-    #     # upsample predictions to the target size
-    #     src_masks = F.interpolate(src_masks[:, None], size=target_masks.shape[-2:],
-    #                                 mode="bilinear", align_corners=False)
-
-    #     src_masks = src_masks.squeeze(1)
-    #     target_masks = target_masks.squeeze(1)
-    #     src_masks = src_masks.flatten(1)
-    #     target_masks = target_masks.flatten(1)
-
-    #     losses = {
-    #         "loss_bce_borders_masks": sigmoid_ce_loss_jit(src_masks, target_masks, num_masks),
-    #         "loss_dice_borders_masks": dice_loss_jit(src_masks, target_masks, num_masks),
-    #     }
-    #     return losses
-
-
-    def _loss_masks(self, outputs, targets, indices, num_masks, name):
+    def _loss_masks(self, outputs, targets, indices, num_masks, name, loss_type="bce"):
         """
         Compute the losses related to the masks: the focal loss and the dice loss.
         targets dicts must contain the key "masks" containing a tensor of dim [nb_target_boxes, h, w]
         """
-        assert f"pred_{name}" in outputs
+        assert f"pred_{name}" in outputs, f"{name} not found in losses."
 
         src_idx = self._get_src_permutation_idx(indices)
         tgt_idx = self._get_tgt_permutation_idx(indices)
@@ -361,8 +202,15 @@ class SparseInstCriterion(nn.Module):
         src_masks = src_masks.flatten(1)
         target_masks = target_masks.flatten(1)
 
+        if loss_type == "focal":
+            loss_mask = sigmoid_focal_loss(src_masks, target_masks, num_masks)
+            loss_name = f"loss_focal_{name}"
+        elif loss_type == "bce":
+            loss_mask = sigmoid_ce_loss_jit(src_masks, target_masks, num_masks)
+            loss_name = f"loss_bce_{name}"
+
         losses = {
-            f"loss_bce_{name}": sigmoid_ce_loss_jit(src_masks, target_masks, num_masks),
+            loss_name: loss_mask,
             f"loss_dice_{name}": dice_loss_jit(src_masks, target_masks, num_masks),
         }
         return losses
@@ -376,7 +224,10 @@ class SparseInstCriterion(nn.Module):
     
     def loss_overlaps(self, outputs, targets, indices, num_masks, **kwargs):
         return self._loss_masks(outputs, targets, indices, num_masks, name="overlap_masks")
-
+    
+    def loss_visible(self, outputs, targets, indices, num_masks, **kwargs):
+        return self._loss_masks(outputs, targets, indices, num_masks, name="visible_masks")
+    
 
     def loss_boxes(self, outputs, targets, indices, num_boxes, **kwargs):
         """Compute the losses related to the bounding boxes, the L1 regression loss and the GIoU loss
@@ -406,7 +257,7 @@ class SparseInstCriterion(nn.Module):
             "bboxes": self.loss_boxes,
             "occluders": self.loss_occluders,
             "overlaps": self.loss_overlaps,
-            # "borders": self.loss_borders,
+            "visible": self.loss_visible,
             "iou": self.loss_iou,
         }
         
@@ -420,7 +271,7 @@ class SparseInstCriterion(nn.Module):
         # Retrieve the matching between the outputs of the last layer and the targets
         indices = self.matcher(outputs_without_aux, targets, input_shape)
 
-        # Compute the average number of target boxes accross all nodes, for normalization purposes
+        # Compute the average number of target masks accross all nodes, for normalization purposes
         num_masks = sum(len(t["labels"]) for t in targets)
         num_masks = torch.as_tensor([num_masks], dtype=torch.float, device=next(iter(outputs.values())).device)
         
@@ -501,8 +352,3 @@ if __name__ == "__main__":
 
     criterion = CRITERIONS.build(cfg.model.criterion)
     print(criterion)
-
-
-    
-
-

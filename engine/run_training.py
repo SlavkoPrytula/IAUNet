@@ -25,6 +25,7 @@ def run_training(
         optimizer, 
         scheduler,
         evaluators,
+        device
         ):
     
     num_epochs = cfg.train.epochs + 1
@@ -41,27 +42,29 @@ def run_training(
 
         logger.info(f'Epoch {epoch}/{num_epochs}')
 
-        results = train_one_epoch(cfg, model, criterion=criterion, 
-                                  optimizer=optimizer, 
-                                  scheduler=scheduler,
-                                  dataloader=train_dataloader,
-                                  device=cfg.device, 
-                                  epoch=epoch
-                                  )
+        results = {}
 
-        results = valid_one_epoch(cfg, model, criterion=criterion, 
-                                  optimizer=optimizer, 
-                                  scheduler=scheduler,
-                                  dataloader=valid_dataloader,
-                                  device=cfg.device, 
-                                  epoch=epoch,
-                                  evaluators=evaluators
-                                  )
+        results_train = train_one_epoch(cfg, model, criterion=criterion, 
+                                        optimizer=optimizer, 
+                                        scheduler=scheduler,
+                                        dataloader=train_dataloader,
+                                        device=device, 
+                                        epoch=epoch
+                                        )
 
+        results_valid = valid_one_epoch(cfg, model, criterion=criterion, 
+                                        optimizer=optimizer, 
+                                        scheduler=scheduler,
+                                        dataloader=valid_dataloader,
+                                        device=device, 
+                                        epoch=epoch,
+                                        evaluators=evaluators
+                                        )
 
-        # train_loss = results["train_loss"]
+        results.update(results_valid)
+        results.update(results_train)
+
         val_loss = results["loss_valid"]
-        val_score = results["loss_valid"]
 
         if val_loss <= best_loss:
             logger.info(f"Valid Loss Improved ({best_loss:0.4f} ---> {val_loss:0.4f})")

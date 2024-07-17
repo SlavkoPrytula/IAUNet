@@ -1,3 +1,4 @@
+import os
 import functools
 import numpy as np
 import torch
@@ -6,6 +7,19 @@ import torch.distributed as dist
 
 _LOCAL_PROCESS_GROUP = None
 
+
+
+def setup(rank, world_size):
+    os.environ['MASTER_ADDR'] = 'localhost'
+    os.environ['MASTER_PORT'] = '12355'
+    os.environ['WORLD_SIZE'] = str(world_size)
+    os.environ['RANK'] = str(rank)
+    dist.init_process_group("nccl", rank=rank, world_size=world_size)
+    torch.cuda.set_device(rank)
+
+
+def cleanup():
+    dist.destroy_process_group()
 
 
 def is_dist_avail_and_initialized():

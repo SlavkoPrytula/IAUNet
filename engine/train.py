@@ -14,6 +14,7 @@ import matplotlib.pyplot as plt
 
 from utils.utils import compute_mask_iou, flatten_mask, nested_tensor_from_tensor_list, nested_masks_from_list
 from utils.visualise import visualize, visualize_grid, visualize_grid_v2
+from configs import cfg
 
 from utils.evaluate.coco_evaluator import Evaluator
 
@@ -25,8 +26,9 @@ logger = setup_logger(name=LOGGING_NAME)
 
 from models.seg.loss import box_cxcywh_to_xyxy
 
+
 def train_one_epoch(
-        cfg, 
+        cfg: cfg, 
         model, 
         criterion,
         optimizer, 
@@ -42,7 +44,6 @@ def train_one_epoch(
     ncols = 5
     results = {}
     
-    loss_accumulators = None
     running_loss = 0.0
     dataset_size = 0
 
@@ -60,7 +61,7 @@ def train_one_epoch(
         for i in range(len(batch)):
             target = batch[i]
             ignore = ["img_id", "img_path", "ori_shape", "file_name", "coco_id"]
-            target = {k: v.to(cfg.device) if k not in ignore else v 
+            target = {k: v.to(device) if k not in ignore else v 
                     for k, v in target.items()}
             images.append(target["image"])
             targets.append(target)
@@ -90,12 +91,6 @@ def train_one_epoch(
         dataset_size += batch_size
         epoch_loss = running_loss / dataset_size
 
-        if loss_accumulators is None:
-            loss_accumulators = {key: 0.0 for key in loss_dict.keys()}
-
-        for key in loss_dict:
-            loss_accumulators[key] += loss_dict[key].item() * batch_size
-
         if step % 10 == 0:
             mem = torch.cuda.memory_reserved() / 1E6 if torch.cuda.is_available() else 0
             current_lr = optimizer.param_groups[0]['lr']
@@ -111,10 +106,8 @@ def train_one_epoch(
 
             logger.info(f'Epoch(train) [{epoch}][{step}/{len(dataloader)}] loss: {epoch_loss:.4f}, eta: {eta}, lr: {current_lr:.6f}, mem: {mem:.0f}')
     
-        torch.cuda.empty_cache()
-        gc.collect()
-
-    avg_losses = {key: total / dataset_size for key, total in loss_accumulators.items()}
+        # torch.cuda.empty_cache()
+        # gc.collect()
     
     print()
     for l in loss_dict:
@@ -122,9 +115,10 @@ def train_one_epoch(
     print()
 
     # wandb results.
-    wandb.log({f"train/loss_train": epoch_loss})
-    for l in loss_dict:
-        wandb.log({f"train/{l}_train": loss_dict[l]})
+    if wandb.run is not None:
+        wandb.log({f"train/loss_train": epoch_loss})
+        for l in loss_dict:
+            wandb.log({f"train/{l}_train": loss_dict[l]})
 
     
     if epoch % 10 == 0:
@@ -138,7 +132,7 @@ def train_one_epoch(
 
         # -----------
         # Pred Masks + BBoxes.
-        vis_preds_cyto = output['pred_masks'].sigmoid().cpu().detach().numpy()
+        vis_preds_inst = output['pred_masks'].sigmoid().cpu().detach().numpy()
         probs = output['pred_logits'].softmax(-1)
         scores = probs[0, :, 0].cpu().detach().numpy()
         scores = np.round(scores, 2)
@@ -159,11 +153,11 @@ def train_one_epoch(
         ]
         
         visualize_grid_v2(
-            masks=vis_preds_cyto[0, ...], 
+            masks=vis_preds_inst[0, ...], 
             bboxes=bboxes[0, ...],
             titles=titles,
             ncols=ncols, 
-            path=f'{cfg.save_dir}/train_visuals/epoch_{epoch}/pred_masks.jpg'
+            path=f'{cfg.save_dir}/train_visuals/epoch_{epoch}/inst/pred_masks.jpg'
         )
 
         plt.figure(figsize=[10, 10])
@@ -187,7 +181,7 @@ def train_one_epoch(
         # Aux Pred Masks.
         if "aux_outputs" in output:
             for i, aux_outputs in enumerate(output['aux_outputs']):
-                vis_preds_cyto = aux_outputs['pred_masks'].sigmoid().cpu().detach().numpy()
+                vis_preds_inst = aux_outputs['pred_masks'].sigmoid().cpu().detach().numpy()
                 probs = aux_outputs['pred_logits'].softmax(-1)
                 scores = probs[0, :, 0].cpu().detach().numpy()
                 scores = np.round(scores, 2)
@@ -202,10 +196,10 @@ def train_one_epoch(
                 ]
                 
                 visualize_grid_v2(
-                    masks=vis_preds_cyto[0, ...], 
+                    masks=vis_preds_inst[0, ...], 
                     titles=titles,
                     ncols=ncols, 
-                    path=f'{cfg.save_dir}/train_visuals/epoch_{epoch}/pred_masks.jpg'
+                    path=f'{cfg.save_dir}/train_visuals/epoch_{epoch}/aux_outputs/inst/pred_masks.jpg'
                 )
 
                 # for loss_name in ["occluders"]:
@@ -229,7 +223,7 @@ def train_one_epoch(
                     masks=vis_preds[0, ...], 
                     titles=titles,
                     ncols=ncols, 
-                    path=f'{cfg.save_dir}/train_visuals/epoch_{epoch}/pred_{inst}.jpg'
+                    path=f'{cfg.save_dir}/train_visuals/epoch_{epoch}/occluders/pred_{inst}.jpg'
                 )
             
             if inst == "overlaps":
@@ -238,19 +232,20 @@ def train_one_epoch(
                     masks=vis_preds[0, ...], 
                     titles=titles,
                     ncols=ncols, 
-                    path=f'{cfg.save_dir}/train_visuals/epoch_{epoch}/pred_{inst}.jpg'
+                    path=f'{cfg.save_dir}/train_visuals/epoch_{epoch}/overlaps/pred_{inst}.jpg'
                 )
 
+            if inst == "visible":
+                vis_preds = output['pred_visible_masks'].sigmoid().cpu().detach().numpy()
+                visualize_grid_v2(
+                    masks=vis_preds[0, ...], 
+                    titles=titles,
+                    ncols=ncols, 
+                    path=f'{cfg.save_dir}/train_visuals/epoch_{epoch}/visible/pred_{inst}.jpg'
+                )
 
-                # occulders.
-                # iam = output['pred_occluders_iam']
+                # iam = output['pred_iam']
                 # B, N, H, W = iam.shape
-                
-                # probs = output['pred_logits'].softmax(-1)
-                # scores = probs[0, ...].cpu().detach().numpy()
-                # scores = np.round(scores, 3)
-                # titles = [', '.join([f"({class_idx}, {score:.2f})" for class_idx, score in 
-                #                         zip(range(scores.shape[1]), score)]) for score in scores]
                 
                 # # -----------
                 # # IAM Logits. 
@@ -260,7 +255,7 @@ def train_one_epoch(
                 #     masks=vis_preds_iams[0, ...], 
                 #     titles=titles,
                 #     ncols=ncols, 
-                #     path=f'{cfg.save_dir}/train_visuals/epoch_{epoch}/[pred_occluders_iam]_logits.jpg',
+                #     path=f'{cfg.save_dir}/train_visuals/epoch_{epoch}/inst/[pred_iam]_logits.jpg',
                 #     cmap='jet',
                 # )
 
@@ -275,7 +270,7 @@ def train_one_epoch(
                 #     masks=vis_preds_iams[0, ...], 
                 #     titles=titles,
                 #     ncols=ncols, 
-                #     path=f'{cfg.save_dir}/train_visuals/epoch_{epoch}/[pred_occluders_iam]_softmax.jpg',
+                #     path=f'{cfg.save_dir}/train_visuals/epoch_{epoch}/inst/[pred_iam]_softmax.jpg',
                 #     cmap='jet',
                 # )
                 
@@ -287,16 +282,17 @@ def train_one_epoch(
                 #     masks=vis_preds_iams[0, ...], 
                 #     titles=titles,
                 #     ncols=ncols, 
-                #     path=f'{cfg.save_dir}/train_visuals/epoch_{epoch}/[pred_occluders_iam]_sigmoid.jpg',
+                #     path=f'{cfg.save_dir}/train_visuals/epoch_{epoch}/inst/[pred_iam]_sigmoid.jpg',
                 #     cmap='jet', # plasma
                 # )
+            
 
 
         
         # ===========================================
         # ========== Pred IAMs Visuals ==============
         # ===========================================
-        iam = output['pred_iam']
+        iam = output['pred_iams']['instance_iams']
         B, N, H, W = iam.shape
 
         probs = output['pred_logits'].softmax(-1)
@@ -314,7 +310,7 @@ def train_one_epoch(
             masks=vis_preds_iams[0, ...], 
             titles=titles,
             ncols=ncols, 
-            path=f'{cfg.save_dir}/train_visuals/epoch_{epoch}/[pred_iam]_logits.jpg',
+            path=f'{cfg.save_dir}/train_visuals/epoch_{epoch}/inst/[pred_iam]_logits.jpg',
             cmap='jet',
         )
 
@@ -329,7 +325,7 @@ def train_one_epoch(
             masks=vis_preds_iams[0, ...], 
             titles=titles,
             ncols=ncols, 
-            path=f'{cfg.save_dir}/train_visuals/epoch_{epoch}/[pred_iam]_softmax.jpg',
+            path=f'{cfg.save_dir}/train_visuals/epoch_{epoch}/inst/[pred_iam]_softmax.jpg',
             cmap='jet',
         )
         
@@ -341,14 +337,14 @@ def train_one_epoch(
             masks=vis_preds_iams[0, ...], 
             titles=titles,
             ncols=ncols, 
-            path=f'{cfg.save_dir}/train_visuals/epoch_{epoch}/[pred_iam]_sigmoid.jpg',
+            path=f'{cfg.save_dir}/train_visuals/epoch_{epoch}/inst/[pred_iam]_sigmoid.jpg',
             cmap='jet', # plasma
         )
 
 
 
         n = 15
-        groups = cfg.model.instance_head.num_groups
+        groups = iam.shape[1] // cfg.model.instance_head.num_masks #cfg.model.instance_head.num_groups
         # -----------
         # IAM Logits [Grouped]. 
         vis_preds_iams = iam.clone().cpu().detach().numpy()
@@ -360,7 +356,7 @@ def train_one_epoch(
                 ax.axis('off')
 
                 if j == 0:
-                    ax.imshow(vis_preds_cyto[0, i, :, :], cmap='viridis')
+                    ax.imshow(vis_preds_inst[0, i, :, :], cmap='viridis')
                     ax.set_title(f'pred {i}', fontsize=10)
                 else:
                     channel_idx = N // groups * (j-1) + i
@@ -368,7 +364,7 @@ def train_one_epoch(
                     ax.set_title(f'head {j-1}', fontsize=10)
         
         fig.tight_layout(pad=0.5)
-        plt.savefig(f'{cfg.save_dir}/train_visuals/epoch_{epoch}/[pred_iam]_logits_grouped.jpg')
+        plt.savefig(f'{cfg.save_dir}/train_visuals/epoch_{epoch}/inst/[pred_iam]_logits_grouped.jpg')
         plt.close()
 
 
@@ -383,7 +379,7 @@ def train_one_epoch(
                 ax.axis('off')
 
                 if j == 0:
-                    ax.imshow(vis_preds_cyto[0, i, :, :], cmap='viridis')
+                    ax.imshow(vis_preds_inst[0, i, :, :], cmap='viridis')
                     ax.set_title(f'pred {i}', fontsize=10)
                 else:
                     channel_idx = N // groups * (j-1) + i
@@ -391,7 +387,7 @@ def train_one_epoch(
                     ax.set_title(f'head {j-1}', fontsize=10)
         
         fig.tight_layout(pad=0.5)
-        plt.savefig(f'{cfg.save_dir}/train_visuals/epoch_{epoch}/[pred_iam]_sigmoid_grouped.jpg')
+        plt.savefig(f'{cfg.save_dir}/train_visuals/epoch_{epoch}/inst/[pred_iam]_sigmoid_grouped.jpg')
         plt.close()
 
 
@@ -409,7 +405,7 @@ def train_one_epoch(
                 ax.axis('off')
 
                 if j == 0:
-                    ax.imshow(vis_preds_cyto[0, i, :, :], cmap='viridis')
+                    ax.imshow(vis_preds_inst[0, i, :, :], cmap='viridis')
                     ax.set_title(f'pred {i}', fontsize=10)
                 else:
                     channel_idx = N // groups * (j-1) + i
@@ -418,7 +414,7 @@ def train_one_epoch(
                     ax.set_title(f'head {j-1}', fontsize=10)
         
         fig.tight_layout(pad=0.5)
-        plt.savefig(f'{cfg.save_dir}/train_visuals/epoch_{epoch}/[pred_iam]_softmax_grouped.jpg')
+        plt.savefig(f'{cfg.save_dir}/train_visuals/epoch_{epoch}/inst/[pred_iam]_softmax_grouped.jpg')
         plt.close()
         
 
@@ -429,7 +425,7 @@ def train_one_epoch(
 
         if "aux_outputs" in output:
             for i, aux_outputs in enumerate(output['aux_outputs']):
-                iam = aux_outputs['pred_iam']
+                iam = aux_outputs['pred_iams']['instance_iams']
                 B, N, H, W = iam.shape
                 
                 probs = aux_outputs['pred_logits'].softmax(-1)
@@ -446,7 +442,7 @@ def train_one_epoch(
                     masks=vis_preds_iams[0, ...], 
                     titles=titles,
                     ncols=ncols, 
-                    path=f'{cfg.save_dir}/train_visuals/epoch_{epoch}/[aux_pred_iam_{i}]_logits.jpg',
+                    path=f'{cfg.save_dir}/train_visuals/epoch_{epoch}/aux_outputs/inst/[aux_pred_iam_{i}]_logits.jpg',
                     cmap='jet',
                 )
 
@@ -461,7 +457,7 @@ def train_one_epoch(
                     masks=vis_preds_iams[0, ...], 
                     titles=titles,
                     ncols=ncols, 
-                    path=f'{cfg.save_dir}/train_visuals/epoch_{epoch}/[aux_pred_iam_{i}]_softmax.jpg',
+                    path=f'{cfg.save_dir}/train_visuals/epoch_{epoch}/aux_outputs/inst/[aux_pred_iam_{i}]_softmax.jpg',
                     cmap='jet',
                 )
                 
@@ -473,72 +469,14 @@ def train_one_epoch(
                     masks=vis_preds_iams[0, ...], 
                     titles=titles,
                     ncols=ncols, 
-                    path=f'{cfg.save_dir}/train_visuals/epoch_{epoch}/[aux_pred_iam_{i}]_sigmoid.jpg',
+                    path=f'{cfg.save_dir}/train_visuals/epoch_{epoch}/aux_outputs/inst/[aux_pred_iam_{i}]_sigmoid.jpg',
                     cmap='jet', # plasma
                 )
     
-                   
 
-        
-    
     # logging results.      
     results["loss_train"] = epoch_loss
     for l in loss_dict:
         results[f"{l}_train"] = loss_dict[l]
     
     return results
-
-
-
-
-
-    # print('Loss/Train')
-    # # LOGGER.info('Loss/Train')
-    # for step, batch in tqdm(enumerate(dataloader), total=len(dataloader), miniters=5):
-    #     if batch is None:
-    #         continue
-
-    #     # batch shape: B
-        
-    #     # prepare targets
-    #     images = []
-    #     targets = []
-    #     for i in range(len(batch)):
-    #         target = batch[i]
-
-    #         target = {k: v.to(device) for k, v in target.items()}
-    #         images.append(target["image"])
-
-    #         targets.append(target)
-            
-    #     images = nested_tensor_from_tensor_list(images)   # (B, C, H, W)
-    #     batch_size = images.tensors.size(0)
-        
-    #     with amp.autocast(enabled=True):
-    #         output = model(images.tensors) # (B, N, H, W)
-            
-    #         # get losses
-    #         # TODO: return matched idxs for visualization of gt
-    #         loss_dict, (src_idx, tgt_idx) = criterion(output, targets, [512, 512], return_matches=True, epoch=epoch)
-    #         loss = sum(loss_dict.values())
-            
-            
-    #     scaler.scale(loss).backward()
-    #     if (step + 1) % 1 == 0:
-    #         scaler.step(optimizer)
-    #         scaler.update()
-
-    #         if scheduler is not None:
-    #             scheduler.step()
-                
-    #         # zero the parameter gradients
-    #         optimizer.zero_grad()
-                
-    #     running_loss += (loss.item() * batch_size)
-    #     dataset_size += batch_size
-    #     epoch_loss = running_loss / dataset_size
-        
-    #     mem = torch.cuda.memory_reserved() / 1E9 if torch.cuda.is_available() else 0
-    #     current_lr = optimizer.param_groups[0]['lr']
-        # torch.cuda.empty_cache()
-        # gc.collect()

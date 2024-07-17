@@ -37,8 +37,8 @@ class BaseCOCODataset(Dataset):
         self.coco = COCO(join(self.ann_file))
         self.image_ids = self.coco.getImgIds()
 
-        if dataset_type == "train":
-            np.random.shuffle(self.image_ids)
+        # if dataset_type == "train":
+        #     np.random.shuffle(self.image_ids)
         
         self.cfg = cfg
         self.dataset_type = dataset_type

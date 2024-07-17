@@ -4,12 +4,13 @@ from torch import nn
 from utils.coco.coco import COCO
 from utils.coco.cocoeval import COCOeval
 # from pycocotools.cocoeval import COCOeval
+from configs import cfg
 
 # coco_eval
 class Evaluator(nn.Module):
-    def __init__(self, cfg, model=None, **kwargs):
+    def __init__(self, cfg: cfg, model=None, **kwargs):
         super(Evaluator, self).__init__()
-
+        self.cfg = cfg
         self.gt_coco = {}
         self.pred_coco = {}
         self.model = model

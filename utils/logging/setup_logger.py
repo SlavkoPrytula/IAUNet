@@ -1,6 +1,7 @@
 import logging
 import sys
 from datetime import datetime
+import functools
 from configs import LOGGING_NAME
 
 
@@ -13,6 +14,7 @@ class Formatter(logging.Formatter):
         return formatted_message
 
 
+@functools.lru_cache()
 def setup_logger(
         name=LOGGING_NAME, 
         log_file=None, 

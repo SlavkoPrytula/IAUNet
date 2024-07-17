@@ -15,6 +15,7 @@ from itertools import islice
 from utils.utils import nested_tensor_from_tensor_list
 from utils.visualise import visualize, visualize_grid, visualize_grid_v2
 from utils.coco.coco import COCO
+from configs import cfg
 
 from utils.evaluate.coco_evaluator import Evaluator
 from visualizations.coco_vis import save_coco_vis
@@ -27,7 +28,7 @@ logger = setup_logger(name=LOGGING_NAME)
 
 @torch.no_grad()
 def valid_one_epoch(
-    cfg, 
+    cfg: cfg, 
     model, 
     criterion, 
     optimizer, 
@@ -58,7 +59,7 @@ def valid_one_epoch(
             target = batch[i]
 
             ignore = ["img_id", "img_path", "ori_shape", "file_name", "coco_id"]
-            target = {k: v.to(cfg.device) if k not in ignore else v 
+            target = {k: v.to(device) if k not in ignore else v 
                     for k, v in target.items()}
             images.append(target["image"])
 
@@ -117,9 +118,10 @@ def valid_one_epoch(
             if evaluator_name in ["valid", "eval"]:
                 results.update(stats)  
                 
-                for s in stats:
-                    # wandb results.
-                    wandb.log({f"metrics/{s}": stats[s]})
+                if wandb.run is not None:
+                    for s in stats:
+                        # wandb results.
+                        wandb.log({f"metrics/{s}": stats[s]})
 
             # plot results.
             gt_coco = evaluator.gt_coco
@@ -143,11 +145,12 @@ def valid_one_epoch(
         results[f"{l}_valid"] = loss_dict[l]
         
     # wandb results.
-    wandb.log({f"valid/loss_valid": epoch_loss})
-    for l in loss_dict:
-        wandb.log({f"valid/{l}_valid": loss_dict[l]})
+    if wandb.run is not None:
+        wandb.log({f"valid/loss_valid": epoch_loss})
+        for l in loss_dict:
+            wandb.log({f"valid/{l}_valid": loss_dict[l]})
     
-    torch.cuda.empty_cache()
-    gc.collect()
+    # torch.cuda.empty_cache()
+    # gc.collect()
     
     return results

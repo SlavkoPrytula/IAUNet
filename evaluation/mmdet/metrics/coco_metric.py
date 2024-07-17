@@ -118,12 +118,12 @@ class CocoMetric(BaseMetric):
         self.outfile_prefix = outfile_prefix
 
         self.backend_args = backend_args
-        if file_client_args is not None:
-            raise RuntimeError(
-                'The `file_client_args` is deprecated, '
-                'please use `backend_args` instead, please refer to'
-                'https://github.com/open-mmlab/mmdetection/blob/main/configs/_base_/datasets/coco_detection.py'  # noqa: E501
-            )
+        # if file_client_args is not None:
+        #     raise RuntimeError(
+        #         'The `file_client_args` is deprecated, '
+        #         'please use `backend_args` instead, please refer to'
+        #         'https://github.com/open-mmlab/mmdetection/blob/main/configs/_base_/datasets/coco_detection.py'  # noqa: E501
+        #     )
 
         # if ann_file is not specified,
         # initialize coco api with the converted dataset
@@ -313,6 +313,7 @@ class CocoMetric(BaseMetric):
                 height=gt_dict['height'],
                 file_name='')
             image_infos.append(image_info)
+    
             for ann in gt_dict['anns']:
                 label = ann['bbox_label']
                 bbox = ann['bbox']
@@ -412,11 +413,34 @@ class CocoMetric(BaseMetric):
                               for m, b, l in zip(data_sample['instances']['masks'],
                                                  data_sample['instances']['bboxes'],
                                                  data_sample['instances']['bbox_labels'])]
+                
+                # gt['anns'] = [{'mask': m, 
+                #                'bbox_label': l.cpu().numpy()} 
+                #                 for m, l in zip(data_sample['instances']['masks'],
+                #                                 data_sample['instances']['bbox_labels'])]
                 # print(gt['anns'][0])
 
 
             # add converted result to the results list
             self.results.append((gt, result))
+
+
+            # parse gt
+            # gt = dict()
+            # gt['width'] = data_sample['ori_shape'][1]
+            # gt['height'] = data_sample['ori_shape'][0]
+            # gt['img_id'] = data_sample['img_id']
+
+            # if self._coco_api is None:
+            #     # TODO: Need to refactor to support LoadAnnotations
+            #     assert 'instances' in data_sample, \
+            #         'ground truth is required for evaluation when ' \
+            #         '`ann_file` is not provided'
+            #     gt['anns'] = data_sample['instances']
+
+            # # add converted result to the results list
+            # self.results.append((gt, result))
+
 
     def compute_metrics(self, results: list) -> Dict[str, float]:
         """Compute the metrics from processed results.
