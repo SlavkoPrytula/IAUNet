@@ -188,14 +188,14 @@ class IAUNet(BaseModel):
 
         inst_masks = F.interpolate(inst_masks, size=ori_shape[-2:], 
                                    mode="bilinear", align_corners=False)
-        iam = F.interpolate(iam, size=ori_shape[-2:], 
-                            mode="bilinear", align_corners=False)
+        # iam = F.interpolate(iam, size=ori_shape[-2:], 
+        #                     mode="bilinear", align_corners=False)
 
         output = {
             'pred_logits': logits,
             'pred_scores': scores,
-            'pred_iam': iam,
-            'pred_masks': inst_masks,
+            'pred_iams': {'instance_iams': iam},
+            'pred_instance_masks': inst_masks,
             'pred_bboxes': bboxes,
         }
     

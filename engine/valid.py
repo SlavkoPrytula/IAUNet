@@ -108,6 +108,8 @@ def valid_one_epoch(
     
             
     if epoch % 10 == 0:
+        makedirs(join(cfg.save_dir, 'train_visuals', f'epoch_{epoch}', 'results'), exist_ok=True)
+        
         # evaluate.
         for evaluator_name in evaluators:
             print(f"Evaluating {evaluator_name} subset...")

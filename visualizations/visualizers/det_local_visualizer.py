@@ -14,7 +14,7 @@ from .palette import _get_adaptive_scales, get_palette, jitter_color
 
 
 
-@VISUALIZERS.register_module()
+@VISUALIZERS.regiset("DetLocalVisualizer")
 class DetLocalVisualizer:
     """
     Args:

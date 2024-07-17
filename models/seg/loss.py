@@ -217,7 +217,7 @@ class SparseInstCriterion(nn.Module):
 
 
     def loss_masks(self, outputs, targets, indices, num_masks, **kwargs):
-        return self._loss_masks(outputs, targets, indices, num_masks, name="masks")
+        return self._loss_masks(outputs, targets, indices, num_masks, name="instance_masks")
     
     def loss_occluders(self, outputs, targets, indices, num_masks, **kwargs):
         return self._loss_masks(outputs, targets, indices, num_masks, name="occluder_masks")

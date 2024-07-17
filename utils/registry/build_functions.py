@@ -72,3 +72,18 @@ def build_scheduler(cfg: cfg, registry: Registry=None) -> Any:
     return build_from_cfg(cfg, registry)
 
 
+def build_visualizer(cfg: cfg, registry: Registry=None) -> Any:
+    # scope switch
+    if registry is None:
+        from . import VISUALIZERS
+        registry = VISUALIZERS
+
+    name = cfg.type
+    if not isinstance(cfg, dict):
+        return registry.get(name)(cfg.vis_cfg)
+
+    _cfg = cfg.copy()
+    _cfg.pop("type")
+
+    return registry.get(name)(**_cfg)
+

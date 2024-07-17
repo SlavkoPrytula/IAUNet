@@ -6,13 +6,9 @@ import sys
 sys.path.append("./")
 from configs.utils import BaseConfig, dict
 
-
 TIME = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
 JOB_ID = os.environ.get('SLURM_JOB_ID')
 
-
-# TODO: add Visuals cfg
-# visualize_gt
 
             
 class Train:
@@ -190,6 +186,53 @@ class Run:
     comment: str            = """
                                 - new bf dataset (brightfield_coco_v2.0)
                               """
+    
+
+class Visualizer:
+    type: str = 'BaseVisualizer'
+
+    vis_cfg=dict(
+        instance_iam=dict(
+            type="IAMVisualizer",
+            inst_type="instance",
+            ncols=5, 
+            nrows=15
+        ),
+        overlap_iam=dict(
+            type="IAMVisualizer",
+            inst_type="overlap",
+            ncols=5, 
+            nrows=15
+        ),
+        visible_iam=dict(
+            type="IAMVisualizer",
+            inst_type="visible",
+            ncols=5, 
+            nrows=15
+        ),
+
+        instance_visualizer=dict(
+            type="InstanceVisualizer",
+            inst_type="instance",
+            ncols=5,
+            show_bboxes=False
+        ),
+        overlap_visualizer=dict(
+            type="InstanceVisualizer",
+            inst_type="overlap",
+            ncols=5, 
+            show_bboxes=False
+        ),
+        visible_visualizer=dict(
+            type="InstanceVisualizer",
+            inst_type="visible",
+            ncols=5, 
+            show_bboxes=False
+        ),
+        # alignment_visualizer=dict(
+        #     type="AlignmentVisualizer",
+        # )
+    )
         
 
 class Wandb:
@@ -204,6 +247,7 @@ class cfg(BaseConfig):
     valid: Valid           = Valid
     run: Run               = Run
     dataset: Dataset       = Dataset
+    visualizer: Visualizer = Visualizer
     
     optimizer=dict(
         type="AdamW",

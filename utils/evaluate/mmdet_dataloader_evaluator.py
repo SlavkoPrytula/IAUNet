@@ -75,7 +75,7 @@ class MMDetDataloaderEvaluator(Evaluator):
     
     def process(self, pred: dict):
         scores = pred['pred_logits'].softmax(-1)
-        masks_pred = pred['pred_masks'].sigmoid()
+        masks_pred = pred['pred_instance_masks'].sigmoid()
         iou_scores = pred['pred_scores'].sigmoid()
         bboxes_pred = pred['pred_bboxes']
         

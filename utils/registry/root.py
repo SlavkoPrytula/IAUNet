@@ -1,5 +1,5 @@
 from .registry import Registry
-from .build_functions import build_from_cfg, build_matcher, build_criterion
+from .build_functions import build_matcher, build_criterion, build_visualizer
 
 
 MODELS = Registry("model")
@@ -16,4 +16,4 @@ DATASETS_CFG = Registry("datasets_cfg")
 EVALUATORS = Registry("evaluator")
 METRICS = Registry("metric")
 
-VISUALIZERS = Registry("visualizer")
+VISUALIZERS = Registry("visualizer", build_func=build_visualizer)

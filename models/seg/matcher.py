@@ -238,9 +238,9 @@ class PointSampleHungarianMatcher(nn.Module):
 
 
             # masks.
-            out_mask = outputs["pred_masks"][b]  # [num_queries, H_pred, W_pred]
+            out_mask = outputs["pred_instance_masks"][b]  # [num_queries, H_pred, W_pred]
             # gt masks are already padded when preparing target
-            tgt_mask = targets[b]["masks"].to(out_mask)
+            tgt_mask = targets[b]["instance_masks"].to(out_mask)
 
             out_mask = out_mask[:, None]
             tgt_mask = tgt_mask[:, None]

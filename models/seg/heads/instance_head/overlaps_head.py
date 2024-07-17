@@ -308,6 +308,12 @@ class InstanceHead(nn.Module):
             out_channels=self.dim, 
             num_convs=3
             )
+
+        self.r_instance_branch = _make_stack_3x3_convs(
+            in_channels=self.dim * 3, 
+            out_channels=self.dim, 
+            num_convs=3
+            )
         
         # iam.
         self.inst_iam = IAM(self.dim, self.num_masks * self.num_groups, groups=self.num_groups)
@@ -353,11 +359,32 @@ class InstanceHead(nn.Module):
         c2_xavier_fill(self.fc_v)
         c2_xavier_fill(self.fc_fuse)
 
+        for m in self.instance_branch.modules():
+            if isinstance(m, nn.Conv2d):
+                c2_msra_fill(m)
+
+        for m in self.overlap_branch.modules():
+            if isinstance(m, nn.Conv2d):
+                c2_msra_fill(m)
+
+        for m in self.visible_branch.modules():
+            if isinstance(m, nn.Conv2d):
+                c2_msra_fill(m)
+
+        for m in self.r_instance_branch.modules():
+            if isinstance(m, nn.Conv2d):
+                c2_msra_fill(m)
+                
+
     def forward(self, features, prev_inst_features=None):
         inst_features = self.instance_branch(features)
         f_i = torch.cat([inst_features, features], dim=1)
         overlap_features = self.overlap_branch(f_i)
         visible_features = self.visible_branch(f_i)
+
+        f_r = torch.cat([inst_features, overlap_features, visible_features], dim=1)
+        inst_features = self.r_instance_branch(f_r)
+
 
         inst_iam = self.inst_iam(inst_features)
         overlap_iam = self.overlap_iam(overlap_features)

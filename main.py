@@ -11,10 +11,6 @@ import wandb
 # import hydra
 # from hydra.core.config_store import ConfigStore
 
-from configs import cfg
-from models.build_model import build_model
-from engine.run_training import run_training
-
 from dataset.dataloaders import (build_loader, 
                                  build_loader_ms,
                                  empty_collate_fn, 
@@ -36,10 +32,14 @@ from utils.schedulers import *
 from utils.evaluate import *
 from models.seg.loss import *
 from models.seg.matcher import *
+from visualizations.visualizers import *
 
 from utils.registry import build_from_cfg, build_criterion, build_matcher, build_optimizer, build_scheduler
-from utils.registry import DATASETS, OPTIMIZERS, SCHEDULERS, CRITERIONS, EVALUATORS
+from utils.registry import DATASETS, OPTIMIZERS, SCHEDULERS, CRITERIONS, EVALUATORS, VISUALIZERS
 
+from configs import cfg
+from models.build_model import build_model
+from engine.run_training import run_training
 
 TIME = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
 

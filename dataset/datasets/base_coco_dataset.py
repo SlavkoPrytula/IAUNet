@@ -121,7 +121,7 @@ class BaseCOCODataset(Dataset):
 
         target = {
             "image": image,
-            "masks": masks,
+            "instance_masks": masks,
             "labels": labels,
             "bboxes": bboxes,
         }

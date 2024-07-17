@@ -12,7 +12,6 @@ def build_from_cfg(cfg, registry) -> Any:
     name = cfg.type
     _cfg = cfg.copy()
     _cfg.pop("type")
-    # return registry.get(name)()(**cfg)
     return registry.get(name)(**_cfg)
 
 from tabulate import tabulate

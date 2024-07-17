@@ -112,7 +112,7 @@ class Rectangle(BaseCOCODataset):
 
         target = {
             "image": image,
-            "masks": mask,
+            "instance_masks": mask,
             # "occluder_masks": occluders,
             "overlap_masks": overlaps,
             "visible_masks": visible_mask,
