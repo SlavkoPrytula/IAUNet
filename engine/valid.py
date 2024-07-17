@@ -150,7 +150,7 @@ def valid_one_epoch(
         for l in loss_dict:
             wandb.log({f"valid/{l}_valid": loss_dict[l]})
     
-    torch.cuda.empty_cache()
-    gc.collect()
+    # torch.cuda.empty_cache()
+    # gc.collect()
     
     return results

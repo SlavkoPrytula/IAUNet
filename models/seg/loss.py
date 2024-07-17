@@ -46,7 +46,7 @@ class SparseInstCriterion(nn.Module):
             # "loss_ce_occluders", "loss_focal_occluders", "loss_bce_occluders", "loss_dice_occluders", "loss_objectness_occluders", 
             "loss_bce_occluder_masks", "loss_dice_occluder_masks",
             "loss_bce_overlap_masks", "loss_dice_overlap_masks", "loss_focal_overlap_masks",
-            "loss_bce_occluder_masks", "loss_dice_visible_masks",
+            "loss_bce_occluder_masks", "loss_dice_visible_masks" ,"loss_focal_visible_masks",
             "loss_bce_borders_masks", "loss_dice_borders_masks",
             )
         weight_dict = {}
@@ -73,11 +73,12 @@ class SparseInstCriterion(nn.Module):
         # overlaps.
         bce_overlap_masks_weight = bce_masks_weight
         dice_overlap_masks_weight = dice_masks_weight
-        focal_overlap_masks_weight = 10.0
+        focal_overlap_masks_weight = bce_masks_weight
 
         # visible mask.
         bce_visible_masks_weight = bce_masks_weight
         dice_visible_masks_weight = dice_masks_weight
+        focal_visible_masks_weight = bce_masks_weight
 
         # borders.
         bce_borders_masks_weight = bce_masks_weight
@@ -88,10 +89,10 @@ class SparseInstCriterion(nn.Module):
             zip(losses, (
                 ce_weight, bce_masks_weight, dice_masks_weight, objectness_masks_weight, 
                 # ce_weight, focal_masks_weight, bce_masks_weight, dice_masks_weight, objectness_masks_weight, 
-                # ce_occluders_weight, focal_occluders_weight, bce_occluders_weight, dice_occluders_weight, objectness_occluders_weight, 
-                bce_occluder_masks_weight, dice_occluder_masks_weight, 
-                bce_overlap_masks_weight, dice_overlap_masks_weight, focal_overlap_masks_weight, 
-                bce_visible_masks_weight, dice_visible_masks_weight, 
+                # ce_occluders_weight, focal_occluders_weight, bce_occluders_weight, dice_occluders_weight, objectness_occluders_weight,
+                bce_occluder_masks_weight, dice_occluder_masks_weight,
+                bce_overlap_masks_weight, dice_overlap_masks_weight, focal_overlap_masks_weight,
+                bce_visible_masks_weight, dice_visible_masks_weight, focal_visible_masks_weight,
                 bce_borders_masks_weight, dice_borders_masks_weight
                 )))
         return weight_dict
@@ -173,37 +174,6 @@ class SparseInstCriterion(nn.Module):
         losses = {"loss_iou_masks": iou_loss}
         return losses
     
-    @staticmethod
-    def extract_patches(src_masks, target_masks, size):
-        src_patches = []
-        tgt_patches = []
-        for i in range(target_masks.shape[0]):
-            tgt_mask = target_masks[i]
-            src_mask = src_masks[i]
-            coords = torch.nonzero(tgt_mask)
-            if coords.shape[0] == 0:
-                continue
-            min_coords = coords.min(dim=0)[0]
-            max_coords = coords.max(dim=0)[0]
-            min_coords = torch.clamp(min_coords, min=0)
-            max_coords = torch.clamp(max_coords, max=torch.tensor(tgt_mask.shape, dtype=torch.int64, device=max_coords.device) - 1) + 1
-            tgt_patch = tgt_mask[min_coords[0]:max_coords[0], min_coords[1]:max_coords[1]]
-            src_patch = src_mask[min_coords[0]:max_coords[0], min_coords[1]:max_coords[1]]
-            tgt_patch = F.interpolate(tgt_patch.unsqueeze(0).unsqueeze(0), size=(size, size), mode="bilinear", align_corners=False)
-            src_patch = F.interpolate(src_patch.unsqueeze(0).unsqueeze(0), size=(size, size), mode="bilinear", align_corners=False)
-            src_patches.append(src_patch.squeeze(0).squeeze(0))
-            tgt_patches.append(tgt_patch.squeeze(0).squeeze(0))
-
-        if src_patches and tgt_patches:
-            src_patches = torch.stack(src_patches)
-            tgt_patches = torch.stack(tgt_patches)
-        else:
-            src_patches = torch.empty(0, size, size)
-            tgt_patches = torch.empty(0, size, size)
-        return src_patches, tgt_patches
-
-        return src_patches, tgt_patches
-
 
     def _loss_masks(self, outputs, targets, indices, num_masks, name, loss_type="bce"):
         """
@@ -224,32 +194,25 @@ class SparseInstCriterion(nn.Module):
         target_masks = target_masks[tgt_idx]
 
         # upsample predictions to the target size
-        src_masks = F.interpolate(src_masks[:, None], size=target_masks.shape[-2:], 
-                                  mode="bilinear", align_corners=False)
-        
+        src_masks = F.interpolate(src_masks[:, None], size=target_masks.shape[-2:],
+                                    mode="bilinear", align_corners=False)
 
         src_masks = src_masks.squeeze(1)
         target_masks = target_masks.squeeze(1)
-
-        losses = {}
-        src_patches, tgt_patches = self.extract_patches(src_masks, target_masks, size=32)
-
-        src_patches = src_patches.flatten(1)
-        tgt_patches = tgt_patches.flatten(1)
-        patch_loss = sigmoid_ce_loss_jit(src_patches, tgt_patches, num_masks)
-        losses[f"loss_patch_bce_{name}"] = patch_loss * 5
-
         src_masks = src_masks.flatten(1)
         target_masks = target_masks.flatten(1)
 
         if loss_type == "focal":
             loss_mask = sigmoid_focal_loss(src_masks, target_masks, num_masks)
-            losses[f"loss_focal_{name}"] = loss_mask
+            loss_name = f"loss_focal_{name}"
         elif loss_type == "bce":
             loss_mask = sigmoid_ce_loss_jit(src_masks, target_masks, num_masks)
-            losses[f"loss_bce_{name}"] = loss_mask
+            loss_name = f"loss_bce_{name}"
 
-        losses[f"loss_dice_{name}"] = dice_loss_jit(src_masks, target_masks, num_masks)
+        losses = {
+            loss_name: loss_mask,
+            f"loss_dice_{name}": dice_loss_jit(src_masks, target_masks, num_masks),
+        }
         return losses
 
 
@@ -260,7 +223,7 @@ class SparseInstCriterion(nn.Module):
         return self._loss_masks(outputs, targets, indices, num_masks, name="occluder_masks")
     
     def loss_overlaps(self, outputs, targets, indices, num_masks, **kwargs):
-        return self._loss_masks(outputs, targets, indices, num_masks, name="overlap_masks", loss_type="focal")
+        return self._loss_masks(outputs, targets, indices, num_masks, name="overlap_masks")
     
     def loss_visible(self, outputs, targets, indices, num_masks, **kwargs):
         return self._loss_masks(outputs, targets, indices, num_masks, name="visible_masks")
@@ -389,8 +352,3 @@ if __name__ == "__main__":
 
     criterion = CRITERIONS.build(cfg.model.criterion)
     print(criterion)
-
-
-    
-
-

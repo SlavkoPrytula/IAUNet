@@ -1,26 +1,16 @@
 import os
-from os import mkdir, makedirs
+from os import makedirs
 from os.path import join
-import os.path as osp
 
-import torch
-import torch.nn.functional as F
-
-import numpy as np
-import pandas as pd
-import matplotlib.pyplot as plt
 from pathlib import Path
-import cv2
 import argparse
-from tqdm import tqdm
 from itertools import islice
 import json
 
 from configs import cfg as _cfg
 from configs.base import dict
-from models.build_model import build_model, load_model
+from models.build_model import build_model
 from utils.seed import set_seed
-from utils.files import increment_path
 
 from utils.augmentations import train_transforms, valid_transforms
 from utils.augmentations import normalize
@@ -163,7 +153,7 @@ if __name__ == '__main__':
     sys.path.append("./")
     args = parse_args()
 
-    experiment_path = Path("runs/[iaunet_occluders]/[ResNet]/[worms]/[softmax_iam]/[kernel_dim=256]-[multi_level=True]-[coord_conv=True]-[losses=['labels', 'masks', 'overlaps', 'visible']]/[InstanceHead-v2.0-overlaps]/[job=51724647]-[2024-07-09 15:39:18]")
+    experiment_path = Path("runs/[iaunet_occluders]/[ResNet]/[worms]/[softmax_iam]/[kernel_dim=256]-[multi_level=True]-[coord_conv=True]-[losses=['labels', 'masks', 'overlaps', 'visible']]/[InstanceHead-v2.0-overlaps]/[job=51725168]-[2024-07-09 20:52:56]")
     cfg = get_config_from_path(experiment_path)
     old_dataset = cfg.dataset.name
     

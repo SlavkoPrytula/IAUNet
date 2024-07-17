@@ -76,7 +76,7 @@ class Model:
         # type="InstanceHead-v1.1",
         # type="InstanceHead-v3-multiheaded",
         # type="InstanceHead-v1.2-occluders",
-        type="InstanceHead-v2.0-overlaps",
+        type="InstanceHead-v2.2-overlaps",
         # type="Refiner",
         in_channels=256,
         num_convs=2,

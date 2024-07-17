@@ -78,7 +78,7 @@ def load_weights(model, weights_path):
         else:
             print(f"WARNING: Skipping loading weights for parameter '{k}' as it was not found in the current model.")
     
-    # Warn about weights in the current model but not present in the pretrained weights
+    # Warn about weights in the current model but not present in the pretrained weights.
     for k in current_model_dict.keys():
         if k not in loaded_state_dict:
             print(f"WARNING: Parameter '{k}' in the current model is not present in the pretrained weights.")

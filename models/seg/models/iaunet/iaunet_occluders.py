@@ -33,8 +33,6 @@ class IAUNet(BaseModel):
             x = self.up_conv_layers[i](x)
 
             
-            # multi-level
-            # if self.multi_level:
             if i != 0:
                 mask_feats = nn.UpsamplingBilinear2d(scale_factor=2)(mask_feats)
                 mask_feats = torch.cat([x, mask_feats], dim=1)
@@ -59,27 +57,26 @@ class IAUNet(BaseModel):
         results = self.instance_head(inst_feats)
 
         logits = results["logits"]
-        mask_kernel = results["mask_kernel"]
-        overlap_mask_kernel = results["overlap_mask_kernel"]
-        visible_mask_kernel = results["visible_mask_kernel"]
         scores = results["objectness_scores"]
-        bboxes = results["bboxes"]
-        iam = results["iam"]
+        inst_kernel = results["kernels"]["instance_kernel"]
+        overlap_kernel = results["kernels"]["overlap_kernel"]
+        visible_kernel = results["kernels"]["visible_kernel"]
+        bboxes = results["bboxes"]['instance_bboxes']
 
         mask_feats = self.projection(mask_feats)
 
-        
+
         # instance masks.
-        N = mask_kernel.shape[1]
+        N = inst_kernel.shape[1]
         B, C, H, W = mask_feats.shape
 
-        inst_masks = torch.bmm(mask_kernel, mask_feats.view(B, C, H * W))
+        inst_masks = torch.bmm(inst_kernel, mask_feats.view(B, C, H * W))
         inst_masks = inst_masks.view(B, N, H, W)
 
-        overlap_masks = torch.bmm(overlap_mask_kernel, mask_feats.view(B, C, H * W))
+        overlap_masks = torch.bmm(overlap_kernel, mask_feats.view(B, C, H * W))
         overlap_masks = overlap_masks.view(B, N, H, W)
 
-        visible_masks = torch.bmm(visible_mask_kernel, mask_feats.view(B, C, H * W))
+        visible_masks = torch.bmm(visible_kernel, mask_feats.view(B, C, H * W))
         visible_masks = visible_masks.view(B, N, H, W)
 
         bboxes = bboxes.sigmoid()
@@ -90,13 +87,13 @@ class IAUNet(BaseModel):
                                       mode="bilinear", align_corners=False)
         visible_masks = F.interpolate(visible_masks, size=ori_shape[-2:], 
                                       mode="bilinear", align_corners=False)
-        iam = F.interpolate(iam, size=ori_shape[-2:], 
-                            mode="bilinear", align_corners=False)
+        # iam = F.interpolate(iam, size=ori_shape[-2:], 
+        #                     mode="bilinear", align_corners=False)
 
         output = {
             'pred_logits': logits,
             'pred_scores': scores,
-            'pred_iam': iam,
+            'pred_iams': results['iams'],
             'pred_masks': inst_masks,
             'pred_overlap_masks': overlap_masks,
             'pred_visible_masks': visible_masks,

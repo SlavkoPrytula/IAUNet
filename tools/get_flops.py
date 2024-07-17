@@ -16,7 +16,7 @@ from models.build_model import get_model
 # cfg.model.instance_head.type = "InstanceHead-v1.2-occluders"
 # cfg.model.instance_head.type = "InstanceHead-v1.3-overlaps"
 # cfg.model.instance_head.type = "InstanceHead-v3-multiheaded"
-cfg.model.instance_head.type = "InstanceHead-v2.0-overlaps"
+cfg.model.instance_head.type = "InstanceHead-v2.2-overlaps"
 # cfg.model.instance_head.type = "Refiner"
 cfg.model.instance_head.in_channels = 256
 cfg.model.instance_head.kernel_dim = 256

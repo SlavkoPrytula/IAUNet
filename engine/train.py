@@ -26,6 +26,7 @@ logger = setup_logger(name=LOGGING_NAME)
 
 from models.seg.loss import box_cxcywh_to_xyxy
 
+
 def train_one_epoch(
         cfg: cfg, 
         model, 
@@ -43,7 +44,6 @@ def train_one_epoch(
     ncols = 5
     results = {}
     
-    loss_accumulators = None
     running_loss = 0.0
     dataset_size = 0
 
@@ -91,12 +91,6 @@ def train_one_epoch(
         dataset_size += batch_size
         epoch_loss = running_loss / dataset_size
 
-        if loss_accumulators is None:
-            loss_accumulators = {key: 0.0 for key in loss_dict.keys()}
-
-        for key in loss_dict:
-            loss_accumulators[key] += loss_dict[key].item() * batch_size
-
         if step % 10 == 0:
             mem = torch.cuda.memory_reserved() / 1E6 if torch.cuda.is_available() else 0
             current_lr = optimizer.param_groups[0]['lr']
@@ -112,10 +106,8 @@ def train_one_epoch(
 
             logger.info(f'Epoch(train) [{epoch}][{step}/{len(dataloader)}] loss: {epoch_loss:.4f}, eta: {eta}, lr: {current_lr:.6f}, mem: {mem:.0f}')
     
-        torch.cuda.empty_cache()
-        gc.collect()
-
-    avg_losses = {key: total / dataset_size for key, total in loss_accumulators.items()}
+        # torch.cuda.empty_cache()
+        # gc.collect()
     
     print()
     for l in loss_dict:
@@ -300,7 +292,7 @@ def train_one_epoch(
         # ===========================================
         # ========== Pred IAMs Visuals ==============
         # ===========================================
-        iam = output['pred_iam']
+        iam = output['pred_iams']['instance_iams']
         B, N, H, W = iam.shape
 
         probs = output['pred_logits'].softmax(-1)
@@ -433,7 +425,7 @@ def train_one_epoch(
 
         if "aux_outputs" in output:
             for i, aux_outputs in enumerate(output['aux_outputs']):
-                iam = aux_outputs['pred_iam']
+                iam = aux_outputs['pred_iams']['instance_iams']
                 B, N, H, W = iam.shape
                 
                 probs = aux_outputs['pred_logits'].softmax(-1)
