@@ -2,6 +2,7 @@ import torch
 from torch.cuda import amp
 import time
 import datetime
+import gc
 
 from utils.utils import nested_tensor_from_tensor_list
 from configs import cfg
@@ -94,8 +95,8 @@ def train_one_epoch(
 
             logger.info(f'Epoch(train) [{epoch}][{step}/{len(dataloader)}] loss: {epoch_loss:.4f}, eta: {eta}, lr: {current_lr:.6f}, mem: {mem:.0f}')
     
-        # torch.cuda.empty_cache()
-        # gc.collect()
+        torch.cuda.empty_cache()
+        gc.collect()
     
     print()
     for l in loss_dict:

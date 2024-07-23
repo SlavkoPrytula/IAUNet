@@ -3,18 +3,12 @@ from os import makedirs
 from os.path import join
 from typing import List, Dict
 
-import numpy as np
 import torch
-from torch import nn
-from tqdm import tqdm
-import matplotlib.pyplot as plt
 import time
 import datetime
 from itertools import islice
 
 from utils.utils import nested_tensor_from_tensor_list
-from utils.visualise import visualize, visualize_grid, visualize_grid_v2
-from utils.coco.coco import COCO
 from configs import cfg
 
 from utils.evaluate.coco_evaluator import Evaluator
@@ -152,7 +146,7 @@ def valid_one_epoch(
         for l in loss_dict:
             wandb.log({f"valid/{l}_valid": loss_dict[l]})
     
-    # torch.cuda.empty_cache()
-    # gc.collect()
+    torch.cuda.empty_cache()
+    gc.collect()
     
     return results

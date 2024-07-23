@@ -69,15 +69,3 @@ def _make_stack_3x3_convs(num_convs, in_channels, out_channels):
         in_channels = out_channels
     return nn.Sequential(*convs)
     
-
-
-
-if __name__ == "__main__":
-    # block = _make_stack_3x3_convs(1, 32, 16)
-    # x = torch.rand(1, 32, 10, 10)
-    
-    block = MLP(16, 16, 8, 3)
-    print(block)
-    x = torch.rand(1, 10, 16)
-    out = block(x)
-    print(out.shape)

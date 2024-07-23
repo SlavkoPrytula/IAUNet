@@ -193,9 +193,10 @@ class SparseInstCriterion(nn.Module):
         target_masks = target_masks.to(src_masks)
         target_masks = target_masks[tgt_idx]
 
-        # upsample predictions to the target size
-        src_masks = F.interpolate(src_masks[:, None], size=target_masks.shape[-2:],
-                                    mode="bilinear", align_corners=False)
+        # upsample predictions to the target size.
+        # the masks should be upscaled inside the model.
+        # src_masks = F.interpolate(src_masks[:, None], size=target_masks.shape[-2:],
+        #                             mode="bilinear", align_corners=False)
 
         src_masks = src_masks.squeeze(1)
         target_masks = target_masks.squeeze(1)

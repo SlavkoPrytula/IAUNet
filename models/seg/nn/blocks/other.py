@@ -208,58 +208,6 @@ class DWSConv2d(nn.Module):
         return out
     
 
-
-class MLP(nn.Module):
-    """Very simple multi-layer perceptron (also called FFN) with relu. Mostly
-    used in DETR series detectors.
-
-    Args:
-        input_dim (int): Feature dim of the input tensor.
-        hidden_dim (int): Feature dim of the hidden layer.
-        output_dim (int): Feature dim of the output tensor.
-        num_layers (int): Number of FFN layers. As the last
-            layer of MLP only contains FFN (Linear).
-    """
-
-    def __init__(self, input_dim: int, hidden_dim: int, output_dim: int,
-                 num_layers: int) -> None:
-        super().__init__()
-        self.num_layers = num_layers
-        h = [hidden_dim] * (num_layers - 1)
-        self.layers = nn.ModuleList(
-            nn.Linear(n, k) for n, k in zip([input_dim] + h, h + [output_dim]))
-
-    def forward(self, x):
-        """Forward function of MLP.
-
-        Args:
-            x (Tensor): The input feature, has shape
-                (num_queries, bs, input_dim).
-        Returns:
-            Tensor: The output feature, has shape
-                (num_queries, bs, output_dim).
-        """
-        for i, layer in enumerate(self.layers):
-            x = F.relu(layer(x)) if i < self.num_layers - 1 else layer(x)
-        return x
-
-
-class FFN(nn.Module):
-    def __init__(self, d_model, hidden, drop_prob=0.1):
-        super(FFN, self).__init__()
-        self.linear1 = nn.Linear(d_model, hidden)
-        self.linear2 = nn.Linear(hidden, d_model)
-        self.relu = nn.ReLU()
-        self.dropout = nn.Dropout(p=drop_prob)
-        self.norm = nn.LayerNorm(d_model)
-
-    def forward(self, x):
-        x2 = self.linear2(self.dropout(self.relu(self.linear1(x))))
-        x = x + self.dropout(x2)
-        x = self.norm(x)
-        return x
-
-
 class IAMClsHead(nn.Module):
     def __init__(self, input_dim, output_dim, num_convs):
         super(IAMClsHead, self).__init__()

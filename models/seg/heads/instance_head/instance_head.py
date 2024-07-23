@@ -22,7 +22,6 @@ from utils.registry import HEADS
 class InstanceBranch(nn.Module):
     def __init__(self, in_channels, out_channels=256, num_convs=4):
         super().__init__()
-        
         # self.inst_convs = _make_stack_3x3_convs(num_convs, in_channels, out_channels)
         self.inst_convs = nn.Sequential(
             DoubleConv_v1(in_channels, out_channels), 

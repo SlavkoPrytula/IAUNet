@@ -109,6 +109,7 @@ class BaseConfig(_BaseConfig):
     save_dir: str
     visuals_dir: str
     results_dir: str
+    cfg: str
 
 
 def yaml_load(file='data.yaml', append_filename=False):

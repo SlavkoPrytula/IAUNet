@@ -15,7 +15,6 @@ from models.seg.nn.blocks import (DoubleConv_v1, DoubleConv_v3_1)
 class MaskBranch(nn.Module):
     def __init__(self, in_channels, out_channels=256, num_convs=4):
         super().__init__()
-        
         # self.mask_convs = _make_stack_3x3_convs(num_convs, in_channels, out_channels)
         self.mask_convs = nn.Sequential(
             DoubleConv_v1(in_channels, out_channels), 

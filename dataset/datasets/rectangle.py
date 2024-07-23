@@ -203,7 +203,7 @@ if __name__ == "__main__":
     print(targets["labels"])
     # print(targets["bboxes"])
 
-    print(targets["image"].shape, targets["masks"].shape)
+    print(targets["image"].shape, targets["instance_masks"].shape)
     print(f'std: {targets["image"].std()}, mean: {targets["image"].mean()}')
 
     
@@ -228,7 +228,7 @@ if __name__ == "__main__":
     # bboxes = bboxes * torch.tensor([w, h, w, h], dtype=torch.float32)
 
     visualize_grid_v2(
-        masks=targets["masks"].numpy(), 
+        masks=targets["instance_masks"].numpy(), 
         # bboxes=bboxes.numpy(), 
         path='./test_inst.jpg',
         ncols=5

@@ -25,7 +25,10 @@ from utils.seed import set_seed
 from configs.utils import save_config
 from utils.files import increment_path
 from utils.comm import setup, cleanup
+
 import torch.multiprocessing as mp
+import torch.distributed as dist
+from torch.nn.parallel import DistributedDataParallel as DDP
 
 from utils.optimizers import *
 from utils.schedulers import *
@@ -120,12 +123,12 @@ def run(cfg: cfg):
 
     train_dataloader = build_loader(train_dataset, 
                                     batch_size=cfg.train.batch_size, 
-                                    num_workers=2, 
+                                    num_workers=4, 
                                     collate_fn=trivial_batch_collator, 
                                     seed=cfg.seed)
     valid_dataloader = build_loader(valid_dataset, 
                                     batch_size=cfg.valid.batch_size, 
-                                    num_workers=2, 
+                                    num_workers=4, 
                                     collate_fn=trivial_batch_collator, 
                                     seed=cfg.seed)
     
@@ -183,8 +186,6 @@ def run(cfg: cfg):
 
 if __name__ == '__main__':
     run(cfg)
-    wandb.finish()
-
 
 # if __name__ == "__main__":
 #     world_size = cfg.gpus

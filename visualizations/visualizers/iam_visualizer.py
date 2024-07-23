@@ -76,6 +76,9 @@ class IAMVisualizer(BaseVisualizer):
         """
         Pred IAMs Visuals
         """
+        if not f'{self.inst_type}_iams' in output['pred_iams']:
+            return 
+        
         iams = output['pred_iams'][f'{self.inst_type}_iams']
 
         probs = output['pred_logits'].softmax(-1)
@@ -153,6 +156,9 @@ class IAMVisualizer(BaseVisualizer):
 
 
     def plot_iam_heads(self, cfg, output, save_path):
+        if not f'{self.inst_type}_iams' in output['pred_iams']:
+            return 
+        
         masks = output[f'pred_{self.inst_type}_masks'].sigmoid().cpu().detach().numpy()
         iams = output['pred_iams'][f'{self.inst_type}_iams']
         

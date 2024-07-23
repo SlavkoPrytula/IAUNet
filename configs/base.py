@@ -38,7 +38,7 @@ class Model:
 
     num_classes: int  = 1
     n_levels: int     = 4
-    num_convs: int    = 2
+    num_convs: int    = 4
 
     coord_conv: bool  = True
     multi_level: bool = True
@@ -72,7 +72,7 @@ class Model:
         # type="InstanceHead-v1.1",
         # type="InstanceHead-v3-multiheaded",
         # type="InstanceHead-v1.2-occluders",
-        type="InstanceHead-v2.2-overlaps",
+        type="InstanceHead-v2.0-overlaps-attn",
         # type="Refiner",
         in_channels=256,
         num_convs=2,

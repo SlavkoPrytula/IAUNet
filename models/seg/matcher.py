@@ -292,7 +292,7 @@ class PointSampleHungarianMatcher(nn.Module):
             )
             C = C.reshape(num_queries, -1).cpu()
             # quick fix.
-            C = torch.nan_to_num(C, nan=0, posinf=0, neginf=0)
+            C = torch.nan_to_num(C, nan=0)
 
             indices.append(linear_sum_assignment(C))
 
