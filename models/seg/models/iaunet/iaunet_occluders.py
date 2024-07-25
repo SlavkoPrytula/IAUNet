@@ -6,7 +6,8 @@ from torch.nn import functional as F
 import sys
 sys.path.append("./")
 
-from .iaunet import IAUNet as BaseModel
+# from .iaunet import IAUNet as BaseModel
+from models.seg.models.iaunet.iaunet import IAUNet as BaseModel
 from configs import cfg
 from utils.registry import MODELS
 

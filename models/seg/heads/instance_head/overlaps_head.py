@@ -37,7 +37,7 @@ class InstanceHead(nn.Module):
         self.activation = activation
         self.scale_factor = 1
 
-        self.num_layers = 4
+        self.num_layers = 1
         
         # iam.
         self.inst_iam = IAM(self.dim, self.num_masks * self.num_groups, groups=self.num_groups)
@@ -168,6 +168,12 @@ class InstanceHead(nn.Module):
         bias_value = -np.log((1 - self.prior_prob) / self.prior_prob)
         init.normal_(self.cls_score.weight, std=0.01)
         init.constant_(self.cls_score.bias, bias_value)
+        init.normal_(self.inst_kernel.weight, std=0.01)
+        init.constant_(self.inst_kernel.bias, 0.0)
+        init.normal_(self.overlap_kernel.weight, std=0.01)
+        init.constant_(self.overlap_kernel.bias, 0.0)
+        init.normal_(self.visible_kernel.weight, std=0.01)
+        init.constant_(self.visible_kernel.bias, 0.0)
 
     
     def forward_one_layer(self, inst_features, overlap_features, visible_features, query_embed, pos, i):
@@ -187,11 +193,10 @@ class InstanceHead(nn.Module):
             )
         
         # not sure about this...
-        c_feats = torch.cat([overlap_features, visible_features], dim=-1)
-        c_feats = self.c_feats_proj(c_feats)
-
+        memory = overlap_features + visible_features
+        
         inst_features = self.transformer_instance_cross_attention_layers[i](
-            inst_features, c_feats, 
+            inst_features, memory, 
             memory_mask=None, 
             memory_key_padding_mask=None, 
             pos=pos, query_pos=query_embed

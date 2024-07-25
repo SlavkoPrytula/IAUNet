@@ -123,12 +123,12 @@ def run(cfg: cfg):
 
     train_dataloader = build_loader(train_dataset, 
                                     batch_size=cfg.train.batch_size, 
-                                    num_workers=4, 
+                                    num_workers=2, 
                                     collate_fn=trivial_batch_collator, 
                                     seed=cfg.seed)
     valid_dataloader = build_loader(valid_dataset, 
                                     batch_size=cfg.valid.batch_size, 
-                                    num_workers=4, 
+                                    num_workers=2, 
                                     collate_fn=trivial_batch_collator, 
                                     seed=cfg.seed)
     

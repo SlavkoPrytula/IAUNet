@@ -15,7 +15,7 @@ class Train:
     epochs: int     = 250
     n_folds: int    = 5
     size: int       = [512, 512]
-    batch_size: int = 16
+    batch_size: int = 20
     augment: bool   = True
     
 
