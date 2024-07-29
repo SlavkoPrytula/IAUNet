@@ -1,0 +1,5 @@
+02/18 13:57:17 - INFO - This is an info message with some details: lr: 6.9970e-05, eta: 0:21:13
+02/18 14:01:16 - %(name)s - INFO - This is an info message with some details: lr: 6.9970e-05, eta: 0:21:13
+02/18 14:01:46 - my_logger - INFO - This is an info message with some details: lr: 6.9970e-05, eta: 0:21:13
+02/18 14:01:51 - mm - INFO - This is an info message with some details: lr: 6.9970e-05, eta: 0:21:13
+02/18 14:02:10 - mm - INFO - This is an info message with some details: lr: 6.9970e-05, eta: 0:21:13
