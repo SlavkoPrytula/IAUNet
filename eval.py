@@ -153,7 +153,7 @@ if __name__ == '__main__':
     sys.path.append("./")
     args = parse_args()
 
-    experiment_path = Path("runs/[iaunet_occluders]/[ResNet]/[worms]/[softmax_iam]/[kernel_dim=256]-[multi_level=True]-[coord_conv=True]-[losses=['labels', 'masks', 'overlaps', 'visible']]/[InstanceHead-v2.0-overlaps-attn]/[job=51790162]-[2024-07-23 11:23:08]")
+    experiment_path = Path("runs/[iaunet]/[ResNet]/[worms]/[softmax_iam]/[kernel_dim=256]-[multi_level=True]-[coord_conv=True]-[losses=['labels', 'masks']]/[InstanceHead-v1.1]/[job=51857452]-[2024-07-31 17:55:37]")
     cfg = get_config_from_path(experiment_path)
     old_dataset = cfg.dataset.name
     

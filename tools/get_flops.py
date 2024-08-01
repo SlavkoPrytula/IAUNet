@@ -33,7 +33,6 @@ cfg.model.type = "iaunet"
 # cfg.model.type = "iaunet_occluders"
 # cfg.model.type = "iaunet_ml"
 # cfg.model.type = "custom/truncated_decoder/iaunet"
-# cfg.model.type = "custom-truncated_decoder-iaunet_double_decoder"
 
 cfg.model.backbone.out_indices = [1, 2, 3, 4]
 

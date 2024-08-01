@@ -26,7 +26,6 @@ from models.build_model import build_model, load_model
 
 
 from utils.seed import set_seed
-from utils.cuda import cuda_init
 
 from configs.utils import save_config
 from utils.files import increment_path
@@ -38,7 +37,7 @@ from utils.utils import nested_tensor_from_tensor_list, flatten_mask
 from utils.visualise import visualize_grid_v2, visualize
 
 from utils.augmentations import train_transforms, valid_transforms
-from utils.normalize import normalize
+from utils.augmentations import normalize
 
 from utils.optimizers import *
 from utils.schedulers import *

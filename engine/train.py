@@ -1,17 +1,11 @@
-import torch
 from torch.cuda import amp
-import time
-import datetime
-import gc
 
 from utils.utils import nested_tensor_from_tensor_list
-from configs import cfg
 from utils.evaluate.coco_evaluator import Evaluator
+from utils.callbacks import (LossLoggerCallback)
+from configs import cfg
 
 import wandb
-from utils.logging import setup_logger
-from configs import LOGGING_NAME
-logger = setup_logger(name=LOGGING_NAME)
 
 from utils.registry import VISUALIZERS
 visualizer = VISUALIZERS.build(cfg.visualizer)
@@ -26,17 +20,19 @@ def train_one_epoch(
         dataloader, 
         device, 
         epoch, 
+        logger,
         evaluator: Evaluator=None
         ):
     model.train()
     scaler = amp.GradScaler()
     
     results = {}
-    
     running_loss = 0.0
     dataset_size = 0
 
-    start_time = time.time()
+    total_steps = len(dataloader)
+    loss_callback = LossLoggerCallback(logger, optimizer, total_steps, log_interval=10)
+    # callbacks = [visualizer]
     
     logger.info('Loss/Train')
     # pbar = tqdm(enumerate(dataloader), total=len(dataloader), miniters=5, position=0, leave=True)
@@ -71,32 +67,21 @@ def train_one_epoch(
             scaler.step(optimizer)
             scaler.update()
 
+            optimizer.zero_grad()
             if scheduler is not None:
                 scheduler.step()
-                
-            optimizer.zero_grad()
                 
         running_loss += (loss.item() * batch_size)
         dataset_size += batch_size
         epoch_loss = running_loss / dataset_size
 
-        if step % 10 == 0:
-            mem = torch.cuda.memory_reserved() / 1E6 if torch.cuda.is_available() else 0
-            current_lr = optimizer.param_groups[0]['lr']
+        # for callback in callbacks:
+        #     callback.on_train_batch_end(step, epoch, epoch_loss)
+        loss_callback.on_train_batch_end(step, epoch, epoch_loss)
 
-            # eta. 
-            elapsed_time = time.time() - start_time
-            total_iters = len(dataloader)
-            iters_done = step + 1
-            iters_left = total_iters - iters_done
-            avg_iter_time = elapsed_time / iters_done
-            eta = avg_iter_time * iters_left
-            eta = str(datetime.timedelta(seconds=int(eta)))
+        # torch.cuda.empty_cache()
+        # gc.collect()
 
-            logger.info(f'Epoch(train) [{epoch}][{step}/{len(dataloader)}] loss: {epoch_loss:.4f}, eta: {eta}, lr: {current_lr:.6f}, mem: {mem:.0f}')
-    
-        torch.cuda.empty_cache()
-        gc.collect()
     
     print()
     for l in loss_dict:
@@ -109,9 +94,9 @@ def train_one_epoch(
         for l in loss_dict:
             wandb.log({f"train/{l}_train": loss_dict[l]})
 
-    
-    if epoch % 10 == 0:
-        visualizer.on_train_epoch_end(cfg, epoch, output)
+    # for callback in callbacks:
+    #     callback.on_train_epoch_end(cfg, epoch, output)
+    visualizer.on_train_epoch_end(cfg, epoch, output)
 
     # logging results.      
     results["loss_train"] = epoch_loss

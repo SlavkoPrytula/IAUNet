@@ -25,6 +25,7 @@ from utils.seed import set_seed
 from configs.utils import save_config
 from utils.files import increment_path
 from utils.comm import setup, cleanup
+from utils.logging import setup_logger
 
 import torch.multiprocessing as mp
 import torch.distributed as dist
@@ -40,7 +41,7 @@ from visualizations.visualizers import *
 from utils.registry import build_from_cfg, build_criterion, build_matcher, build_optimizer, build_scheduler
 from utils.registry import DATASETS, OPTIMIZERS, SCHEDULERS, CRITERIONS, EVALUATORS, VISUALIZERS
 
-from configs import cfg
+from configs import cfg, LOGGING_NAME
 from models.build_model import build_model
 from engine.run_training import run_training
 
@@ -88,7 +89,8 @@ cfg.csv = cfg.save_dir / 'results.csv'
 
 # set logger.
 # cfg.log = cfg.save_dir / 'output.log'
-# set_logging(name=LOGGING_NAME, log_file=cfg.log, verbose=True)  # run before defining LOGGER
+logger = setup_logger(name=LOGGING_NAME, log_files=cfg.logger.log_files)
+
 
 # wandb.
 # wandb.init(
@@ -123,12 +125,12 @@ def run(cfg: cfg):
 
     train_dataloader = build_loader(train_dataset, 
                                     batch_size=cfg.train.batch_size, 
-                                    num_workers=2, 
+                                    num_workers=4, 
                                     collate_fn=trivial_batch_collator, 
                                     seed=cfg.seed)
     valid_dataloader = build_loader(valid_dataset, 
                                     batch_size=cfg.valid.batch_size, 
-                                    num_workers=2, 
+                                    num_workers=4, 
                                     collate_fn=trivial_batch_collator, 
                                     seed=cfg.seed)
     
@@ -176,7 +178,8 @@ def run(cfg: cfg):
                          optimizer=optimizer, 
                          scheduler=scheduler,
                          evaluators=evaluators,
-                         device=cfg.device
+                         device=cfg.device, 
+                         logger=logger
                          )
     # cleanup()
     wandb.finish()

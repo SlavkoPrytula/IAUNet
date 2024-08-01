@@ -162,19 +162,19 @@ class IAUNet(BaseModel):
         results = self.instance_head(inst_feats)
 
         logits = results["logits"]
-        mask_kernel = results["mask_kernel"]
         scores = results["objectness_scores"]
-        bboxes = results["bboxes"]
-        iam = results["iam"]
+        inst_kernel = results["kernels"]["instance_kernel"]
+        bboxes = results["bboxes"]['instance_bboxes']
 
         mask_feats = self.projection(mask_feats)
 
         
-        N = mask_kernel.shape[1]
+        # instance masks.
+        N = inst_kernel.shape[1]
         B, C, H, W = mask_feats.shape
-        inst_masks = torch.bmm(mask_kernel, mask_feats.view(B, C, H * W))
+
+        inst_masks = torch.bmm(inst_kernel, mask_feats.view(B, C, H * W))
         inst_masks = inst_masks.view(B, N, H, W)
-        
         bboxes = bboxes.sigmoid()
 
         inst_masks = F.interpolate(inst_masks, size=ori_shape[-2:], 
@@ -182,16 +182,16 @@ class IAUNet(BaseModel):
         # iam = F.interpolate(iam, size=ori_shape[-2:], 
         #                     mode="bilinear", align_corners=False)
 
-
         output = {
             'pred_logits': logits,
             'pred_scores': scores,
-            'pred_iam': iam,
-            'pred_masks': inst_masks,
+            'pred_iams': results['iams'],
+            'pred_instance_masks': inst_masks,
             'pred_bboxes': bboxes,
         }
     
         return output
+    
 
 if __name__ == "__main__":
     import time 

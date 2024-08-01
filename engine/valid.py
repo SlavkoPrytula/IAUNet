@@ -4,20 +4,15 @@ from os.path import join
 from typing import List, Dict
 
 import torch
-import time
-import datetime
 from itertools import islice
 
 from utils.utils import nested_tensor_from_tensor_list
+from utils.evaluate.coco_evaluator import Evaluator
+from utils.callbacks import (LossLoggerCallback)
+from visualizations.coco_vis import save_coco_vis
 from configs import cfg
 
-from utils.evaluate.coco_evaluator import Evaluator
-from visualizations.coco_vis import save_coco_vis
-
 import wandb
-from utils.logging import setup_logger
-from configs import LOGGING_NAME
-logger = setup_logger(name=LOGGING_NAME)
 
 
 @torch.no_grad()
@@ -30,7 +25,8 @@ def valid_one_epoch(
     dataloader, 
     device, 
     epoch, 
-    evaluators: Dict[str, Evaluator]=None
+    logger,
+    evaluators: Dict[str, Evaluator]=None,
     ):
     model.eval()
     
@@ -38,7 +34,8 @@ def valid_one_epoch(
     running_loss = 0.0
     results = {}
 
-    start_time = time.time()
+    total_steps = len(dataloader)
+    loss_callback = LossLoggerCallback(logger, optimizer, total_steps, log_interval=10)
     
     logger.info('Loss/Valid')
     # pbar = tqdm(enumerate(dataloader), total=len(dataloader), miniters=5, position=0, leave=True)
@@ -80,21 +77,10 @@ def valid_one_epoch(
         dataset_size += batch_size
         epoch_loss = running_loss / dataset_size
 
-        if step % 10 == 0:
-            mem = torch.cuda.memory_reserved() / 1E6 if torch.cuda.is_available() else 0
-            current_lr = optimizer.param_groups[0]['lr']
+        # for callback in callbacks:
+        #     callback.on_train_batch_end(step, epoch, epoch_loss)
+        loss_callback.on_valid_batch_end(step, epoch, epoch_loss)
 
-            # eta. 
-            elapsed_time = time.time() - start_time
-            total_iters = len(dataloader)
-            iters_done = step + 1
-            iters_left = total_iters - iters_done
-            avg_iter_time = elapsed_time / iters_done
-            eta = avg_iter_time * iters_left
-            eta = str(datetime.timedelta(seconds=int(eta)))
-
-            logger.info(f'Epoch(valid) [{epoch}][{step}/{len(dataloader)}] loss: {epoch_loss:.4f}, eta: {eta}, lr: {current_lr:.6f}, mem: {mem:.0f}')
-    
     print()
     for l in loss_dict:
         logger.info(f'{l}: {loss_dict[l]}')
@@ -146,7 +132,7 @@ def valid_one_epoch(
         for l in loss_dict:
             wandb.log({f"valid/{l}_valid": loss_dict[l]})
     
-    torch.cuda.empty_cache()
-    gc.collect()
+    # torch.cuda.empty_cache()
+    # gc.collect()
     
     return results

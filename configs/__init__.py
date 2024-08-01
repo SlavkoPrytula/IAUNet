@@ -15,6 +15,3 @@ try:
     cfg.dataset = DATASETS_CFG.get(cfg.dataset.name)
 except ImportError:
     print("WARNING: Could not import 'from configs.datasets import DATASETS_CFG' properly!")
-
-from utils.logging import setup_logger
-logger = setup_logger(name=LOGGING_NAME)

@@ -5,6 +5,7 @@ from datetime import datetime
 import sys
 sys.path.append("./")
 from configs.utils import BaseConfig, dict
+from typing import List, Union
 
 TIME = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
 JOB_ID = os.environ.get('SLURM_JOB_ID')
@@ -27,9 +28,9 @@ class Valid:
 # resnet50 + DoubleConv_v2 + num_convs=2
 # num_heads=8, InstanceHead-v3-multiheaded + IAM
 class Model:
-    # type: str         = 'iaunet'
+    type: str         = 'iaunet'
     # type: str         = 'iaunet_ml'
-    type: str         = 'iaunet_occluders'
+    # type: str         = 'iaunet_occluders'
     # type: str         = 'custom/truncated_decoder/iaunet'
     
     # model structure.
@@ -69,10 +70,10 @@ class Model:
 
     # instance head.
     instance_head=dict(
-        # type="InstanceHead-v1.1",
+        type="InstanceHead-v1.1",
         # type="InstanceHead-v3-multiheaded",
         # type="InstanceHead-v1.2-occluders",
-        type="InstanceHead-v2.0-overlaps-attn",
+        # type="InstanceHead-v2.0-overlaps-attn",
         # type="Refiner",
         in_channels=256,
         num_convs=2,
@@ -92,10 +93,10 @@ class Model:
     criterion=dict(
         type='SparseCriterion',
         # losses=["masks"], 
-        # losses=["labels", "masks"], 
+        losses=["labels", "masks"], 
         # losses=["labels", "masks", "iou"], 
         # losses=["labels", "masks", "occluders"], 
-        losses=["labels", "masks", "overlaps", "visible"], 
+        # losses=["labels", "masks", "overlaps", "visible"], 
         # losses=["labels", "masks", "occluders", "overlaps"], 
         # losses=["labels", "masks", "iams"], 
         # losses=["labels", "masks", "bboxes"], 
@@ -132,11 +133,6 @@ class Model:
 
     # weights.
     load_pretrained: bool = False
-    # x1 backbone
-    # weights: str          = "runs/[iaunet]/[brightfield_coco_v2.0]/[softmax_iam]/[kernel_dim=256]-[multi_level=True]-[coord_conv=True]-[losses=['labels', 'masks']]/[job=50320116]-[2024-02-11 01:15:49]/checkpoints/best.pth"
-    # new
-    # weights: str          = "runs/[iaunet_optim_v2]/[experimental]/[job=50432642]-[2024-02-24 13:56:31]/checkpoints/best.pth"
-    # weights: str          = "runs/[iaunet_optim_v2]/[experimental]/[job=50451163]-[2024-02-27 16:08:49]/checkpoints/best.pth"
     weights: str          = "runs/[resnet_iaunet_multitask]/[worms]/[softmax_iam]/[kernel_dim=256]-[multi_level=True]-[coord_conv=True]-[losses=['labels', 'masks']]/[base]/[job=51037668]-[2024-04-25 16:52:20]/checkpoints/best.pth"
     
     save_checkpoint: bool  = True
@@ -190,7 +186,7 @@ class Run:
 
 class Visualizer:
     type: str = 'BaseVisualizer'
-
+    epoch_interval=10
     vis_cfg=dict(
         instance_iam=dict(
             type="IAMVisualizer",
@@ -233,6 +229,10 @@ class Visualizer:
         #     type="AlignmentVisualizer",
         # )
     )
+
+
+class Logger:
+    log_files: Union[str, List[str]] = None # [""]
         
 
 class Wandb:
@@ -248,6 +248,7 @@ class cfg(BaseConfig):
     run: Run               = Run
     dataset: Dataset       = Dataset
     visualizer: Visualizer = Visualizer
+    logger: Logger         = Logger
     
     optimizer=dict(
         type="AdamW",

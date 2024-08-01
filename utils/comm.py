@@ -8,6 +8,12 @@ import torch.distributed as dist
 _LOCAL_PROCESS_GROUP = None
 
 
+def cuda_init(device_id):
+    # torch.backends.cudnn.benchmark = True
+    os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"
+    os.environ["CUDA_VISIBLE_DEVICES"] = f"{device_id}"
+    torch.cuda.set_device(device_id)
+
 
 def setup(rank, world_size):
     os.environ['MASTER_ADDR'] = 'localhost'

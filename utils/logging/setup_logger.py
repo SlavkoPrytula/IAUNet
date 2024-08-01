@@ -14,14 +14,15 @@ class Formatter(logging.Formatter):
         return formatted_message
 
 
-@functools.lru_cache()
+# tuples are immutable and hashable, they can be cached.
+# @functools.lru_cache()
 def setup_logger(
         name=LOGGING_NAME, 
-        log_file=None, 
-        level=logging.INFO):
+        log_files=None, 
+        level=logging.INFO, 
+        ):
     """Function to set up a logger with a specific format and file handler."""
 
-    formatter = Formatter()
 
     logger = logging.getLogger(name)
     logger.setLevel(level)
@@ -30,11 +31,17 @@ def setup_logger(
         logger.handlers.clear()
 
     logger.propagate = False
+    
+    formatter = Formatter()
 
-    if log_file:
-        file_handler = logging.FileHandler(log_file)
-        file_handler.setFormatter(formatter)
-        logger.addHandler(file_handler)
+    if isinstance(log_files, str):
+        log_files = [log_files]
+    
+    if log_files:
+        for log_file in log_files:
+            file_handler = logging.FileHandler(log_file)
+            file_handler.setFormatter(formatter)
+            logger.addHandler(file_handler)
     
     stream_handler = logging.StreamHandler(sys.stdout)
     stream_handler.setFormatter(formatter)

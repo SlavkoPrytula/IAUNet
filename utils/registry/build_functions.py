@@ -80,7 +80,7 @@ def build_visualizer(cfg: cfg, registry: Registry=None) -> Any:
 
     name = cfg.type
     if not isinstance(cfg, dict):
-        return registry.get(name)(cfg.vis_cfg)
+        return registry.get(name)(cfg.vis_cfg, cfg.epoch_interval)
 
     _cfg = cfg.copy()
     _cfg.pop("type")

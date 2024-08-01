@@ -260,7 +260,6 @@ class InstanceHead(nn.Module):
 
 
         pos = self.pe_layer(features, None)
-        print(pos.shape)
         pos = torch.bmm(inst_iam_prob, pos.view(B, C, -1).permute(0, 2, 1))
         pos = pos.reshape(B, self.num_groups, N // self.num_groups, -1).transpose(1, 2).reshape(B, N // self.num_groups, -1)
         pos = pos.transpose(0, 1)

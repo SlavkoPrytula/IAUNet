@@ -31,6 +31,9 @@ class InstanceVisualizer(BaseVisualizer):
         """
         Pred Mask Visuals
         """
+        if not f'pred_{self.inst_type}_masks' in output:
+            return 
+        
         # -----------
         # Pred Masks + BBoxes.
         vis_preds_inst = output[f'pred_{self.inst_type}_masks'].sigmoid().cpu().detach().numpy()

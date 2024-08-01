@@ -75,7 +75,7 @@ class InstanceHead(nn.Module):
 
         # Outputs
         self.cls_score = nn.Linear(expand_dim, self.num_classes)
-        self.mask_kernel = nn.Linear(expand_dim, self.kernel_dim)
+        self.inst_kernel = nn.Linear(expand_dim, self.kernel_dim)
         self.objectness = nn.Linear(expand_dim, 1)
         self.bbox_pred = nn.Linear(expand_dim, 4)
         
@@ -91,8 +91,8 @@ class InstanceHead(nn.Module):
         init.normal_(self.cls_score.weight, std=0.01)
         init.constant_(self.cls_score.bias, bias_value)
 
-        init.normal_(self.mask_kernel.weight, std=0.01)
-        init.constant_(self.mask_kernel.bias, 0.0)
+        init.normal_(self.inst_kernel.weight, std=0.01)
+        init.constant_(self.inst_kernel.bias, 0.0)
 
         c2_xavier_fill(self.fc)
         # c2_xavier_fill(self.fc_fuse)
@@ -120,24 +120,33 @@ class InstanceHead(nn.Module):
 
         # predictions.
         pred_logits = self.cls_score(inst_features)
-        pred_mask_kernel = self.mask_kernel(inst_features)
+        pred_inst_kernel = self.inst_kernel(inst_features)
         pred_scores = self.objectness(inst_features)
         pred_bboxes = self.bbox_pred(inst_features)
 
+
         results = {
             'logits': pred_logits,
-            'mask_kernel': pred_mask_kernel,
             'objectness_scores': pred_scores,
-            'bboxes': pred_bboxes,
-            'iam': iam,
-            'inst_feats': inst_features
+            'kernels': {
+                'instance_kernel': pred_inst_kernel,
+                },
+            'bboxes': {
+                'instance_bboxes': pred_bboxes
+                },
+            'iams': {
+                'instance_iams': iam,
+                },
+            'inst_feats': {
+                'instance_feats': inst_features
+                }
         }
 
         return results
 
 
 
-# TODO: add mask_kernel init to all.
+# TODO: add inst_kernel init to all.
 @HEADS.register(name="InstanceHead-v1.1-multi-iam")
 class InstanceHead(nn.Module):
     def __init__(self, 
@@ -170,7 +179,7 @@ class InstanceHead(nn.Module):
 
         # Outputs
         self.cls_score = nn.Linear(expand_dim * 2, self.num_classes)
-        self.mask_kernel = nn.Linear(expand_dim * 2, self.kernel_dim)
+        self.inst_kernel = nn.Linear(expand_dim * 2, self.kernel_dim)
         self.border_kernel = nn.Linear(expand_dim * 2, self.kernel_dim)
         self.objectness = nn.Linear(expand_dim * 2, 1)
         self.bbox_pred = nn.Linear(expand_dim * 2, 4)
@@ -234,14 +243,14 @@ class InstanceHead(nn.Module):
 
         # Predictions
         pred_logits = self.cls_score(inst_features)
-        pred_mask_kernel = self.mask_kernel(inst_features)
+        pred_inst_kernel = self.inst_kernel(inst_features)
         pred_border_kernel = self.border_kernel(inst_features)
         pred_scores = self.objectness(inst_features)
         pred_bboxes = self.bbox_pred(inst_features)
 
         results = {
             'logits': pred_logits,
-            'mask_kernel': pred_mask_kernel,
+            'inst_kernel': pred_inst_kernel,
             'border_kernel': pred_border_kernel,
             'objectness_scores': pred_scores,
             'bboxes': pred_bboxes,
@@ -284,7 +293,7 @@ class InstanceHead(nn.Module):
         
         # Output layers
         self.cls_score = nn.Linear(expand_dim, self.num_classes)
-        self.mask_kernel = nn.Linear(expand_dim, self.kernel_dim)
+        self.inst_kernel = nn.Linear(expand_dim, self.kernel_dim)
         self.occluder_kernel = nn.Linear(expand_dim, self.kernel_dim)
         self.objectness = nn.Linear(expand_dim, 1)
         self.bbox_pred = nn.Linear(expand_dim, 4)
@@ -334,7 +343,7 @@ class InstanceHead(nn.Module):
 
         # Output predictions.
         pred_logits = self.cls_score(inst_features)
-        pred_mask_kernel = self.mask_kernel(inst_features)
+        pred_inst_kernel = self.inst_kernel(inst_features)
         pred_scores = self.objectness(inst_features)
         pred_bboxes = self.bbox_pred(inst_features)
 
@@ -342,7 +351,7 @@ class InstanceHead(nn.Module):
 
         results = {
             'logits': pred_logits,
-            'mask_kernel': pred_mask_kernel,
+            'inst_kernel': pred_inst_kernel,
             "occluder_kernel": pred_occluder_kernel,
             # "overlap_kernel": pred_occluder_kernel,
             'objectness_scores': pred_scores,
@@ -384,7 +393,7 @@ class InstanceHead(nn.Module):
         
         # Output layers
         self.cls_score = nn.Linear(expand_dim, self.num_classes)
-        self.mask_kernel = nn.Linear(expand_dim, self.kernel_dim)
+        self.inst_kernel = nn.Linear(expand_dim, self.kernel_dim)
         self.overlap_kernel = nn.Linear(expand_dim, self.kernel_dim)
         self.objectness = nn.Linear(expand_dim, 1)
         self.bbox_pred = nn.Linear(expand_dim, 4)
@@ -432,14 +441,14 @@ class InstanceHead(nn.Module):
 
         # output predictions.
         pred_logits = self.cls_score(inst_features)
-        pred_mask_kernel = self.mask_kernel(inst_features)
+        pred_inst_kernel = self.inst_kernel(inst_features)
         pred_scores = self.objectness(inst_features)
         pred_bboxes = self.bbox_pred(inst_features)
         pred_overlap_kernel = self.overlap_kernel(overlap_features)
 
         results = {
             'logits': pred_logits,
-            'mask_kernel': pred_mask_kernel,
+            'inst_kernel': pred_inst_kernel,
             "overlap_kernel": pred_overlap_kernel,
             'objectness_scores': pred_scores,
             'bboxes': pred_bboxes,
@@ -487,7 +496,7 @@ class InstanceHead(nn.Module):
         self.fc_fuse = nn.Linear(expand_dim * 2, expand_dim)
 
         self.cls_score = nn.Linear(expand_dim, self.num_classes)
-        self.mask_kernel = nn.Linear(expand_dim, self.kernel_dim)
+        self.inst_kernel = nn.Linear(expand_dim, self.kernel_dim)
         self.objectness = nn.Linear(expand_dim, 1)
         self.bbox_pred = nn.Linear(expand_dim, 4)
         
@@ -507,8 +516,8 @@ class InstanceHead(nn.Module):
             init.normal_(conv.weight, std=0.01)
             init.constant_(conv.bias, 0.0)
         
-        init.normal_(self.mask_kernel.weight, std=0.01)
-        init.constant_(self.mask_kernel.bias, 0.0)
+        init.normal_(self.inst_kernel.weight, std=0.01)
+        init.constant_(self.inst_kernel.bias, 0.0)
 
         init.normal_(self.bbox_pred.weight, std=0.01)
         init.constant_(self.bbox_pred.bias, 0.0)
@@ -552,13 +561,13 @@ class InstanceHead(nn.Module):
 
         # output predictions.
         pred_logits = self.cls_score(inst_features)
-        pred_mask_kernel = self.mask_kernel(inst_features)
+        pred_inst_kernel = self.inst_kernel(inst_features)
         pred_scores = self.objectness(inst_features)
         pred_bboxes = self.bbox_pred(inst_features)
 
         results = {
             'logits': pred_logits,
-            'mask_kernel': pred_mask_kernel,
+            'inst_kernel': pred_inst_kernel,
             'objectness_scores': pred_scores,
             'bboxes': pred_bboxes,
             'iam': iams,
@@ -598,7 +607,7 @@ class InstanceHead(nn.Module):
 #         self.fc_fuse = nn.Linear(expand_dim*2, expand_dim)
 
 #         self.cls_score = nn.Linear(expand_dim, self.num_classes)
-#         self.mask_kernel = nn.Linear(expand_dim, self.kernel_dim)
+#         self.inst_kernel = nn.Linear(expand_dim, self.kernel_dim)
 #         self.objectness = nn.Linear(expand_dim, 1)
 #         self.bbox_pred = nn.Linear(expand_dim, 4)
         
@@ -616,8 +625,8 @@ class InstanceHead(nn.Module):
 #         init.normal_(self.iam_conv.weight, std=0.01)
 #         init.normal_(self.cls_score.weight, std=0.01)
         
-#         init.normal_(self.mask_kernel.weight, std=0.01)
-#         init.constant_(self.mask_kernel.bias, 0.0)
+#         init.normal_(self.inst_kernel.weight, std=0.01)
+#         init.constant_(self.inst_kernel.bias, 0.0)
 
 #         init.normal_(self.bbox_pred.weight, std=0.01)
 #         init.constant_(self.bbox_pred.bias, 0.0)
@@ -659,14 +668,14 @@ class InstanceHead(nn.Module):
 
 #         # predict classification & segmentation kernel & objectness
 #         pred_logits = self.cls_score(inst_features)
-#         pred_kernel = self.mask_kernel(inst_features)
+#         pred_kernel = self.inst_kernel(inst_features)
 #         pred_scores = self.objectness(inst_features)
 #         pred_bboxes = self.bbox_pred(inst_features)
 
 
 #         results = {
 #             'logits': pred_logits,
-#             'mask_kernel': pred_kernel,
+#             'inst_kernel': pred_kernel,
 #             'border_kernel': pred_kernel,
 #             'objectness_scores': pred_scores,
 #             'bboxes': pred_bboxes,

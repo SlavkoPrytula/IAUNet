@@ -1,8 +1,5 @@
 import gc
 import time
-import copy
-from collections import defaultdict
-
 import numpy as np
 import torch
 
@@ -10,10 +7,6 @@ from .train import train_one_epoch
 from .valid import valid_one_epoch
 
 from configs import cfg
-
-from utils.logging import setup_logger
-from configs import LOGGING_NAME
-logger = setup_logger(name=LOGGING_NAME)
 
 
 def run_training(
@@ -25,7 +18,8 @@ def run_training(
         optimizer, 
         scheduler,
         evaluators,
-        device
+        device,
+        logger,
         ):
     
     num_epochs = cfg.train.epochs + 1
@@ -48,7 +42,8 @@ def run_training(
                                         scheduler=scheduler,
                                         dataloader=train_dataloader,
                                         device=device, 
-                                        epoch=epoch
+                                        epoch=epoch,
+                                        logger=logger,
                                         )
 
         if epoch % 10 == 0:
@@ -58,7 +53,8 @@ def run_training(
                                             dataloader=valid_dataloader,
                                             device=device, 
                                             epoch=epoch,
-                                            evaluators=evaluators
+                                            evaluators=evaluators,
+                                            logger=logger,
                                             )
 
             results.update(results_valid)
