@@ -1,0 +1,47 @@
+# @package _global_
+defaults:
+ - model/default
+ - _self_
+
+model:
+  type: iaunet
+  in_channels: 3
+  out_channels: 1
+  num_classes: 1
+  n_levels: 4
+  num_convs: 4
+  coord_conv: true
+  multi_level: true
+  mask_dim: 256
+
+  encoder: null
+
+  instance_head:
+    type: InstanceHead-v1.1
+    in_channels: 256
+    num_convs: 2
+    num_classes: 1
+    kernel_dim: 256
+    num_masks: 100
+    num_groups: 1
+    activation: softmax
+
+
+  load_pretrained: false
+  weights: ''
+  # TODO: to callbacks
+  save_checkpoint: true
+  save_model_files: true
+  load_from_files: false
+  model_files: ''
+
+  optimizer:
+    type: AdamW
+    lr: 0.0001
+    weight_decay: 0.05
+
+  scheduler:
+    type: CosineAnnealingLR
+    eta_min: 1.0e-06
+    T_max: 16000
+    verbose: false

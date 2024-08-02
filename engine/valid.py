@@ -25,6 +25,7 @@ def valid_one_epoch(
     dataloader, 
     device, 
     epoch, 
+    callbacks,
     logger,
     evaluators: Dict[str, Evaluator]=None,
     ):
@@ -36,6 +37,7 @@ def valid_one_epoch(
 
     total_steps = len(dataloader)
     loss_callback = LossLoggerCallback(logger, optimizer, total_steps, log_interval=10)
+    callbacks.append(loss_callback)
     
     logger.info('Loss/Valid')
     # pbar = tqdm(enumerate(dataloader), total=len(dataloader), miniters=5, position=0, leave=True)
@@ -70,23 +72,24 @@ def valid_one_epoch(
                 evaluator.process(pred)
         
         # get losses.
-        loss_dict = criterion(pred, targets, [cfg.valid.size], epoch=epoch)
+        loss_dict = criterion(pred, targets, [cfg.dataset.valid_dataset.size], epoch=epoch)
         loss = sum(loss_dict.values())
         
         running_loss += (loss.item() * batch_size)
         dataset_size += batch_size
         epoch_loss = running_loss / dataset_size
 
-        # for callback in callbacks:
-        #     callback.on_train_batch_end(step, epoch, epoch_loss)
-        loss_callback.on_valid_batch_end(step, epoch, epoch_loss)
+        for callback in callbacks:
+            callback.on_valid_batch_end(step=step, epoch=epoch, loss=epoch_loss)
+        # loss_callback.on_valid_batch_end(step, epoch, epoch_loss)
 
     print()
     for l in loss_dict:
         logger.info(f'{l}: {loss_dict[l]}')
     print()
     
-            
+    # NOTE: evaluation is now done every n epochs, this is not needed
+    # check cfg.trainer.check_val_every_n_epoch
     if epoch % 10 == 0:
         makedirs(join(cfg.save_dir, 'train_visuals', f'epoch_{epoch}', 'results'), exist_ok=True)
         
@@ -99,7 +102,8 @@ def valid_one_epoch(
 
             if evaluator_name in ["valid", "eval"]:
                 results.update(stats)  
-                
+
+                # TODO: check from cfg
                 if wandb.run is not None:
                     for s in stats:
                         # wandb results.
@@ -127,6 +131,7 @@ def valid_one_epoch(
         results[f"{l}_valid"] = loss_dict[l]
         
     # wandb results.
+    # TODO: check from cfg
     if wandb.run is not None:
         wandb.log({f"valid/loss_valid": epoch_loss})
         for l in loss_dict:

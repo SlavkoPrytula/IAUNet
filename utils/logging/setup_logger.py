@@ -1,8 +1,6 @@
 import logging
 import sys
 from datetime import datetime
-import functools
-from configs import LOGGING_NAME
 
 
 class Formatter(logging.Formatter):
@@ -17,7 +15,7 @@ class Formatter(logging.Formatter):
 # tuples are immutable and hashable, they can be cached.
 # @functools.lru_cache()
 def setup_logger(
-        name=LOGGING_NAME, 
+        name='iaunet', 
         log_files=None, 
         level=logging.INFO, 
         ):

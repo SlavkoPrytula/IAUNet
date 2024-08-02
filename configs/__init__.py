@@ -1,17 +1,19 @@
+from omegaconf import OmegaConf
+from .structure import cfg
+
 import os
 from os.path import join
-from configs.base import cfg
+import re
 
 
-LOGGING_NAME = cfg.model.type
 PROJECT_DIR = os.getcwd()
 MODEL_FILES = join(PROJECT_DIR, "models/seg")
 CONFIG_FILES = join(PROJECT_DIR, "configs")
 UTILS_FILES = join(PROJECT_DIR, "utils")
 
 
-try:
-    from configs.datasets import DATASETS_CFG
-    cfg.dataset = DATASETS_CFG.get(cfg.dataset.name)
-except ImportError:
-    print("WARNING: Could not import 'from configs.datasets import DATASETS_CFG' properly!")
+def experiment_name(model_type):
+    split_parts = re.split(r"[/-]", model_type)
+    return "/".join(f"[{i}]" for i in split_parts)
+
+OmegaConf.register_new_resolver("experiment_name", experiment_name)

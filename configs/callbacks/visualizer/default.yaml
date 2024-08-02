@@ -1,0 +1,9 @@
+defaults:
+  - instance_iam
+  - overlap_iam
+  - visible_iam
+  - _self_
+
+type: BaseVisualizer
+epoch_interval: 10
+

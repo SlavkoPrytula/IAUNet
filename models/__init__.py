@@ -95,10 +95,9 @@ def get_model_from_path(cfg: cfg):
     model_file = f"{cfg.model.model_files}/__init__.py"
     assert isfile(model_file), FileNotFoundError(f"Model file not found: {model_file}")
 
-    if cfg.verbose: 
-        print("Loading model from path...")
-        print(f"Found model files: "
-              f"\n- {cfg.model.model_files}")
+    print("Loading model from path...")
+    print(f"Found model files: "
+            f"\n- {cfg.model.model_files}")
 
     # import the module to register the model from model_files
     module = import_from_file(model_file, clear_cache=True)
@@ -144,7 +143,7 @@ def save_model_files(model_cfg, save_dir):
         )
     
     # save encoder files.
-    model_file = MODELS.get_path(model_cfg.backbone.type)
+    model_file = MODELS.get_path(model_cfg.encoder.type)
     _copy_folder(
         src=model_file,
         dst=model_dst,

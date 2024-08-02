@@ -12,10 +12,10 @@ from models.seg.loss import box_cxcywh_to_xyxy
 from utils.visualise import visualize, visualize_grid, visualize_grid_v2
 
 from .base_visualizer import BaseVisualizer
-from utils.registry import VISUALIZERS
+from utils.registry import CALLBACKS
 
 
-@VISUALIZERS.register(name="InstanceVisualizer")
+@CALLBACKS.register(name="InstanceVisualizer")
 class InstanceVisualizer(BaseVisualizer):
     def __init__(self, inst_type, ncols, show_bboxes=False, **kwargs):
         super().__init__(**kwargs)

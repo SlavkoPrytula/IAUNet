@@ -1,0 +1,14 @@
+defaults:
+  - visualizer/default
+  - _self_
+
+# model_checkpoint:
+#   dirpath: ./checkpoints
+#   filename: "epoch_{epoch:03d}"
+#   monitor: "val/acc"
+#   mode: "max"
+#   save_last: True
+#   auto_insert_metric_name: False
+
+# loss_logger:
+#   log_interval: 10

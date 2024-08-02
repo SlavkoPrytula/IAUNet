@@ -77,8 +77,8 @@ class Rectangle(BaseCOCODataset):
 
         # (H, W, M) -> (H, W, N)
         mask, keep = self.filter_empty_masks(mask, return_idx=True) 
-        overlaps = self.get_overlaps(mask)
-        visible_mask = self.get_visible_mask(mask)
+        # overlaps = self.get_overlaps(mask)
+        # visible_mask = self.get_visible_mask(mask)
         # occluders = self.get_occluders(mask)
         # borders_mask = self.get_borders(mask)
         # bboxes = self.masks_to_boxes(mask)
@@ -89,12 +89,13 @@ class Rectangle(BaseCOCODataset):
         mask = mask.transpose((2, 0, 1))
         mask = torch.tensor(mask, dtype=torch.float32)
 
-        overlaps = np.transpose(overlaps, (2, 0, 1))
-        overlaps = torch.tensor(overlaps, dtype=torch.float32)
+        # overlaps = np.transpose(overlaps, (2, 0, 1))
+        # overlaps = torch.tensor(overlaps, dtype=torch.float32)
+        # visible_mask = np.transpose(visible_mask, (2, 0, 1))
+        # visible_mask = torch.tensor(visible_mask, dtype=torch.float32)
+
         # occluders = np.transpose(occluders, (2, 0, 1))
         # occluders = torch.tensor(occluders, dtype=torch.float32)
-        visible_mask = np.transpose(visible_mask, (2, 0, 1))
-        visible_mask = torch.tensor(visible_mask, dtype=torch.float32)
 
         # borders_mask = np.transpose(borders_mask, (2, 0, 1))
         # borders_mask = torch.tensor(borders_mask, dtype=torch.float32)
@@ -114,8 +115,8 @@ class Rectangle(BaseCOCODataset):
             "image": image,
             "instance_masks": mask,
             # "occluder_masks": occluders,
-            "overlap_masks": overlaps,
-            "visible_masks": visible_mask,
+            # "overlap_masks": overlaps,
+            # "visible_masks": visible_mask,
             "labels": labels,
             # "borders_masks": borders_mask,
             # "occluders_bounds": occluder_bound

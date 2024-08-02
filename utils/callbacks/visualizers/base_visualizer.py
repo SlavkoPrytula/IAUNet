@@ -1,20 +1,18 @@
 from os import makedirs
 from os.path import join
 
-import sys
-sys.path.append("./")
-
+from utils.callbacks import Callback
 from configs import cfg
-from utils.registry import VISUALIZERS
+from utils.registry import CALLBACKS
 
 
-@VISUALIZERS.register(name="BaseVisualizer")
-class BaseVisualizer:
-    def __init__(self, configs: dict = None, epoch_interval=None, **kwargs):
+@CALLBACKS.register(name="BaseVisualizer")
+class BaseVisualizer(Callback):
+    def __init__(self, epoch_interval=None, **configs):
         self.visualizers = {}
         if configs:
             for name, cfg in configs.items():
-                self.visualizers[name] = VISUALIZERS.build(cfg)
+                self.visualizers[name] = CALLBACKS.build(cfg)
         self.cfg = None
         self.output = None
         self.save_dir = None
@@ -25,8 +23,8 @@ class BaseVisualizer:
         if epoch % self.epoch_interval == 0:
             self.cfg = cfg
             self.output = output
-            self.save_dir = cfg.save_dir
-            self.save_path = join(cfg.save_dir, 'train_visuals', f'epoch_{epoch}')
+            self.save_dir = cfg.run.save_dir
+            self.save_path = join(cfg.run.save_dir, 'train_visuals', f'epoch_{epoch}')
             makedirs(self.save_path, exist_ok=True)
 
             self.plot(cfg, output, self.save_path)

@@ -1,0 +1,5 @@
+visible_iam:
+  type: IAMVisualizer
+  inst_type: visible
+  ncols: 5
+  nrows: 15

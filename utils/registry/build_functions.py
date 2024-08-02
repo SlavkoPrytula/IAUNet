@@ -1,6 +1,10 @@
-from configs import cfg
 from .registry import Registry
 from typing import Any
+from utils import visualise
+
+from omegaconf import OmegaConf
+from configs import cfg
+from configs.structure import Callbacks, Visualizer
 
 
 # def build_optimizer(cfg: cfg) -> Optimizer:
@@ -16,7 +20,7 @@ from typing import Any
 
 
 def build_from_cfg(cfg: cfg, registry: Registry) -> Any:
-    name = cfg.type
+    name = cfg.get('type')
     cfg.pop("type")
     return registry.get(name)()(**cfg)
 
@@ -39,7 +43,7 @@ def build_matcher(cfg: cfg, registry: Registry=None) -> Any:
         from . import MATCHERS
         registry = MATCHERS
 
-    name = cfg.type
+    name = cfg.get('type')
     return registry.get(name)(cfg)
 
 
@@ -50,7 +54,7 @@ def build_criterion(cfg: cfg, registry: Registry=None) -> Any:
         registry = CRITERIONS
 
     matcher = build_matcher(cfg.matcher)
-    name = cfg.type
+    name = cfg.get('type')
     return registry.get(name)(cfg, matcher)
 
 
@@ -72,18 +76,31 @@ def build_scheduler(cfg: cfg, registry: Registry=None) -> Any:
     return build_from_cfg(cfg, registry)
 
 
-def build_visualizer(cfg: cfg, registry: Registry=None) -> Any:
-    # scope switch
-    if registry is None:
-        from . import VISUALIZERS
-        registry = VISUALIZERS
 
-    name = cfg.type
-    if not isinstance(cfg, dict):
-        return registry.get(name)(cfg.vis_cfg, cfg.epoch_interval)
+def build_visualizer(cfg: Visualizer, registry: Registry=None) -> Any:
+    name = cfg.get('type')
 
-    _cfg = cfg.copy()
-    _cfg.pop("type")
+    if isinstance(cfg, dict):
+        _cfg = cfg.copy()
+        _cfg.pop("type")
+        return registry.get(name)(**_cfg)
+    
+    _cfg = OmegaConf.to_container(cfg, resolve=True)
+    _cfg.pop("type", None)
 
     return registry.get(name)(**_cfg)
+
+
+def build_callback(cfg, registry: Registry=None) -> Any:
+    # scope switch
+    if registry is None:
+        from . import CALLBACKS
+        registry = CALLBACKS
+
+    name = cfg.get('type')
+    # we are hacking...
+    if 'Visualizer' in name:
+        return build_visualizer(cfg, registry)
+    
+    return build_from_cfg(cfg, registry)
 

@@ -1,0 +1,22 @@
+# @package _global_
+
+defaults:
+  - _self_
+  - dataset: livecell
+  - model: model/iaunet/iaunet
+  - model/encoder: resnet/resnet_50
+  - logger: log
+  - trainer: gpu
+  - run: default
+  - hydra: default
+
+  - callbacks: default
+  # - visualizer: default
+
+
+train: True
+test: True
+
+seed: 3407
+job_id: null
+run_id: null

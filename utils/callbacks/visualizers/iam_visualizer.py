@@ -9,10 +9,10 @@ from utils.visualise import visualize, visualize_grid, visualize_grid_v2
 
 from configs import cfg
 from .base_visualizer import BaseVisualizer
-from utils.registry import VISUALIZERS
+from utils.registry import CALLBACKS
 
 
-@VISUALIZERS.register(name="IAMVisualizer")
+@CALLBACKS.register(name="IAMVisualizer")
 class IAMVisualizer(BaseVisualizer):
     def __init__(self, inst_type, ncols, nrows, **kwargs):
         super().__init__(**kwargs)

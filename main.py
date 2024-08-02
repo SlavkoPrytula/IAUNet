@@ -1,3 +1,4 @@
+
 import os
 from os import mkdir, makedirs
 from os.path import join
@@ -7,9 +8,9 @@ from pathlib import Path
 from datetime import datetime
 import wandb
 
-# logging
-# import hydra
-# from hydra.core.config_store import ConfigStore
+import hydra
+from omegaconf import OmegaConf
+from configs import cfg, experiment_name
 
 from dataset.dataloaders import (build_loader, 
                                  build_loader_ms,
@@ -20,10 +21,7 @@ from dataset.dataloaders import (build_loader,
 from utils.augmentations import train_transforms, valid_transforms
 from utils.augmentations import normalize
 
-
 from utils.seed import set_seed
-from configs.utils import save_config
-from utils.files import increment_path
 from utils.comm import setup, cleanup
 from utils.logging import setup_logger
 
@@ -36,80 +34,66 @@ from utils.schedulers import *
 from utils.evaluate import *
 from models.seg.loss import *
 from models.seg.matcher import *
-from visualizations.visualizers import *
+
+from utils.callbacks import *
 
 from utils.registry import build_from_cfg, build_criterion, build_matcher, build_optimizer, build_scheduler
-from utils.registry import DATASETS, OPTIMIZERS, SCHEDULERS, CRITERIONS, EVALUATORS, VISUALIZERS
+from utils.registry import DATASETS, OPTIMIZERS, SCHEDULERS, CRITERIONS, EVALUATORS, CALLBACKS
 
-from configs import cfg, LOGGING_NAME
 from models.build_model import build_model
-from engine.run_training import run_training
+from engine.trainer import Trainer
 
 TIME = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
 
 
-def parse_args():
-    parser = argparse.ArgumentParser(description='Train job')
-    parser.add_argument('--job-id', default='', help='Job ID for this run')
-    parser.add_argument('--run-id', default='', help='Subdirectory for this run')
-    args = parser.parse_args()
 
-    return args
+def run(cfg: cfg, rank=None, world_size=None):
+    if cfg.trainer.strategy == 'ddp':
+        setup(rank, world_size)
+        torch.cuda.set_device(rank)
 
+    if cfg.job_id and cfg.run_id:
+        cfg.run.save_dir = join(cfg.run.save_dir, f"[job={cfg.job_id}]-[group_run]", f"run={cfg.run_id}")
+    elif cfg.job_id and (not cfg.run_id):
+        cfg.run.save_dir = join(cfg.run.save_dir, f"[job={cfg.job_id}]-[{TIME}]")
+    else:
+        print("\nNo JOB_ID found for this run! Using default 'temp' folder.\n")
+        cfg.run.save_dir = join(cfg.run.save_dir, "temp")
 
-args = parse_args()
-
-# cfg.save_dir = increment_path(join(cfg.run.runs_dir, cfg.run.experiment_name, cfg.run.run_name), exist_ok=cfg.run.exist_ok)
-cfg.save_dir = join(cfg.run.runs_dir, cfg.run.experiment_name, cfg.run.run_name, cfg.run.group_name)
-
-if args.job_id and args.run_id:
-    cfg.save_dir = join(cfg.save_dir, f"[job={args.job_id}]-[group_run]", f"run={args.run_id}")
-elif args.job_id and (not args.run_id):
-    cfg.save_dir = join(cfg.save_dir, f"[job={args.job_id}]-[{TIME}]")
-else:
-    print("\nNo JOB_ID found for this run! Using default 'temp' folder.\n")
-    cfg.save_dir = join(cfg.save_dir, "temp")
-
-cfg.save_dir = Path(cfg.save_dir)
-print(f"Saving to {cfg.save_dir}\n")
+    cfg.run.save_dir = Path(cfg.run.save_dir)
+    print(f"Saving to {cfg.run.save_dir}\n")
 
 
-# save config.
-print(cfg)
-
-# create directories.
-makedirs(cfg.save_dir, exist_ok=True)
-makedirs(cfg.save_dir / 'train_visuals', exist_ok=True)
-# makedirs(cfg.save_dir / 'valid_visuals', exist_ok=True)
-makedirs(cfg.save_dir / 'checkpoints', exist_ok=True)
-makedirs(cfg.save_dir / 'results', exist_ok=True)
-
-# save results.
-cfg.csv = cfg.save_dir / 'results.csv'
-
-# set logger.
-# cfg.log = cfg.save_dir / 'output.log'
-logger = setup_logger(name=LOGGING_NAME, log_files=cfg.logger.log_files)
+    # save config.
+    print(OmegaConf.to_yaml(cfg))
 
 
-# wandb.
-# wandb.init(
-#     project=cfg.wandb.project, 
-#     group=cfg.wandb.group,
-#     name=cfg.wandb.name,
-#     dir=cfg.save_dir
-#     )
+    # create directories.
+    makedirs(cfg.run.save_dir, exist_ok=True)
+    makedirs(cfg.run.save_dir / 'train_visuals', exist_ok=True)
+    makedirs(cfg.run.save_dir / 'checkpoints', exist_ok=True)
+    makedirs(cfg.run.save_dir / 'results', exist_ok=True)
 
+    # set logger.
+    logger = setup_logger(
+        name=cfg.logger.log.name, 
+        log_files=cfg.logger.log.log_files
+        )
 
-# @hydra.main(version_base=None, config_name="config")
-def run(cfg: cfg):
-# def run(rank, world_size):
-    # setup(rank, world_size)
-    # set seed for reproducibility
+    # wandb.
+    # wandb.init(
+    #     project=cfg.logger.wandb.project, 
+    #     group=cfg.logger.wandb.group,
+    #     name=cfg.logger.wandb.name,
+    #     dir=cfg.run.save_dir
+    #     )
+
+    # ============================================================
+    # ============================================================
+
     set_seed(cfg.seed)
 
     # - get dataloaders
-    print(DATASETS)
     dataset = DATASETS.get(cfg.dataset.type)
 
     train_dataset = dataset(cfg, 
@@ -124,12 +108,12 @@ def run(cfg: cfg):
                             )
 
     train_dataloader = build_loader(train_dataset, 
-                                    batch_size=cfg.train.batch_size, 
+                                    batch_size=cfg.dataset.train_dataset.batch_size, 
                                     num_workers=4, 
                                     collate_fn=trivial_batch_collator, 
                                     seed=cfg.seed)
     valid_dataloader = build_loader(valid_dataset, 
-                                    batch_size=cfg.valid.batch_size, 
+                                    batch_size=cfg.dataset.valid_dataset.batch_size, 
                                     num_workers=4, 
                                     collate_fn=trivial_batch_collator, 
                                     seed=cfg.seed)
@@ -137,18 +121,17 @@ def run(cfg: cfg):
     # - build and prepare model
     model = build_model(cfg)
 
-    cfg.optimizer.params = model.parameters()
+    cfg.model.optimizer.params = model.parameters()
     # optimizer = OPTIMIZERS.build(cfg.optimizer)
-    optimizer = build_optimizer(cfg.optimizer)
+    optimizer = build_optimizer(cfg.model.optimizer)
 
 
     cfg.scheduler.optimizer = optimizer
     # scheduler = SCHEDULERS.build(cfg.scheduler)
-    scheduler = build_scheduler(cfg.scheduler)
+    scheduler = build_scheduler(cfg.model.scheduler)
 
 
     # loss = CRITERIONS.build(cfg.model.criterion)
-    cfg.model.criterion.save_dir = cfg.save_dir
     criterion = build_criterion(cfg.model.criterion)
     
     # TODO: this needs to be refactored
@@ -159,36 +142,45 @@ def run(cfg: cfg):
         "valid": EVALUATORS.get(cfg.model.evaluator.type)(cfg=cfg, model=model, dataset=valid_dataset)
     }
 
-    # if getattr(cfg.dataset, "occ_dataset", None):
-    #     occ_dataset = dataset(cfg, 
-    #                       dataset_type="occ", 
-    #                       normalization=normalize, 
-    #                       transform=valid_transforms(cfg)
-    #                      )
-        
-    #     cfg.model.evaluator.coco_api = "COCOeval_nofp"
-    #     evaluators["occ"] = EVALUATORS.get(cfg.model.evaluator.type)(cfg=cfg, model=model, dataset=occ_dataset)
-    
-    
-    # - run training
-    model = run_training(cfg, model, 
-                         criterion=criterion, 
-                         train_dataloader=train_dataloader, 
-                         valid_dataloader=valid_dataloader,
-                         optimizer=optimizer, 
-                         scheduler=scheduler,
-                         evaluators=evaluators,
-                         device=cfg.device, 
-                         logger=logger
-                         )
-    # cleanup()
+    # setup callbacks.
+    callbacks = [CALLBACKS.build(cfg.callbacks[c]) for c in cfg.callbacks]
+
+
+    # - run training.
+    trainer = Trainer(cfg, model, 
+                      criterion=criterion, 
+                      train_dataloader=train_dataloader, 
+                      valid_dataloader=valid_dataloader,
+                      optimizer=optimizer, 
+                      scheduler=scheduler,
+                      evaluators=evaluators,
+                      callbacks=callbacks,
+                      accelerator=cfg.trainer.accelerator, 
+                      logger=logger,
+                      rank=rank
+                    )
+    trainer.train()
+
+    if cfg.test:
+        # TODO: run testing on model
+        UserWarning("Testing not implemented! Check main.py")
+
     wandb.finish()
 
 
 
+@hydra.main(version_base="1.3", config_path="configs", config_name="train")
+def main(cfg: cfg):
+    if cfg.trainer.strategy == 'ddp':
+        world_size = cfg.trainer.devices
+        mp.spawn(run, args=(cfg, world_size), nprocs=world_size, join=True)
+    else:
+        run(cfg)
+
+
 
 if __name__ == '__main__':
-    run(cfg)
+    main()
 
 # if __name__ == "__main__":
 #     world_size = cfg.gpus

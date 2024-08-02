@@ -2,8 +2,10 @@ import time
 import datetime
 import torch
 
+from utils.callbacks import Callback
 
-class LossLoggerCallback:
+
+class LossLoggerCallback(Callback):
     def __init__(self, logger, optimizer, total_steps, log_interval=10):
         self.logger = logger
         self.optimizer = optimizer
@@ -12,11 +14,11 @@ class LossLoggerCallback:
         self.start_time = time.time()
 
 
-    def on_train_batch_end(self, step, epoch, loss):
+    def on_train_batch_end(self, step, epoch, loss, **kwargs):
         self.log_loss(step, epoch, loss, stage="train")
 
 
-    def on_valid_batch_end(self, step, epoch, loss):
+    def on_valid_batch_end(self, step, epoch, loss, **kwargs):
         self.log_loss(step, epoch, loss, stage="valid")
 
 

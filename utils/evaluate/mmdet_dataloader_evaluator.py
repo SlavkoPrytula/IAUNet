@@ -30,7 +30,7 @@ class MMDetDataloaderEvaluator(Evaluator):
             ann_file=dataset.ann_file,
             metric=cfg.model.evaluator.metric,
             classwise=cfg.model.evaluator.classwise,
-            outfile_prefix=join(cfg.save_dir, outfile_prefix) if (outfile_prefix and hasattr(cfg, 'save_dir')) else None,
+            outfile_prefix=join(cfg.run.save_dir, outfile_prefix) if (outfile_prefix and hasattr(cfg, 'save_dir')) else None,
             coco_api=coco_api if coco_api else 'COCOeval'
             )
 
@@ -55,7 +55,7 @@ class MMDetDataloaderEvaluator(Evaluator):
 
             target = batch[0]
             ignore = ["img_id", "img_path", "ori_shape", "file_name", "coco_id"]
-            target = {k: v.to(cfg.device) if k not in ignore else v 
+            target = {k: v.to(self.model.device) if k not in ignore else v 
                     for k, v in target.items()}
             images.append(target["image"])
             targets.append(target)

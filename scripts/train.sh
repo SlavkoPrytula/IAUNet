@@ -12,5 +12,5 @@
 
 nvidia-smi
 
-python main.py --job-id $SLURM_JOB_ID
+python main.py job_id=$SLURM_JOB_ID
 # srun --partition=gpu --gres=gpu:tesla:1 --time=60 --exclude=falcon3 --pty /bin/bash

@@ -1,5 +1,5 @@
-import gc
 import time
+from typing import List
 import numpy as np
 import torch
 
@@ -18,35 +18,39 @@ def run_training(
         optimizer, 
         scheduler,
         evaluators,
-        device,
+        callbacks,
+        accelerator,
         logger,
         ):
     
-    num_epochs = cfg.train.epochs + 1
+    if accelerator == 'gpu' and torch.cuda.is_available():
+        device = torch.device('cuda')
+        logger.info(f"Using GPU: {torch.cuda.get_device_name(device)}")
+    else:
+        device = torch.device('cpu')
+        logger.info("Using CPU\n")
 
-    if torch.cuda.is_available():
-        logger.info("cuda: {}\n".format(torch.cuda.get_device_name()))
+    csv = cfg.run.save_dir / 'results.csv'
 
     start = time.time()
     best_loss = np.inf
 
+    num_epochs = cfg.trainer.max_epochs + 1
     for epoch in range(0, num_epochs):
-        gc.collect()
-
         logger.info(f'Epoch {epoch}/{num_epochs}')
 
         results = {}
-
         results_train = train_one_epoch(cfg, model, criterion=criterion, 
                                         optimizer=optimizer, 
                                         scheduler=scheduler,
                                         dataloader=train_dataloader,
                                         device=device, 
                                         epoch=epoch,
+                                        callbacks=callbacks,
                                         logger=logger,
                                         )
 
-        if epoch % 10 == 0:
+        if epoch % cfg.trainer.check_val_every_n_epoch == 0:
             results_valid = valid_one_epoch(cfg, model, criterion=criterion, 
                                             optimizer=optimizer, 
                                             scheduler=scheduler,
@@ -54,6 +58,7 @@ def run_training(
                                             device=device, 
                                             epoch=epoch,
                                             evaluators=evaluators,
+                                            callbacks=callbacks,
                                             logger=logger,
                                             )
 
@@ -67,19 +72,19 @@ def run_training(
                 
                 # saving best model.
                 if cfg.model.save_checkpoint:
-                    torch.save(model.state_dict(), cfg.save_dir / 'checkpoints/best.pth')
+                    torch.save(model.state_dict(), cfg.run.save_dir / 'checkpoints/best.pth')
                     print()
 
             metrics = list(results.keys())
             vals = list(results.values())
 
-            s = '' if cfg.csv.exists() else (('%13s,' * (len(metrics) + 1) % tuple(['epoch'] + metrics)).rstrip(',') + '\n')  # header
-            with open(cfg.csv, 'a') as f:
+            s = '' if csv.exists() else (('%13s,' * (len(metrics) + 1) % tuple(['epoch'] + metrics)).rstrip(',') + '\n')  # header
+            with open(csv, 'a') as f:
                 f.write(s + ('%13.5g,' * (len(metrics) + 1) % tuple([epoch] + vals)).rstrip(',') + '\n')
 
         # saving last checkpoint.
         if cfg.model.save_checkpoint:
-            torch.save(model.state_dict(), cfg.save_dir / 'checkpoints/last.pth')
+            torch.save(model.state_dict(), cfg.run.save_dir / 'checkpoints/last.pth')
 
     end = time.time()
     time_elapsed = end - start

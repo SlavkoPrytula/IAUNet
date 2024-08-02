@@ -7,9 +7,6 @@ from configs import cfg
 
 import wandb
 
-from utils.registry import VISUALIZERS
-visualizer = VISUALIZERS.build(cfg.visualizer)
-
 
 def train_one_epoch(
         cfg: cfg, 
@@ -20,6 +17,7 @@ def train_one_epoch(
         dataloader, 
         device, 
         epoch, 
+        callbacks,
         logger,
         evaluator: Evaluator=None
         ):
@@ -30,9 +28,10 @@ def train_one_epoch(
     running_loss = 0.0
     dataset_size = 0
 
+    # TODO: this needs to be redone adn put to utild.callbacks
     total_steps = len(dataloader)
     loss_callback = LossLoggerCallback(logger, optimizer, total_steps, log_interval=10)
-    # callbacks = [visualizer]
+    callbacks.append(loss_callback)
     
     logger.info('Loss/Train')
     # pbar = tqdm(enumerate(dataloader), total=len(dataloader), miniters=5, position=0, leave=True)
@@ -58,7 +57,7 @@ def train_one_epoch(
             output = model(images.tensors) # (B, N, H, W)
             
             # get losses
-            loss_dict, (src_idx, tgt_idx) = criterion(output, targets, [cfg.train.size], 
+            loss_dict, (src_idx, tgt_idx) = criterion(output, targets, [cfg.dataset.train_dataset.size], 
                                                       return_matches=True, epoch=epoch)
             loss = sum(loss_dict.values())
             
@@ -75,9 +74,9 @@ def train_one_epoch(
         dataset_size += batch_size
         epoch_loss = running_loss / dataset_size
 
-        # for callback in callbacks:
-        #     callback.on_train_batch_end(step, epoch, epoch_loss)
-        loss_callback.on_train_batch_end(step, epoch, epoch_loss)
+        for callback in callbacks:
+            callback.on_train_batch_end(step=step, epoch=epoch, loss=epoch_loss)
+        # loss_callback.on_train_batch_end(step, epoch, epoch_loss)
 
         # torch.cuda.empty_cache()
         # gc.collect()
@@ -89,14 +88,15 @@ def train_one_epoch(
     print()
 
     # wandb results.
+    # TODO: check from cfg
     if wandb.run is not None:
         wandb.log({f"train/loss_train": epoch_loss})
         for l in loss_dict:
             wandb.log({f"train/{l}_train": loss_dict[l]})
 
-    # for callback in callbacks:
-    #     callback.on_train_epoch_end(cfg, epoch, output)
-    visualizer.on_train_epoch_end(cfg, epoch, output)
+    for callback in callbacks:
+        callback.on_train_epoch_end(cfg=cfg, epoch=epoch, output=output)
+    # visualizer.on_train_epoch_end(cfg, epoch, output)
 
     # logging results.      
     results["loss_train"] = epoch_loss

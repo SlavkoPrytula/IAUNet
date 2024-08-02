@@ -1,0 +1,91 @@
+# import sys
+# sys.path.append("./")
+
+# from configs import cfg
+# from utils.registry import VISUALIZERS
+# from visualizations.visualizers import *
+
+# cfg.save_dir = ""
+# visualizer = VISUALIZERS.build(cfg.visualizer)
+# print(visualizer.visualizers.inst_type)
+# # visualizer.on_train_epoch_end(cfg=cfg, epoch=1, output="some_output")
+# # print(visualizer.output)
+# # print(visualizer.visualizers["iam_visualizer"].output)
+
+
+
+# import torch
+# import torch.nn as nn
+# from torch.nn import functional as F
+
+# from models.seg.nn.blocks import CrossAttentionLayer
+    
+
+# layer = CrossAttentionLayer(20, 1)
+# x = torch.rand(2, 5, 20)
+# y = torch.rand(2, 5, 20)
+# z = layer(x, y)
+# print(z.shape)
+
+
+
+import time
+import torch
+
+# Define the dimensions
+B = 16  # batch size
+Q = 100  # number of queries
+C = 256  # channels
+H = 128  # height
+W = 128  # width
+
+device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+print(device)
+
+# Create random tensors on CUDA
+bqc = torch.randn(B, Q, C).to(device)
+bchw = torch.randn(B, C, H, W).to(device)
+
+# Function to test einsum
+def test_einsum():
+    return torch.einsum("bqc,bchw->bqhw", bqc, bchw)
+
+# Function to test bmm
+def test_bmm():
+    bchw_flat = bchw.view(B, C, -1)  # Flatten the spatial dimensions
+    result_flat = torch.bmm(bqc, bchw_flat)  # Perform batch matrix multiplication
+    return result_flat.view(B, Q, H, W)  # Reshape back to the original spatial dimensions
+
+# Number of iterations
+iterations = 1000
+
+# Test einsum
+einsum_times = []
+for _ in range(iterations):
+    start_time = time.time()
+    test_einsum()
+    torch.cuda.synchronize()  # Ensure all CUDA ops are finished
+    end_time = time.time()
+    einsum_times.append(end_time - start_time)
+
+# Test bmm
+bmm_times = []
+for _ in range(iterations):
+    start_time = time.time()
+    test_bmm()
+    torch.cuda.synchronize()  # Ensure all CUDA ops are finished
+    end_time = time.time()
+    bmm_times.append(end_time - start_time)
+
+# Calculate average and best times
+einsum_avg_time = sum(einsum_times) / iterations
+einsum_best_time = min(einsum_times)
+
+bmm_avg_time = sum(bmm_times) / iterations
+bmm_best_time = min(bmm_times)
+
+# Print the results
+print(f"Einsum average time: {einsum_avg_time * 1000:.6f} ms")
+print(f"Einsum best time: {einsum_best_time * 1000:.6f} ms")
+print(f"BMM average time: {bmm_avg_time * 1000:.6f} ms")
+print(f"BMM best time: {bmm_best_time * 1000:.6f} ms")

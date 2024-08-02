@@ -34,7 +34,7 @@ class IAUNet(BaseModel):
     def __init__(self, cfg: cfg):
         super(IAUNet, self).__init__(cfg)
 
-        self.encoder = MODELS.build(cfg.model.backbone)
+        self.encoder = MODELS.build(cfg.model.encoder)
         embed_dims = self.encoder.embed_dims
         self.embed_dims = embed_dims
         

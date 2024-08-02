@@ -1,0 +1,6 @@
+runs_dir: 'runs'
+experiment_name: ${experiment_name:${model.type}}
+run_name: '[${model.encoder.type}]/[${dataset.name}]/[${model.instance_head.activation}_iam]/[kernel_dim=${model.instance_head.kernel_dim}]-[multi_level=${model.multi_level}]-[coord_conv=${model.coord_conv}]-[losses=${model.criterion.losses}]'
+group_name: '[${model.instance_head.type}]'
+
+save_dir: '${run.runs_dir}/${run.experiment_name}/${run.run_name}/${run.group_name}'

@@ -2,10 +2,10 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 from .base_visualizer import BaseVisualizer
-from utils.registry import VISUALIZERS
+from utils.registry import CALLBACKS
 
 
-@VISUALIZERS.register(name="AlignmentVisualizer")
+@CALLBACKS.register(name="AlignmentVisualizer")
 class AlignmentVisualizer(BaseVisualizer):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)

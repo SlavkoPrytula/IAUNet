@@ -1,0 +1,10 @@
+max_epochs: 250
+
+accelerator: cpu
+devices: 1
+
+check_val_every_n_epoch: 10
+
+# set True to to ensure deterministic results
+# makes training slower but gives more reproducibility than just setting seeds
+deterministic: False

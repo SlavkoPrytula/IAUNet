@@ -1,0 +1,16 @@
+# @package _global_
+
+defaults:
+  - _self_
+  - dataset: livecell
+  - model: iaunet/iaunet
+  - model/encoder: resnet/resnet_50 # ??
+  - logger: null
+  - trainer: gpu
+  - run: default
+
+  # - callbacks: default
+  # - visualizer: default
+
+
+# to add extra model configs
