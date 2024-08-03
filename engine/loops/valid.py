@@ -7,8 +7,6 @@ from visualizations.coco_vis import save_coco_vis
 from utils.utils import nested_tensor_from_tensor_list
 
 from utils.evaluate.coco_evaluator import Evaluator
-# from utils.callbacks import (LossLoggerCallback)
-# from utils.callbacks import Callback
 from configs import cfg
 from .base import BaseLoop
 
@@ -39,7 +37,6 @@ class ValidLoop(BaseLoop):
         self.total_steps = len(self.dataloader)
 
     def run(self):
-        
         self.model.eval()
         dataset_size = 0
         running_loss = 0.0

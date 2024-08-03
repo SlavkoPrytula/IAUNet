@@ -2,6 +2,7 @@ max_epochs: 250
 
 accelerator: cpu
 devices: 1
+num_workers: 2
 
 check_val_every_n_epoch: 10
 

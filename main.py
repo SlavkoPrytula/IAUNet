@@ -9,7 +9,7 @@ from datetime import datetime
 import wandb
 
 import hydra
-from omegaconf import OmegaConf, open_dict
+from omegaconf import OmegaConf
 from configs import cfg, experiment_name
 
 from dataset.dataloaders import (build_loader, 
@@ -42,7 +42,6 @@ from utils.registry import DATASETS, OPTIMIZERS, SCHEDULERS, CRITERIONS, EVALUAT
 
 from models.build_model import build_model
 from engine.trainer import Trainer
-from engine.run_training import run_training
 
 TIME = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
 
@@ -111,13 +110,13 @@ def run(cfg: cfg, rank: int = 0, world_size: int = 1):
 
     train_dataloader = build_loader(train_dataset, 
                                     batch_size=cfg.dataset.train_dataset.batch_size, 
-                                    num_workers=0, 
+                                    num_workers=cfg.trainer.num_workers, 
                                     collate_fn=trivial_batch_collator, 
                                     seed=cfg.seed, 
                                     distributed=distributed)
     valid_dataloader = build_loader(valid_dataset, 
                                     batch_size=cfg.dataset.valid_dataset.batch_size, 
-                                    num_workers=0, 
+                                    num_workers=cfg.trainer.num_workers, 
                                     collate_fn=trivial_batch_collator, 
                                     seed=cfg.seed, 
                                     distributed=distributed)
@@ -163,17 +162,6 @@ def run(cfg: cfg, rank: int = 0, world_size: int = 1):
                     )
     trainer.train()
 
-    # model = run_training(cfg, model, 
-    #                      criterion=criterion, 
-    #                      train_dataloader=train_dataloader, 
-    #                      valid_dataloader=valid_dataloader,
-    #                      optimizer=optimizer, 
-    #                      scheduler=scheduler,
-    #                      evaluators=evaluators,
-    #                      callbacks=callbacks,
-    #                      logger=logger,
-    #                      )
-
     if cfg.test:
         # TODO: run testing on model
         UserWarning("Testing not implemented! Check main.py")
@@ -182,7 +170,6 @@ def run(cfg: cfg, rank: int = 0, world_size: int = 1):
 
     if distributed:
         cleanup()
-
 
 
 @hydra.main(version_base="1.3", config_path="configs", config_name="train")
@@ -194,13 +181,8 @@ def main(cfg: cfg):
         run(cfg)
 
 
-
 if __name__ == '__main__':
     main()
-
-# if __name__ == "__main__":
-#     world_size = cfg.gpus
-#     mp.spawn(run, args=(world_size,), nprocs=world_size, join=True)
 
 
 # Examples:

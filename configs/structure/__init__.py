@@ -1,5 +1,5 @@
 from dataclasses import dataclass, field
-from typing import List, Optional, Any
+from typing import List, Tuple, Optional, Any
 
 @dataclass
 class Log:
@@ -26,20 +26,27 @@ class Run:
     group_name: Optional[str] = None
     save_dir: Optional[str] = None
 
+@dataclass
+class COCODataset:
+    images: str
+    ann_file: str
+    size: Tuple[int, int]
+    batch_size = int
 
 @dataclass
 class Dataset:
     name: str
     type: str
     data_root: str
-    train_dataset: dict
-    eval_dataset: dict
-    valid_dataset: dict
+    train_dataset: COCODataset
+    eval_dataset: COCODataset
+    valid_dataset: COCODataset
 
 @dataclass
 class Trainer:
     accelerator: Optional[str] = "gpu"
     devices: int = 1
+    num_workers: int = 2
     max_epochs: int = 250
     check_val_every_n_epoch: int = 10
     deterministic: bool = False

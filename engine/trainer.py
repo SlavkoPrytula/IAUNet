@@ -79,7 +79,6 @@ class Trainer(BaseTrainer):
             self.current_epoch = epoch
 
             results_train = self.train_loop.run()
-            raise
             
             if epoch % self.check_val_every_n_epoch == 0:
                 results_valid = self.valid_loop.run()

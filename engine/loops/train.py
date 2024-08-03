@@ -1,14 +1,8 @@
-from os import makedirs
-from os.path import join
 import wandb
 
 from torch.cuda import amp
-from visualizations.coco_vis import save_coco_vis
 from utils.utils import nested_tensor_from_tensor_list
-
 from utils.evaluate.coco_evaluator import Evaluator
-# from utils.callbacks import (LossLoggerCallback)
-# from utils.callbacks import Callback
 from configs import cfg
 from .base import BaseLoop
 
@@ -70,16 +64,15 @@ class TrainLoop(BaseLoop):
                 
             images = nested_tensor_from_tensor_list(images)   # (B, C, H, W)
             batch_size = images.tensors.size(0)
-            print(f'loading batch_size: {batch_size}')
             
-            # with amp.autocast(enabled=True):
-            output = self.model(images.tensors) # (B, N, H, W)
-            
-            # get losses
-            loss_dict, (src_idx, tgt_idx) = self.criterion(output, targets, 
-                                                            [self.cfg.dataset.train_dataset.size], 
-                                                            return_matches=True, epoch=self.epoch)
-            loss = sum(loss_dict.values())
+            with amp.autocast(enabled=True):
+                output = self.model(images.tensors) # (B, N, H, W)
+                
+                # get losses
+                loss_dict, (src_idx, tgt_idx) = self.criterion(output, targets, 
+                                                                [self.cfg.dataset.train_dataset.size], 
+                                                                return_matches=True, epoch=self.epoch)
+                loss = sum(loss_dict.values())
                 
             self.scaler.scale(loss).backward()
             if (step + 1) % 1 == 0:
@@ -95,8 +88,6 @@ class TrainLoop(BaseLoop):
             epoch_loss = running_loss / dataset_size
             self.trainer.loss = epoch_loss
 
-            # for callback in self.callbacks:
-            #     callback.on_train_batch_end(step=step, epoch=epoch, loss=epoch_loss)
             self.trigger_callbacks('on_train_batch_end',trainer=self.trainer, cfg=self.cfg, batch=step)
 
         
@@ -112,14 +103,11 @@ class TrainLoop(BaseLoop):
             for l in loss_dict:
                 wandb.log({f"train/{l}_train": loss_dict[l]})
 
-        # for callback in self.callbacks:
-        #     callback.on_train_epoch_end(cfg=cfg, epoch=epoch, output=output)
-        # visualizer.on_train_epoch_end(cfg, epoch, output)
-        self.trigger_callbacks('on_train_epoch_end', trainer=self.trainer, cfg=self.cfg, epoch=self.epoch)
-
         # logging results.      
         results["loss_train"] = epoch_loss
         for l in loss_dict:
             results[f"{l}_train"] = loss_dict[l]
+
+        self.trigger_callbacks('on_train_epoch_end', trainer=self.trainer, cfg=self.cfg, epoch=self.epoch)
         
         return results
