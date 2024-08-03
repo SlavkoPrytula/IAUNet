@@ -52,7 +52,7 @@ def create_ddp_model(model, *, fp16_compression=False, **kwargs):
 
 
 
-def build_model(cfg: cfg, rank=None):
+def build_model(cfg: cfg):
     model = get_model(cfg)
     
     if cfg.model.load_pretrained:
@@ -60,17 +60,22 @@ def build_model(cfg: cfg, rank=None):
     if cfg.model.save_model_files:
         save_model_files(model_cfg=cfg.model, save_dir=cfg.run.save_dir)
 
-    if cfg.trainer.accelerator == 'gpu' and torch.cuda.is_available():
-        device = torch.device(f'cuda:{rank}' if rank is not None else 'cuda')
-    else:
-        device = torch.device('cpu')
+    # if cfg.trainer.accelerator == 'gpu' and torch.cuda.is_available():
+    #     device = torch.device(f'cuda:{rank}' if rank is not None else 'cuda')
+    # else:
+    #     device = torch.device('cpu')
 
-    if cfg.trainer.strategy == 'ddp' and rank is not None:
-        model = create_ddp_model(model)
-    elif cfg.trainer.strategy == 'dp' and torch.cuda.device_count() > 1:
-        model = torch.nn.DataParallel(model)
+    # print(f'build_model: {device}')
 
-    model.to(device)
+    # if cfg.trainer.get('strategy') == 'ddp' and rank is not None:
+    #     print('running ddp')
+    #     model = create_ddp_model(model)
+    # elif cfg.trainer.get('strategy') == 'dp' and torch.cuda.device_count() > 1:
+    #     print('running dp')
+    #     model = torch.nn.DataParallel(model)
+    
+    # device = "cuda"
+    # model.to(device)
     
     return model
 

@@ -99,7 +99,7 @@ class BaseCOCODataset(Dataset):
         # (H, W, M) -> (H, W, N)
         masks, keep = self.filter_empty_masks(masks, return_idx=True) 
         bboxes = self.masks_to_boxes(masks)
-        # labels = labels[keep]
+        labels = labels[keep]
 
         image = image.transpose((2, 0, 1))
         image = torch.tensor(image, dtype=torch.float32)
@@ -110,8 +110,7 @@ class BaseCOCODataset(Dataset):
         # labels
         N, _, _ = masks.shape
         labels = torch.zeros(N, dtype=torch.int64)
-        
-        labels = torch.tensor(labels, dtype=torch.int64)
+        # labels = torch.tensor(labels, dtype=torch.int64)
 
         h, w = image.shape[-2:]
         bboxes = torch.tensor(bboxes, dtype=torch.float32)

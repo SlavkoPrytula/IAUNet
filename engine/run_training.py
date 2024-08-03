@@ -19,16 +19,17 @@ def run_training(
         scheduler,
         evaluators,
         callbacks,
-        accelerator,
         logger,
         ):
     
-    if accelerator == 'gpu' and torch.cuda.is_available():
-        device = torch.device('cuda')
-        logger.info(f"Using GPU: {torch.cuda.get_device_name(device)}")
-    else:
-        device = torch.device('cpu')
-        logger.info("Using CPU\n")
+    # if accelerator == 'gpu' and torch.cuda.is_available():
+    #     device = torch.device('cuda')
+    #     logger.info(f"Using GPU: {torch.cuda.get_device_name(device)}")
+    # else:
+    #     device = torch.device('cpu')
+    #     logger.info("Using CPU\n")
+
+    device = "cuda"
 
     csv = cfg.run.save_dir / 'results.csv'
 
@@ -49,6 +50,7 @@ def run_training(
                                         callbacks=callbacks,
                                         logger=logger,
                                         )
+        raise
 
         if epoch % cfg.trainer.check_val_every_n_epoch == 0:
             results_valid = valid_one_epoch(cfg, model, criterion=criterion, 

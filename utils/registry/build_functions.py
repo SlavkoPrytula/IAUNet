@@ -2,6 +2,7 @@ from .registry import Registry
 from typing import Any
 from utils import visualise
 
+from .registry import build_from_cfg
 from omegaconf import OmegaConf
 from configs import cfg
 from configs.structure import Callbacks, Visualizer
@@ -19,10 +20,10 @@ from configs.structure import Callbacks, Visualizer
 #     return SCHEDULERS.get(name)(**cfg)
 
 
-def build_from_cfg(cfg: cfg, registry: Registry) -> Any:
-    name = cfg.get('type')
-    cfg.pop("type")
-    return registry.get(name)()(**cfg)
+# def build_from_cfg(cfg: cfg, registry: Registry) -> Any:
+#     name = cfg.get('type')
+#     cfg.pop("type")
+#     return registry.get(name)()(**cfg)
 
 
 # def build_matcher(cfg: cfg, registry: Registry):
@@ -64,7 +65,10 @@ def build_optimizer(cfg: cfg, registry: Registry=None) -> Any:
         from . import OPTIMIZERS
         registry = OPTIMIZERS
 
-    return build_from_cfg(cfg, registry)
+    # return build_from_cfg(cfg, registry)
+    name = cfg.get('type')
+    cfg.pop("type")
+    return registry.get(name)()(**cfg)
 
 
 def build_scheduler(cfg: cfg, registry: Registry=None) -> Any:
@@ -73,7 +77,10 @@ def build_scheduler(cfg: cfg, registry: Registry=None) -> Any:
         from . import SCHEDULERS
         registry = SCHEDULERS
         
-    return build_from_cfg(cfg, registry)
+    # return build_from_cfg(cfg, registry)
+    name = cfg.get('type')
+    cfg.pop("type")
+    return registry.get(name)()(**cfg)
 
 
 

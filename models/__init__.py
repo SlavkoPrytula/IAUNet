@@ -108,12 +108,12 @@ def get_model_from_path(cfg: cfg):
 
 def save_model_files(model_cfg, save_dir):    
     # save config files
-    config_dst = save_dir / "config_files"
-    _copy_folder(
-        src=join(CONFIG_FILES, "base.py"),
-        dst=config_dst,
-        base_src_dir=CONFIG_FILES
-    )
+    # config_dst = save_dir / "config_files"
+    # _copy_folder(
+    #     src=join(CONFIG_FILES, "base.py"),
+    #     dst=config_dst,
+    #     base_src_dir=CONFIG_FILES
+    # )
 
     # save augmentation files
     aug_dst = save_dir / "utils"

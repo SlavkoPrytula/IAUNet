@@ -2,6 +2,10 @@ import time
 import torch
 import numpy as np
 from pathlib import Path
+import os
+
+from torch.nn.parallel import DistributedDataParallel as DDP
+from utils.rank_zero import rank_zero_only
 from configs import cfg
 
 from .train import train_one_epoch
@@ -21,8 +25,8 @@ class Trainer:
             evaluators, 
             callbacks, 
             logger, 
-            rank=0
-    ):
+            rank
+    ) -> None:
         self.cfg = cfg
         self.model = model
         self.criterion = criterion
@@ -33,15 +37,21 @@ class Trainer:
         self.evaluators = evaluators
         self.callbacks = callbacks
         self.logger = logger
-        self.device = self._get_device()
         self.best_loss = np.inf
         self.rank = rank
+        self.device = self._get_device()
 
         # makedirs(cfg.run.save_dir / 'checkpoints', exist_ok=True)
         self.csv_path = self.cfg.run.save_dir / 'results.csv'
 
         self.train_loop = train_one_epoch
         self.valid_loop = valid_one_epoch
+
+        self.model.to(self.device)
+        if self.cfg.trainer.get('strategy') == 'ddp':
+            self.model = DDP(self.model, device_ids=[self.rank])
+
+        print(f"This is Trainer with RANK: {int(os.getenv('RANK', 0))}")
 
 
     def _get_device(self):
@@ -73,6 +83,7 @@ class Trainer:
                                             callbacks=self.callbacks,
                                             logger=self.logger,
                                             )
+            raise
             
             if epoch % cfg.trainer.check_val_every_n_epoch == 0:
                 results_valid = self.valid_loop(cfg, 
@@ -121,16 +132,14 @@ class Trainer:
         vals = [epoch] + list(results.values())
         self._save_results_csv(metrics, vals)
 
-
+    @rank_zero_only
     def _save_results_csv(self, metrics, vals):
-        s = '' if self.csv_path.exists() else (('%13s,' * (len(metrics)) % tuple(['epoch'] + metrics)).rstrip(',') + '\n')  # header
-        with open(self.csv_path, 'a') as f:
-            f.write(s + ('%13.5g,' * (len(metrics)) % tuple(vals)).rstrip(',') + '\n')
+        if self.rank == 0:
+            s = '' if self.csv_path.exists() else (('%13s,' * (len(metrics)) % tuple(['epoch'] + metrics)).rstrip(',') + '\n')  # header
+            with open(self.csv_path, 'a') as f:
+                f.write(s + ('%13.5g,' * (len(metrics)) % tuple(vals)).rstrip(',') + '\n')
 
-
+    @rank_zero_only
     def save_checkpoint(self, filepath):
-        torch.save(self.model.state_dict(), filepath)
-
-    @property
-    def rank(self) -> int:
-        return self.rank if self.rank else 0
+        if self.rank == 0:
+            torch.save(self.model.module.state_dict(), filepath)

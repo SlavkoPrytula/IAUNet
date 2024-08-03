@@ -9,7 +9,7 @@ from datetime import datetime
 import wandb
 
 import hydra
-from omegaconf import OmegaConf
+from omegaconf import OmegaConf, open_dict
 from configs import cfg, experiment_name
 
 from dataset.dataloaders import (build_loader, 
@@ -42,15 +42,16 @@ from utils.registry import DATASETS, OPTIMIZERS, SCHEDULERS, CRITERIONS, EVALUAT
 
 from models.build_model import build_model
 from engine.trainer import Trainer
+from engine.run_training import run_training
 
 TIME = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
 
 
 
-def run(cfg: cfg, rank=None, world_size=None):
-    if cfg.trainer.strategy == 'ddp':
+def run(cfg: cfg, rank: int = 0, world_size: int = 1):
+    distributed = cfg.trainer.get('strategy') == 'ddp'
+    if distributed:
         setup(rank, world_size)
-        torch.cuda.set_device(rank)
 
     if cfg.job_id and cfg.run_id:
         cfg.run.save_dir = join(cfg.run.save_dir, f"[job={cfg.job_id}]-[group_run]", f"run={cfg.run_id}")
@@ -61,18 +62,19 @@ def run(cfg: cfg, rank=None, world_size=None):
         cfg.run.save_dir = join(cfg.run.save_dir, "temp")
 
     cfg.run.save_dir = Path(cfg.run.save_dir)
-    print(f"Saving to {cfg.run.save_dir}\n")
-
-
-    # save config.
-    print(OmegaConf.to_yaml(cfg))
-
+    print(f"Saving to: {cfg.run.save_dir}\n")
 
     # create directories.
     makedirs(cfg.run.save_dir, exist_ok=True)
     makedirs(cfg.run.save_dir / 'train_visuals', exist_ok=True)
     makedirs(cfg.run.save_dir / 'checkpoints', exist_ok=True)
     makedirs(cfg.run.save_dir / 'results', exist_ok=True)
+    makedirs(cfg.run.save_dir / 'config_files', exist_ok=True)
+
+    # save config.
+    print(OmegaConf.to_yaml(cfg))
+    config_path = cfg.run.save_dir / "config_files" / "train.yaml"
+    OmegaConf.save(config=cfg, f=config_path)
 
     # set logger.
     logger = setup_logger(
@@ -109,30 +111,30 @@ def run(cfg: cfg, rank=None, world_size=None):
 
     train_dataloader = build_loader(train_dataset, 
                                     batch_size=cfg.dataset.train_dataset.batch_size, 
-                                    num_workers=4, 
+                                    num_workers=0, 
                                     collate_fn=trivial_batch_collator, 
-                                    seed=cfg.seed)
+                                    seed=cfg.seed, 
+                                    distributed=distributed)
     valid_dataloader = build_loader(valid_dataset, 
                                     batch_size=cfg.dataset.valid_dataset.batch_size, 
-                                    num_workers=4, 
+                                    num_workers=0, 
                                     collate_fn=trivial_batch_collator, 
-                                    seed=cfg.seed)
+                                    seed=cfg.seed, 
+                                    distributed=distributed)
     
     # - build and prepare model
     model = build_model(cfg)
 
-    cfg.model.optimizer.params = model.parameters()
-    # optimizer = OPTIMIZERS.build(cfg.optimizer)
-    optimizer = build_optimizer(cfg.model.optimizer)
+    optimizer_cfg = OmegaConf.to_container(cfg.model.optimizer, resolve=True)
+    optimizer_cfg['params'] = model.parameters()
+    optimizer = OPTIMIZERS.build(optimizer_cfg)
 
+    scheduler_cfg = OmegaConf.to_container(cfg.model.scheduler, resolve=True)
+    scheduler_cfg['optimizer'] = optimizer
+    scheduler = SCHEDULERS.build(scheduler_cfg)
 
-    cfg.scheduler.optimizer = optimizer
-    # scheduler = SCHEDULERS.build(cfg.scheduler)
-    scheduler = build_scheduler(cfg.model.scheduler)
+    criterion = CRITERIONS.build(cfg.model.criterion)
 
-
-    # loss = CRITERIONS.build(cfg.model.criterion)
-    criterion = build_criterion(cfg.model.criterion)
     
     # TODO: this needs to be refactored
     # the evaluation should have information about the dataset
@@ -155,11 +157,21 @@ def run(cfg: cfg, rank=None, world_size=None):
                       scheduler=scheduler,
                       evaluators=evaluators,
                       callbacks=callbacks,
-                      accelerator=cfg.trainer.accelerator, 
                       logger=logger,
                       rank=rank
                     )
     trainer.train()
+
+    # model = run_training(cfg, model, 
+    #                      criterion=criterion, 
+    #                      train_dataloader=train_dataloader, 
+    #                      valid_dataloader=valid_dataloader,
+    #                      optimizer=optimizer, 
+    #                      scheduler=scheduler,
+    #                      evaluators=evaluators,
+    #                      callbacks=callbacks,
+    #                      logger=logger,
+    #                      )
 
     if cfg.test:
         # TODO: run testing on model
@@ -167,11 +179,14 @@ def run(cfg: cfg, rank=None, world_size=None):
 
     wandb.finish()
 
+    if distributed:
+        cleanup()
+
 
 
 @hydra.main(version_base="1.3", config_path="configs", config_name="train")
 def main(cfg: cfg):
-    if cfg.trainer.strategy == 'ddp':
+    if cfg.trainer.get('strategy') == 'ddp':
         world_size = cfg.trainer.devices
         mp.spawn(run, args=(cfg, world_size), nprocs=world_size, join=True)
     else:

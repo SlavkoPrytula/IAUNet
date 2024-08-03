@@ -2,7 +2,7 @@ from ast import Num
 from typing import Any, Callable, List, Optional
 import torch.utils
 from torch.utils.data import DataLoader, Dataset
-from torch.utils.data import Sampler, RandomSampler, SequentialSampler
+from torch.utils.data import Sampler, RandomSampler, SequentialSampler, DistributedSampler
 import torch
 import random
 import numpy as np
@@ -144,59 +144,106 @@ def build_loader_ms(
 
 
 
+# def build_loader(
+#     dataset: Dataset,
+#     *,
+#     batch_size: int = 1,
+#     num_workers: int = 0,
+#     collate_fn: Optional[Callable[[List[Any]], Any]] = None,
+#     sampler = torch.utils.data.Sampler,
+#     seed: Optional[int] = None,
+#     rank: int = 0
+# ) -> DataLoader:
+#     """
+#     Similar to `build_detection_train_loader`, with default batch size = 1,
+#     and sampler = :class:`InferenceSampler`. This sampler coordinates all workers
+#     to produce the exact set of all samples.
+
+#     Args:
+#         dataset: nn.Dataset class,
+#             or a pytorch dataset. They can be obtained
+#             by using :func:`DatasetCatalog.get`.
+#         batch_size: the batch size of the data loader to be created.
+#             Default to 1 image per worker since this is the standard when reporting
+#             inference time in papers.
+#         num_workers: number of parallel data loading workers
+#         collate_fn: same as the argument of `torch.utils.data.DataLoader`.
+#             Defaults to do no collation and return a list of data.
+#         seed: optional seed for deterministic behavior
+#         rank: the rank of the current process (useful in distributed settings)
+
+#     Returns:
+#         DataLoader: a torch DataLoader, that loads the given detection
+#         dataset, with test-time transformation and batching.
+
+#     Examples:
+#     ::
+#         data_loader = build_detection_test_loader(
+#             DatasetRegistry.get("my_test"),
+#             mapper=DatasetMapper(...))
+#     """
+#     # init_fn = partial(
+#     #     worker_init_fn, num_workers=num_workers, rank=rank,
+#     #     seed=seed) if seed is not None else None
+#     # generator = torch.Generator().manual_seed(seed)
+    
+
+#     return DataLoader(
+#         dataset,
+#         batch_size=batch_size,
+#         drop_last=False,
+#         num_workers=num_workers,
+#         collate_fn=trivial_batch_collator if collate_fn is None else collate_fn,
+#         pin_memory=True, 
+#         # worker_init_fn=init_fn,
+#         # sampler=sampler,
+#         # generator=generator
+#     )
+
+
+
 def build_loader(
-    dataset: Dataset,
+    dataset: torch.utils.data.Dataset,
     *,
     batch_size: int = 1,
     num_workers: int = 0,
     collate_fn: Optional[Callable[[List[Any]], Any]] = None,
-    sampler = torch.utils.data.Sampler,
+    sampler: Optional[Sampler] = None,
     seed: Optional[int] = None,
-    rank: int = 0
+    distributed: bool = False,
 ) -> DataLoader:
     """
-    Similar to `build_detection_train_loader`, with default batch size = 1,
-    and sampler = :class:`InferenceSampler`. This sampler coordinates all workers
-    to produce the exact set of all samples.
+    Builds a data loader for either normal or distributed training.
 
     Args:
-        dataset: nn.Dataset class,
-            or a pytorch dataset. They can be obtained
-            by using :func:`DatasetCatalog.get`.
-        batch_size: the batch size of the data loader to be created.
-            Default to 1 image per worker since this is the standard when reporting
-            inference time in papers.
-        num_workers: number of parallel data loading workers
-        collate_fn: same as the argument of `torch.utils.data.DataLoader`.
-            Defaults to do no collation and return a list of data.
-        seed: optional seed for deterministic behavior
-        rank: the rank of the current process (useful in distributed settings)
+        dataset (torch.utils.data.Dataset): The dataset to load.
+        batch_size (int): Number of samples per batch to load.
+        num_workers (int): How many subprocesses to use for data loading.
+        collate_fn (Callable, optional): Function to merge a list of samples into a mini-batch.
+        sampler (torch.utils.data.Sampler, optional): Sampler to use for loading data.
+        seed (int, optional): Seed for random number generators.
+        rank (int): Rank of the current process in distributed settings.
+        world_size (int): Total number of processes in distributed settings.
+        distributed (bool): Whether to use distributed data loading.
 
     Returns:
-        DataLoader: a torch DataLoader, that loads the given detection
-        dataset, with test-time transformation and batching.
-
-    Examples:
-    ::
-        data_loader = build_detection_test_loader(
-            DatasetRegistry.get("my_test"),
-            mapper=DatasetMapper(...))
+        torch.utils.data.DataLoader: A data loader for the specified dataset.
     """
-    init_fn = partial(
-        worker_init_fn, num_workers=num_workers, rank=rank,
-        seed=seed) if seed is not None else None
+    if distributed:
+        sampler = DistributedSampler(dataset)
+    else:
+        sampler = None
 
-    generator = torch.Generator().manual_seed(seed)
+    # init_fn = None
+    # if seed is not None:
+    #     init_fn = lambda worker_id: worker_init_fn(worker_id, num_workers, rank, seed)
 
     return DataLoader(
         dataset,
         batch_size=batch_size,
-        drop_last=False,
+        sampler=sampler,
         num_workers=num_workers,
-        collate_fn=trivial_batch_collator if collate_fn is None else collate_fn,
-        pin_memory=True, 
-        # worker_init_fn=init_fn,
-        # sampler=sampler,
-        # generator=generator
+        collate_fn=collate_fn,
+        pin_memory=True,
+        # worker_init_fn=init_fn
     )
-

@@ -3,14 +3,16 @@ import datetime
 import torch
 
 from utils.callbacks import Callback
+from utils.registry import CALLBACKS
 
 
+@CALLBACKS.register(name="LossLoggerCallback")
 class LossLoggerCallback(Callback):
-    def __init__(self, logger, optimizer, total_steps, log_interval=10):
+    def __init__(self, logger, optimizer, total_steps, log_every_n_steps=10):
         self.logger = logger
         self.optimizer = optimizer
         self.total_steps = total_steps
-        self.log_interval = log_interval
+        self.log_every_n_steps = log_every_n_steps
         self.start_time = time.time()
 
 
@@ -23,7 +25,7 @@ class LossLoggerCallback(Callback):
 
 
     def log_loss(self, step, epoch, loss, stage="train"):
-        if step % self.log_interval == 0:
+        if step % self.log_every_n_steps == 0:
             mem = torch.cuda.memory_reserved() / 1E6 if torch.cuda.is_available() else 0
             current_lr = self.optimizer.param_groups[0]['lr']
             

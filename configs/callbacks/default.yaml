@@ -11,4 +11,5 @@ defaults:
 #   auto_insert_metric_name: False
 
 # loss_logger:
-#   log_interval: 10
+#   type: LossLoggerCallback
+#   log_every_n_steps: 10

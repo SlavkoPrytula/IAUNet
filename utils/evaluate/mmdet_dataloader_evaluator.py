@@ -21,16 +21,16 @@ class MMDetDataloaderEvaluator(Evaluator):
         super(MMDetDataloaderEvaluator, self).__init__(cfg, model, **kwargs)
 
         outfile_prefix = cfg.model.evaluator.outfile_prefix
-        coco_api = cfg.model.evaluator.coco_api
+        coco_api = cfg.model.evaluator.get("coco_api", None)
         self.num_classes = cfg.model.instance_head.num_classes
 
-        print(f"dataset.ann_file: {dataset.ann_file}")
+        print(f"Doing evaluation on dataset.ann_file: {dataset.ann_file}")
 
         self.coco_metric = CocoMetric(
             ann_file=dataset.ann_file,
             metric=cfg.model.evaluator.metric,
             classwise=cfg.model.evaluator.classwise,
-            outfile_prefix=join(cfg.run.save_dir, outfile_prefix) if (outfile_prefix and hasattr(cfg, 'save_dir')) else None,
+            outfile_prefix=join(cfg.run.save_dir, outfile_prefix) if (outfile_prefix and cfg.run.get("save_dir")) else None,
             coco_api=coco_api if coco_api else 'COCOeval'
             )
 

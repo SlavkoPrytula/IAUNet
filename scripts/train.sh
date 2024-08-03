@@ -2,7 +2,7 @@
 #SBATCH --partition=gpu
 #SBATCH --gres=gpu:tesla:1
 #SBATCH --time=64:00:00
-#SBATCH --mem=64GB
+#SBATCH --mem=16GB
 #SBATCH --cpus-per-task=4
 #SBATCH --exclude=falcon[1-3]
 #SBATCH --job-name=iaunet
