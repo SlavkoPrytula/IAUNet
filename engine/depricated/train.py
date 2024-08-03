@@ -32,7 +32,6 @@ def train_one_epoch(
     total_steps = len(dataloader)
     loss_callback = LossLoggerCallback(logger, optimizer, total_steps, log_every_n_steps=10)
     callbacks.append(loss_callback)
-    callbacks = []
     
     logger.info('Loss/Train')
     # pbar = tqdm(enumerate(dataloader), total=len(dataloader), miniters=5, position=0, leave=True)

@@ -2,7 +2,6 @@ from typing import Optional, List
 
 import torch
 from torch import Tensor
-import torch.distributed as dist
 import torch.nn.functional as F
 import torchvision
 

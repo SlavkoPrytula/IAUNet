@@ -6,12 +6,11 @@ defaults:
   - model: model/iaunet/iaunet
   - model/encoder: resnet/resnet_50
   - logger: log
-  - trainer: gpu
+  - trainer: cpu
   - run: default
   - hydra: default
 
   - callbacks: default
-  # - visualizer: default
 
 
 train: True

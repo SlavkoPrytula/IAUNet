@@ -55,7 +55,6 @@ class Evaluator(nn.Module):
         self.gt_coco = COCO(self.gt_coco, verbose=verbose)
         self.pred_coco = COCO(self.pred_coco, verbose=verbose)
         self.coco_eval = COCOeval(self.gt_coco, self.pred_coco, iouType='segm', verbose=verbose)
-        # self.coco_eval = COCOeval(gt_coco, pred_coco, iouType='segm')
 
         # Run the evaluation
         self.coco_eval.evaluate()

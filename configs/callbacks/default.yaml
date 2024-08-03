@@ -10,6 +10,6 @@ defaults:
 #   save_last: True
 #   auto_insert_metric_name: False
 
-# loss_logger:
-#   type: LossLoggerCallback
-#   log_every_n_steps: 10
+loss_logger:
+  type: LossLoggerCallback
+  log_every_n_steps: 10

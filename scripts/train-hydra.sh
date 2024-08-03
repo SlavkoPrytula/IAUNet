@@ -1,1 +1,1 @@
-python main.py job_id=11111
+python main.py job_id=11111 dataset.train_dataset.batch_size=1

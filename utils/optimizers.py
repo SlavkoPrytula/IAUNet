@@ -6,18 +6,10 @@ import warnings
 
 from utils.registry import OPTIMIZERS
 
-from configs import cfg
-
-
-# def build_optimizer(cfg: cfg) -> Optimizer:
-#     name = cfg.type
-#     cfg.pop("type")
-#     return OPTIMIZERS.get(name)()(**cfg)
-
 
 @OPTIMIZERS.register(name="AdamW")
 def AdamW():
-    return torch.optim.AdamW # (**params)#(params.params, lr=params.lr, weight_decay=params.weight_decay)
+    return torch.optim.AdamW
 
 
 @OPTIMIZERS.register(name="Adam")

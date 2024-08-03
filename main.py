@@ -158,7 +158,8 @@ def run(cfg: cfg, rank: int = 0, world_size: int = 1):
                       evaluators=evaluators,
                       callbacks=callbacks,
                       logger=logger,
-                      rank=rank
+                      rank=rank,
+                      strategy=cfg.trainer.get('strategy')
                     )
     trainer.train()
 

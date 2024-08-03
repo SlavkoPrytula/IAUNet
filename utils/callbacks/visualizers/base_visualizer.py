@@ -19,15 +19,15 @@ class BaseVisualizer(Callback):
         self.save_path = None
         self.epoch_interval = epoch_interval
 
-    def on_train_epoch_end(self, cfg: cfg, epoch: int, output, **kwargs):
+    def on_train_epoch_end(self, trainer, cfg: cfg, epoch: int, **kwargs):
         if epoch % self.epoch_interval == 0:
             self.cfg = cfg
-            self.output = output
+            self.output = trainer.output
             self.save_dir = cfg.run.save_dir
             self.save_path = join(cfg.run.save_dir, 'train_visuals', f'epoch_{epoch}')
             makedirs(self.save_path, exist_ok=True)
 
-            self.plot(cfg, output, self.save_path)
+            self.plot(cfg, self.output, self.save_path)
     
     def plot(self, cfg, output, save_path):
         for name, visualizer in self.visualizers.items():
