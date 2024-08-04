@@ -6,7 +6,7 @@ defaults:
   - model: model/iaunet/iaunet
   - model/encoder: resnet/resnet_50
   - logger: log
-  - trainer: gpu
+  - trainer: ddp
   - run: default
   - hydra: default
 

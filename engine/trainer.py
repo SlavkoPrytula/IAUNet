@@ -72,10 +72,9 @@ class Trainer(BaseTrainer):
 
     def train(self):
         start = time.time()
-        num_epochs = self.cfg.trainer.max_epochs + 1
 
-        for epoch in range(num_epochs):
-            self.logger.info(f'Epoch {epoch}/{num_epochs}')
+        for epoch in range(self.max_epochs):
+            self.logger.info(f'Epoch {epoch}/{self.max_epochs}')
             self.current_epoch = epoch
 
             results_train = self.train_loop.run()

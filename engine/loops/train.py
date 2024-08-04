@@ -88,7 +88,7 @@ class TrainLoop(BaseLoop):
             epoch_loss = running_loss / dataset_size
             self.trainer.loss = epoch_loss
 
-            self.trigger_callbacks('on_train_batch_end',trainer=self.trainer, cfg=self.cfg, batch=step)
+            self.trigger_callbacks('on_train_batch_end', trainer=self.trainer, cfg=self.cfg, batch=step)
 
         
         print()

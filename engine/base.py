@@ -37,6 +37,7 @@ class BaseTrainer:
         self.train_loop = None
         self.valid_loop = None
 
+        self.max_epochs = cfg.trainer.max_epochs + 1
         self.best_loss = np.inf
         self.loss = None
         self.output = None
@@ -44,7 +45,8 @@ class BaseTrainer:
 
         self.check_val_every_n_epoch = cfg.trainer.check_val_every_n_epoch
 
-        print(f"Initializing Trainer at RANK: {int(os.getenv('RANK', 0))}")
+        print(f"Initializing Trainer at RANK: {int(os.getenv('RANK', 0))}.")
+        print(f"Running with {self.strategy} strategy.")
 
 
     def _get_device(self):

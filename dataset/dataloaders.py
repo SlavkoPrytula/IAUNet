@@ -244,6 +244,7 @@ def build_loader(
         sampler=sampler,
         num_workers=num_workers,
         collate_fn=collate_fn,
+        shuffle=False,
         pin_memory=True,
         # worker_init_fn=init_fn
     )

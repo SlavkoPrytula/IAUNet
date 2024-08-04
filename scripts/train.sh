@@ -1,8 +1,9 @@
 #!/bin/bash
 #SBATCH --partition=gpu
-#SBATCH --gres=gpu:tesla:1
+#SBATCH --gres=gpu:tesla:2
 #SBATCH --time=64:00:00
-#SBATCH --mem=16GB
+#SBATCH --mem=64GB
+#SBATCH --exclude=falcon3
 #SBATCH --cpus-per-task=4
 
 #SBATCH --job-name=iaunet

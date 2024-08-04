@@ -2,6 +2,7 @@ from os import makedirs
 from os.path import join
 import wandb
 
+import torch
 from itertools import islice
 from visualizations.coco_vis import save_coco_vis
 from utils.utils import nested_tensor_from_tensor_list
@@ -36,6 +37,7 @@ class ValidLoop(BaseLoop):
         self.evaluators = evaluators
         self.total_steps = len(self.dataloader)
 
+    @torch.no_grad()
     def run(self):
         self.model.eval()
         dataset_size = 0

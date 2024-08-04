@@ -47,7 +47,7 @@ TIME = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
 
 
 
-def run(cfg: cfg, rank: int = 0, world_size: int = 1):
+def run(rank: int = 0, world_size: int = 1, cfg: cfg = None):
     distributed = cfg.trainer.get('strategy') == 'ddp'
     if distributed:
         setup(rank, world_size)
@@ -109,14 +109,14 @@ def run(cfg: cfg, rank: int = 0, world_size: int = 1):
                             )
 
     train_dataloader = build_loader(train_dataset, 
-                                    batch_size=cfg.dataset.train_dataset.batch_size, 
-                                    num_workers=cfg.trainer.num_workers, 
+                                    batch_size=16, #cfg.dataset.train_dataset.batch_size, 
+                                    num_workers=0, #cfg.trainer.num_workers, 
                                     collate_fn=trivial_batch_collator, 
                                     seed=cfg.seed, 
                                     distributed=distributed)
     valid_dataloader = build_loader(valid_dataset, 
-                                    batch_size=cfg.dataset.valid_dataset.batch_size, 
-                                    num_workers=cfg.trainer.num_workers, 
+                                    batch_size=16, #cfg.dataset.valid_dataset.batch_size, 
+                                    num_workers=0, #cfg.trainer.num_workers, 
                                     collate_fn=trivial_batch_collator, 
                                     seed=cfg.seed, 
                                     distributed=distributed)
@@ -176,9 +176,9 @@ def run(cfg: cfg, rank: int = 0, world_size: int = 1):
 def main(cfg: cfg):
     if cfg.trainer.get('strategy') == 'ddp':
         world_size = cfg.trainer.devices
-        mp.spawn(run, args=(cfg, world_size), nprocs=world_size, join=True)
+        mp.spawn(run, args=(world_size, cfg), nprocs=world_size, join=True)
     else:
-        run(cfg)
+        run(cfg=cfg)
 
 
 if __name__ == '__main__':
