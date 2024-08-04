@@ -107,7 +107,7 @@ class IAMVisualizer(BaseVisualizer):
                 self._plot_preds(aux_outputs, save_path=f"{save_path}/aux_outputs")
 
 
-    def _plot_iam_heads(self, masks, iams, save_path, name=''): 
+    def _plot_iam_heads(self, cfg, masks, iams, save_path, name=''): 
         B, N, H, W = iams.shape
         groups = iams.shape[1] // cfg.model.instance_head.num_masks
 
@@ -130,14 +130,14 @@ class IAMVisualizer(BaseVisualizer):
         plt.close()
 
 
-    def plot_logits_iam_heads(self, masks, iams, save_path):
+    def plot_logits_iam_heads(self, cfg, masks, iams, save_path):
         # -----------
         # IAM Logits [Grouped]. 
         iams = iams.clone().cpu().detach().numpy()
-        self._plot_iam_heads(masks, iams, save_path, name='logits')
+        self._plot_iam_heads(cfg, masks, iams, save_path, name='logits')
 
 
-    def plot_softmax_iam_heads(self, masks, iams, save_path):
+    def plot_softmax_iam_heads(self, cfg, masks, iams, save_path):
         # -----------
         # IAM Softmax [Grouped].  
         B, N, H, W = iams.shape
@@ -145,14 +145,14 @@ class IAMVisualizer(BaseVisualizer):
         _iam = F.softmax(_iam.view(B, N, -1), dim=-1)
         _iam = _iam.view(B, N, H, W)
         iams = _iam.cpu().detach().numpy()
-        self._plot_iam_heads(masks, iams, save_path, name='softmax')
+        self._plot_iam_heads(cfg, masks, iams, save_path, name='softmax')
 
 
-    def plot_sigmoid_iam_heads(self, masks, iams, save_path):
+    def plot_sigmoid_iam_heads(self, cfg, masks, iams, save_path):
         # -----------
         # IAM Sigmoid [Grouped]. 
         iams = iams.clone().sigmoid().cpu().detach().numpy()
-        self._plot_iam_heads(masks, iams, save_path, name='sigmoid')
+        self._plot_iam_heads(cfg, masks, iams, save_path, name='sigmoid')
 
 
     def plot_iam_heads(self, cfg, output, save_path):
@@ -162,6 +162,6 @@ class IAMVisualizer(BaseVisualizer):
         masks = output[f'pred_{self.inst_type}_masks'].sigmoid().cpu().detach().numpy()
         iams = output['pred_iams'][f'{self.inst_type}_iams']
         
-        self.plot_logits_iam_heads(masks, iams, save_path)
-        self.plot_softmax_iam_heads(masks, iams, save_path)
-        self.plot_sigmoid_iam_heads(masks, iams, save_path)
+        self.plot_logits_iam_heads(cfg, masks, iams, save_path)
+        self.plot_softmax_iam_heads(cfg, masks, iams, save_path)
+        self.plot_sigmoid_iam_heads(cfg, masks, iams, save_path)

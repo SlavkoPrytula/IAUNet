@@ -55,10 +55,10 @@ class Rectangle(BaseCOCODataset):
             self.means[idx] = np.mean(image, axis=None, keepdims=True)
             self.stds[idx] = np.std(image, axis=None, keepdims=True)
 
-        if self.normalization:
-            mean = self.means[idx]
-            std = self.stds[idx]
-            image = (image - mean) / std
+        # if self.normalization:
+        mean = self.means[idx]
+        std = self.stds[idx]
+        image = (image - mean) / std
 
         assert image.shape[-1] != 0
         assert mask.shape[-1] != 0

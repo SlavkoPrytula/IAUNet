@@ -99,24 +99,24 @@ def run(rank: int = 0, world_size: int = 1, cfg: cfg = None):
 
     train_dataset = dataset(cfg, 
                             dataset_type="train", 
-                            normalization=normalize, 
+                            # normalization=normalize, 
                             transform=train_transforms(cfg)
                             )
     valid_dataset = dataset(cfg, 
                             dataset_type="valid",
-                            normalization=normalize, 
+                            # normalization=normalize, 
                             transform=valid_transforms(cfg)
                             )
 
     train_dataloader = build_loader(train_dataset, 
                                     batch_size=16, #cfg.dataset.train_dataset.batch_size, 
-                                    num_workers=0, #cfg.trainer.num_workers, 
+                                    num_workers=4, #cfg.trainer.num_workers, 
                                     collate_fn=trivial_batch_collator, 
                                     seed=cfg.seed, 
                                     distributed=distributed)
     valid_dataloader = build_loader(valid_dataset, 
                                     batch_size=16, #cfg.dataset.valid_dataset.batch_size, 
-                                    num_workers=0, #cfg.trainer.num_workers, 
+                                    num_workers=4, #cfg.trainer.num_workers, 
                                     collate_fn=trivial_batch_collator, 
                                     seed=cfg.seed, 
                                     distributed=distributed)

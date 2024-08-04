@@ -118,7 +118,7 @@ class Trainer(BaseTrainer):
     def _save_results_csv(self, metrics, vals):
         csv_path = self.cfg.run.save_dir / 'results.csv'
         if self.rank == 0:
-            s = '' if csv_path.exists() else (('%13s,' * (len(metrics)) % tuple(['epoch'] + metrics)).rstrip(',') + '\n')  # header
+            s = '' if csv_path.exists() else (('%13s,' * (len(metrics)) % tuple(metrics)).rstrip(',') + '\n')  # header
             with open(csv_path, 'a') as f:
                 f.write(s + ('%13.5g,' * (len(metrics)) % tuple(vals)).rstrip(',') + '\n')
 

@@ -5,6 +5,8 @@ import torch
 from utils.callbacks import Callback
 from utils.registry import CALLBACKS
 
+from utils.rank_zero import rank_zero_only
+
 
 @CALLBACKS.register(name="LossLoggerCallback")
 class LossLoggerCallback(Callback):
@@ -24,7 +26,7 @@ class LossLoggerCallback(Callback):
     def on_valid_batch_end(self, trainer, cfg, batch, **kwargs):
         self.log_loss(trainer, cfg, batch, stage="valid")
 
-
+    @rank_zero_only
     def log_loss(self, trainer, cfg, batch, stage="train"):
         optimizer = trainer.optimizer
         total_steps = trainer.train_loop.total_steps if stage == "train" else trainer.valid_loop.total_steps

@@ -2,7 +2,7 @@
 
 defaults:
   - _self_
-  - dataset: livecell
+  - dataset: worms
   - model: model/iaunet/iaunet
   - model/encoder: resnet/resnet_50
   - logger: log

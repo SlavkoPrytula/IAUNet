@@ -4,6 +4,7 @@ from os.path import join
 from utils.callbacks import Callback
 from configs import cfg
 from utils.registry import CALLBACKS
+from utils.rank_zero import rank_zero_only
 
 
 @CALLBACKS.register(name="BaseVisualizer")
@@ -27,8 +28,9 @@ class BaseVisualizer(Callback):
             self.save_path = join(cfg.run.save_dir, 'train_visuals', f'epoch_{epoch}')
             makedirs(self.save_path, exist_ok=True)
 
-            self.plot(cfg, self.output, self.save_path)
+            self.plot(self.cfg, self.output, self.save_path)
     
+    @rank_zero_only
     def plot(self, cfg, output, save_path):
         for name, visualizer in self.visualizers.items():
             visualizer.plot(cfg, output, save_path)
