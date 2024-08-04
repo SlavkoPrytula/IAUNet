@@ -108,6 +108,7 @@ class TrainLoop(BaseLoop):
         for l in loss_dict:
             results[f"{l}_train"] = loss_dict[l]
 
+        self.trainer.output = output
         self.trigger_callbacks('on_train_epoch_end', trainer=self.trainer, cfg=self.cfg, epoch=self.epoch)
         
         return results
