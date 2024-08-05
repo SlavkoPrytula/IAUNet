@@ -44,6 +44,9 @@ class Rectangle(BaseCOCODataset):
 
         return metadata
 
+    # def __len__(self):
+    #     return 20
+
 
     def __getitem__(self, idx):
         image = self.get_image(idx)

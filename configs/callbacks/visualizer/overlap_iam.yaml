@@ -1,5 +1,0 @@
-overlap_iam:
-  type: IAMVisualizer
-  inst_type: overlap
-  ncols: 5
-  nrows: 15

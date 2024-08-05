@@ -1,5 +1,0 @@
-instance_iam:
-  type: IAMVisualizer
-  inst_type: instance
-  ncols: 5
-  nrows: 15

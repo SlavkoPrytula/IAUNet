@@ -1,7 +1,6 @@
 defaults:
-  - instance_iam
-  - overlap_iam
-  - visible_iam
+  - iam_visualizer
+  - instance_visualizer
   - _self_
 
 type: BaseVisualizer
