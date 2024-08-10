@@ -6,7 +6,7 @@ from torch.nn import functional as F
 import sys
 sys.path.append("./")
 
-from .iaunet import IAUNet as BaseModel
+from models.seg.models.iaunet.iaunet import IAUNet as BaseModel
 from configs import cfg
 from utils.registry import MODELS
 
@@ -94,7 +94,7 @@ class IAUNet(BaseModel):
             'pred_logits': logits,
             'pred_scores': scores,
             'pred_iams': results['iams'],
-            'pred_masks': inst_masks,
+            'pred_instance_masks': inst_masks,
             'pred_overlap_masks': overlap_masks,
             'pred_visible_masks': visible_masks,
             'pred_bboxes': bboxes,

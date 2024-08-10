@@ -1,0 +1,6 @@
+type: SwinTransformer
+embed_dim: 96
+depths: [2, 2, 18, 2]
+num_heads: [3, 6, 12, 24]
+out_indices: [0, 1, 2, 3]
+pretrained: true

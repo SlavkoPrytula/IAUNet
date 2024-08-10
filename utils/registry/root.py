@@ -1,5 +1,6 @@
 from .registry import Registry
-from .build_functions import build_from_cfg, build_matcher, build_criterion
+from .build_functions import (build_matcher, build_criterion, build_callback, 
+                              build_optimizer, build_scheduler)
 
 
 MODELS = Registry("model")
@@ -7,8 +8,8 @@ HEADS = Registry("head")
 CRITERIONS = Registry("criterion", build_func=build_criterion)
 MATCHERS = Registry("matcher", build_func=build_matcher)
 
-OPTIMIZERS = Registry("optimizer")
-SCHEDULERS = Registry("scheduler")
+OPTIMIZERS = Registry("optimizer", build_func=build_optimizer)
+SCHEDULERS = Registry("scheduler", build_func=build_scheduler)
 
 DATASETS = Registry("dataset")
 DATASETS_CFG = Registry("datasets_cfg")
@@ -16,4 +17,4 @@ DATASETS_CFG = Registry("datasets_cfg")
 EVALUATORS = Registry("evaluator")
 METRICS = Registry("metric")
 
-VISUALIZERS = Registry("visualizer")
+CALLBACKS = Registry("callbacks", build_func=build_callback)

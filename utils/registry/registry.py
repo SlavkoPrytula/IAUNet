@@ -3,17 +3,24 @@ import logging
 import types
 from collections import UserDict
 from typing import Any, Dict, List, Iterable, Iterator, Tuple, Generator, Optional, Type, Union, Callable
+from omegaconf import OmegaConf, DictConfig
 
 import inspect
 import os
 
 
 def build_from_cfg(cfg, registry) -> Any:
-    name = cfg.type
-    _cfg = cfg.copy()
-    _cfg.pop("type")
-    # return registry.get(name)()(**cfg)
+    name = cfg.get('type')
+
+    if isinstance(cfg, dict):
+        _cfg = cfg.copy()
+    elif isinstance(cfg, OmegaConf) or isinstance(cfg, DictConfig):
+        _cfg = OmegaConf.to_container(cfg, resolve=True)
+    
+    _cfg.pop("type", None)
+
     return registry.get(name)(**_cfg)
+
 
 from tabulate import tabulate
 from textwrap import wrap

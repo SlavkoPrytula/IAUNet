@@ -1,16 +1,12 @@
-import logging
-from abc import ABCMeta, abstractmethod
-from typing import Any, List, Optional, Sequence, Union
-
 from torch import Tensor
+from typing import Optional, Union, List, Any, Sequence
+from abc import ABCMeta, abstractmethod
 
-# from utils.comm import (is_main_process)
-# from utils.fileio import dump
-# from utils.logging import print_log
-# from utils.registry import METRICS
-# from mmengine.structures import BaseDataElement
+# from .utils import collect_results, is_main_process, _to_cpu, broadcast_object_list
+from utils.dist import collect_results, is_main_process, broadcast_object_list, get_rank
 
 
+# modified from https://mmengine.readthedocs.io/en/stable/_modules/mmengine/evaluator/metric.html
 class BaseMetric(metaclass=ABCMeta):
     """Base class for a metric.
 
@@ -52,13 +48,6 @@ class BaseMetric(metaclass=ABCMeta):
         self.prefix = prefix or self.default_prefix
         self.collect_dir = collect_dir
 
-        # if self.prefix is None:
-        #     print_log(
-        #         'The prefix is not set in metric class '
-        #         f'{self.__class__.__name__}.',
-        #         logger='current',
-        #         level=logging.WARNING)
-
     @property
     def dataset_meta(self) -> Optional[dict]:
         """Optional[dict]: Meta info of the dataset."""
@@ -93,108 +82,35 @@ class BaseMetric(metaclass=ABCMeta):
             and the values are corresponding results.
         """
 
-    def evaluate(self) -> dict:
-        # compute coco metrics
-        eval_results = self.compute_metrics(self.results)
-        # reset the results list
+    def evaluate(self, size: int) -> dict:
+        if len(self.results) == 0:
+            print('No results to evaluate.')
+
+        if self.collect_device == 'cpu':
+            results = collect_results(
+                self.results,
+                size,
+                self.collect_device,
+                tmpdir=self.collect_dir)
+        else:
+            results = collect_results(self.results, size, self.collect_device)
+
+        if is_main_process():
+            results = _to_cpu(results)
+            _metrics = self.compute_metrics(results)  # type: ignore
+            if self.prefix:
+                _metrics = {
+                    '/'.join((self.prefix, k)): v
+                    for k, v in _metrics.items()
+                }
+            metrics = [_metrics]
+        else:
+            metrics = [None]  # type: ignore
+
+        broadcast_object_list(metrics)
+
         self.results.clear()
-
-        return eval_results
-
-
-    # def evaluate(self, size: int) -> dict:
-    #     """Evaluate the model performance of the whole dataset after processing
-    #     all batches.
-
-    #     Args:
-    #         size (int): Length of the entire validation dataset. When batch
-    #             size > 1, the dataloader may pad some data samples to make
-    #             sure all ranks have the same length of dataset slice. The
-    #             ``collect_results`` function will drop the padded data based on
-    #             this size.
-
-    #     Returns:
-    #         dict: Evaluation metrics dict on the val dataset. The keys are the
-    #         names of the metrics, and the values are corresponding results.
-    #     """
-    #     # if len(self.results) == 0:
-    #     #     print_log(
-    #     #         f'{self.__class__.__name__} got empty `self.results`. Please '
-    #     #         'ensure that the processed results are properly added into '
-    #     #         '`self.results` in `process` method.',
-    #     #         logger='current',
-    #     #         level=logging.WARNING)
-
-    #     if self.collect_device == 'cpu':
-    #         results = collect_results(
-    #             self.results,
-    #             size,
-    #             self.collect_device,
-    #             tmpdir=self.collect_dir)
-    #     else:
-    #         results = collect_results(self.results, size, self.collect_device)
-
-    #     if is_main_process():
-    #         # cast all tensors in results list to cpu
-    #         results = _to_cpu(results)
-    #         _metrics = self.compute_metrics(results)  # type: ignore
-    #         # Add prefix to metric names
-    #         if self.prefix:
-    #             _metrics = {
-    #                 '/'.join((self.prefix, k)): v
-    #                 for k, v in _metrics.items()
-    #             }
-    #         metrics = [_metrics]
-    #     else:
-    #         metrics = [None]  # type: ignore
-
-    #     broadcast_object_list(metrics)
-
-    #     # reset the results list
-    #     self.results.clear()
-    #     return metrics[0]
-
-
-
-
-
-# @METRICS.register_module()
-# class DumpResults(BaseMetric):
-#     """Dump model predictions to a pickle file for offline evaluation.
-
-#     Args:
-#         out_file_path (str): Path of the dumped file. Must end with '.pkl'
-#             or '.pickle'.
-#         collect_device (str): Device name used for collecting results from
-#             different ranks during distributed training. Must be 'cpu' or
-#             'gpu'. Defaults to 'cpu'.
-#         collect_dir: (str, optional): Synchronize directory for collecting data
-#             from different ranks. This argument should only be configured when
-#             ``collect_device`` is 'cpu'. Defaults to None.
-#             `New in version 0.7.3.`
-#     """
-
-#     def __init__(self,
-#                  out_file_path: str,
-#                  collect_device: str = 'cpu',
-#                  collect_dir: Optional[str] = None) -> None:
-#         super().__init__(
-#             collect_device=collect_device, collect_dir=collect_dir)
-#         if not out_file_path.endswith(('.pkl', '.pickle')):
-#             raise ValueError('The output file must be a pkl file.')
-#         self.out_file_path = out_file_path
-
-#     def process(self, data_batch: Any, predictions: Sequence[dict]) -> None:
-#         """transfer tensors in predictions to CPU."""
-#         self.results.extend(_to_cpu(predictions))
-
-#     def compute_metrics(self, results: list) -> dict:
-#         """dump the prediction results to a pickle file."""
-#         dump(results, self.out_file_path)
-#         print_log(
-#             f'Results has been saved to {self.out_file_path}.',
-#             logger='current')
-#         return {}
+        return metrics[0]
 
 
 def _to_cpu(data: Any) -> Any:

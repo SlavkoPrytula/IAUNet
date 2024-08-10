@@ -30,23 +30,16 @@ class BaseCOCODataset(Dataset):
             self.ann_file = cfg.dataset.eval_dataset.ann_file
         elif dataset_type == "occ":
             raise NotImplementedError
-            # self.img_folder = cfg.dataset.occ_dataset.images
-            # self.ann_file = cfg.dataset.occ_dataset.ann_file
-        
-
-        self.coco = COCO(join(self.ann_file))
-        self.image_ids = self.coco.getImgIds()
-
-        # if dataset_type == "train":
-        #     np.random.shuffle(self.image_ids)
         
         self.cfg = cfg
+        self.coco = COCO(join(self.ann_file))
+        self.image_ids = self.coco.getImgIds()
         self.dataset_type = dataset_type
         self.normalization = normalization
         self.transform = transform
 
-        self.means = {}
-        self.stds = {}
+        self.mean = np.array(cfg.dataset.mean).reshape(1, 1, 3)
+        self.std = np.array(cfg.dataset.std).reshape(1, 1, 3)
 
         self.total_size = len(self.image_ids)
 
@@ -54,40 +47,13 @@ class BaseCOCODataset(Dataset):
         return self.total_size
 
     def __getitem__(self, idx):
-        # NOTE: Experimental
-        if type(idx) == list or type(idx) == tuple:
-            idx, _size = idx
-        else:
-            idx, _size = idx, (512, 512)
-
-        # idx = self.image_ids[idx]
         image = self.get_image(idx)
         masks = self.get_mask(idx)
         labels = self.get_labels(idx)
 
-        if idx not in self.means:
-            # self.means[idx] = 128 #np.mean(image, axis=None, keepdims=True)
-            # self.stds[idx] = 11.578 #np.std(image, axis=None, keepdims=True)
-            self.means[idx] = np.mean(image, axis=None, keepdims=True)
-            self.stds[idx] = np.std(image, axis=None, keepdims=True)
-
-        if self.normalization:
-            mean = self.means[idx]
-            std = self.stds[idx]
-            image = (image - mean) / std
-
-        assert image.shape[-1] != 0
-        assert masks.shape[-1] != 0
-
+        image = (image - self.mean) / self.std
 
         if self.transform:
-            data = A.Resize(*_size)(
-                image=image, 
-                mask=masks, 
-                )
-            image = data['image']
-            masks = data['mask']
-
             data = self.transform(
                 image=image, 
                 mask=masks, 
@@ -95,10 +61,9 @@ class BaseCOCODataset(Dataset):
             image = data['image']
             masks = data['mask']
 
-
         # (H, W, M) -> (H, W, N)
         masks, keep = self.filter_empty_masks(masks, return_idx=True) 
-        bboxes = self.masks_to_boxes(masks)
+        # bboxes = self.masks_to_boxes(masks)
         # labels = labels[keep]
 
         image = image.transpose((2, 0, 1))
@@ -108,22 +73,19 @@ class BaseCOCODataset(Dataset):
         masks = torch.tensor(masks, dtype=torch.float32)
 
         # labels
-        N, _, _ = masks.shape
-        labels = torch.zeros(N, dtype=torch.int64)
-        
         labels = torch.tensor(labels, dtype=torch.int64)
+        labels = labels[keep]
 
-        h, w = image.shape[-2:]
-        bboxes = torch.tensor(bboxes, dtype=torch.float32)
-        bboxes = box_xyxy_to_cxcywh(bboxes)
-        bboxes = bboxes / torch.tensor([w, h, w, h], dtype=torch.float32)
-
+        # h, w = image.shape[-2:]
+        # bboxes = torch.tensor(bboxes, dtype=torch.float32)
+        # bboxes = box_xyxy_to_cxcywh(bboxes)
+        # bboxes = bboxes / torch.tensor([w, h, w, h], dtype=torch.float32)
 
         target = {
             "image": image,
-            "masks": masks,
+            "instance_masks": masks,
             "labels": labels,
-            "bboxes": bboxes,
+            # "bboxes": bboxes,
         }
         metadata = self.img_infos(idx)
         target.update(metadata)
@@ -138,14 +100,10 @@ class BaseCOCODataset(Dataset):
         anns = self.coco.loadAnns(annIds)
         
         h, w = img_info['height'], img_info['width']
-        masks = np.zeros((len(anns), h, w), dtype=np.uint8)
+        masks = np.zeros((h, w, len(anns)), dtype=np.uint8)
         for i, ann in enumerate(anns):
-            masks[i, :, :] = self.coco.annToMask(ann)
-
-        masks = masks.transpose((1, 2, 0))
-
-        # if len(mask.shape) != 3:
-        #     mask = np.expand_dims(mask, -1)
+            mask = self.coco.annToMask(ann)
+            masks[:, :, i] = mask
             
         if masks.shape[-1] == 0:
             masks = np.zeros((h, w, 1), dtype=masks.dtype)
@@ -157,16 +115,15 @@ class BaseCOCODataset(Dataset):
         img_id = self.image_ids[img_id]
         img_info = self.coco.loadImgs([img_id])[0]
         img_path = join(self.img_folder, img_info['file_name'])
-        # image = cv2.imread(img_path, -1).astype(np.float32)
+        image = cv2.imread(img_path, -1).astype(np.float32)
 
-        image = Image.open(img_path)
-        image = np.array(image, dtype=np.float32)
+        # image = Image.open(img_path)
+        # image = np.array(image, dtype=np.float32)
 
         if image is None:
             raise FileNotFoundError(f"Image with id {img_id} not found in path: {img_path}")
         
         if len(image.shape) != 3:
-            # image = np.expand_dims(image, -1)
             image = np.repeat(image[..., np.newaxis], 3, axis=-1)
 
         return image
@@ -191,8 +148,6 @@ class BaseCOCODataset(Dataset):
 
     def get_labels(self, img_id: int, cat_id: list=[], iscrowd=None):
         img_id = self.image_ids[img_id]
-        # img_info = self.coco.loadImgs([img_id])[0] 
-        # annIds = self.coco.getAnnIds(imgIds=[img_info["id"]])
         annIds = self.coco.getAnnIds(imgIds=[img_id], catIds=cat_id, iscrowd=iscrowd)
         anns = self.coco.loadAnns(annIds)
 

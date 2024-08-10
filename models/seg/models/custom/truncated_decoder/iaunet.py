@@ -8,13 +8,21 @@ from torch.nn import init
 import sys
 sys.path.append("./")
 
-from models.seg.heads.instance_head import InstanceHead, InstanceBranch
-from models.seg.heads.mask_head import MaskBranch
-from models.seg.models.base import BaseModel
+# from models.seg.heads.instance_head import InstanceHead, InstanceBranch
+# from models.seg.heads.mask_head import MaskBranch
+# from models.seg.models.base import BaseModel
 
-from models.seg.nn.blocks import (DoubleConv, SE_block, 
-                                    DoubleConv_v1, DoubleConv_v2, 
-                                    DoubleConv_v3_1, DoubleConvModule)
+# from models.seg.nn.blocks import (DoubleConv, SE_block, 
+#                                     DoubleConv_v1, DoubleConv_v2, 
+#                                     DoubleConv_v3_1, DoubleConvModule)
+
+from ....heads.instance_head import InstanceHead, InstanceBranch
+from ....heads.mask_head import MaskBranch
+
+from models.seg.models.base import BaseModel
+from ....nn.blocks import (DoubleConv, SE_block, 
+                          DoubleConv_v1, DoubleConv_v2, 
+                          DoubleConv_v3_1, DoubleConvModule)
 
 from configs import cfg
 from utils.registry import MODELS, HEADS
@@ -115,6 +123,8 @@ class IAUNet(BaseModel):
         
 
     def forward(self, x):
+        ori_shape = x.shape 
+
         # go down
         skips = self.encoder(x)
 
@@ -152,34 +162,36 @@ class IAUNet(BaseModel):
         results = self.instance_head(inst_feats)
 
         logits = results["logits"]
-        mask_kernel = results["mask_kernel"]
         scores = results["objectness_scores"]
-        bboxes = results["bboxes"]
-        iam = results["iam"]
+        inst_kernel = results["kernels"]["instance_kernel"]
+        bboxes = results["bboxes"]['instance_bboxes']
 
         mask_feats = self.projection(mask_feats)
 
         
-        N = mask_kernel.shape[1]
+        # instance masks.
+        N = inst_kernel.shape[1]
         B, C, H, W = mask_feats.shape
-        inst_masks = torch.bmm(mask_kernel, mask_feats.view(B, C, H * W))
+
+        inst_masks = torch.bmm(inst_kernel, mask_feats.view(B, C, H * W))
         inst_masks = inst_masks.view(B, N, H, W)
-        
         bboxes = bboxes.sigmoid()
 
-        inst_masks = nn.UpsamplingBilinear2d(scale_factor=4)(inst_masks)
-        iam = nn.UpsamplingBilinear2d(scale_factor=4)(iam)
-
+        inst_masks = F.interpolate(inst_masks, size=ori_shape[-2:], 
+                                   mode="bilinear", align_corners=False)
+        # iam = F.interpolate(iam, size=ori_shape[-2:], 
+        #                     mode="bilinear", align_corners=False)
 
         output = {
             'pred_logits': logits,
             'pred_scores': scores,
-            'pred_iam': iam,
-            'pred_masks': inst_masks,
+            'pred_iams': results['iams'],
+            'pred_instance_masks': inst_masks,
             'pred_bboxes': bboxes,
         }
     
         return output
+    
 
 if __name__ == "__main__":
     import time 

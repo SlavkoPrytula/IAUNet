@@ -34,14 +34,9 @@ class IAUNet(BaseModel):
     def __init__(self, cfg: cfg):
         super(IAUNet, self).__init__(cfg)
 
-        self.encoder = MODELS.build(cfg.model.backbone)
+        self.encoder = MODELS.build(cfg.model.encoder)
         embed_dims = self.encoder.embed_dims
         self.embed_dims = embed_dims
-
-        # self.bridge = nn.Sequential(
-        #     DoubleConv_v1(embed_dims[-1], embed_dims[-1]),
-        #     SE_block(num_features=embed_dims[-1]),
-        # )
         
         # TODO: all of this should go into the decoder (struct)
         # eg. decoder=(type="iadecoder"), decoder=(type="iadecoder-ml")
@@ -128,9 +123,6 @@ class IAUNet(BaseModel):
 
         # go down
         skips = self.encoder(x)
-
-        # middle
-        # x = self.bridge(skips[-1])
         x = skips[-1]
 
         # go up
@@ -170,32 +162,31 @@ class IAUNet(BaseModel):
         results = self.instance_head(inst_feats)
 
         logits = results["logits"]
-        mask_kernel = results["mask_kernel"]
         scores = results["objectness_scores"]
-        bboxes = results["bboxes"]
-        iam = results["iam"]
+        inst_kernel = results["kernels"]["instance_kernel"]
+        bboxes = results["bboxes"]['instance_bboxes']
 
         mask_feats = self.projection(mask_feats)
 
         
         # instance masks.
-        N = mask_kernel.shape[1]
+        N = inst_kernel.shape[1]
         B, C, H, W = mask_feats.shape
 
-        inst_masks = torch.bmm(mask_kernel, mask_feats.view(B, C, H * W))
+        inst_masks = torch.bmm(inst_kernel, mask_feats.view(B, C, H * W))
         inst_masks = inst_masks.view(B, N, H, W)
         bboxes = bboxes.sigmoid()
 
         inst_masks = F.interpolate(inst_masks, size=ori_shape[-2:], 
                                    mode="bilinear", align_corners=False)
-        iam = F.interpolate(iam, size=ori_shape[-2:], 
-                            mode="bilinear", align_corners=False)
+        # iam = F.interpolate(iam, size=ori_shape[-2:], 
+        #                     mode="bilinear", align_corners=False)
 
         output = {
             'pred_logits': logits,
             'pred_scores': scores,
-            'pred_iam': iam,
-            'pred_masks': inst_masks,
+            'pred_iams': results['iams'],
+            'pred_instance_masks': inst_masks,
             'pred_bboxes': bboxes,
         }
     

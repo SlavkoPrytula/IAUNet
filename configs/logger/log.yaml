@@ -1,0 +1,4 @@
+log:
+  name: ${model.type}
+  log_files: []
+  level: INFO

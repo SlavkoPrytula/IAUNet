@@ -44,7 +44,6 @@ class Rectangle(BaseCOCODataset):
 
         return metadata
 
-
     def __getitem__(self, idx):
         image = self.get_image(idx)
         mask = self.get_mask(idx)
@@ -55,10 +54,10 @@ class Rectangle(BaseCOCODataset):
             self.means[idx] = np.mean(image, axis=None, keepdims=True)
             self.stds[idx] = np.std(image, axis=None, keepdims=True)
 
-        if self.normalization:
-            mean = self.means[idx]
-            std = self.stds[idx]
-            image = (image - mean) / std
+        # if self.normalization:
+        mean = self.means[idx]
+        std = self.stds[idx]
+        image = (image - mean) / std
 
         assert image.shape[-1] != 0
         assert mask.shape[-1] != 0
@@ -77,8 +76,8 @@ class Rectangle(BaseCOCODataset):
 
         # (H, W, M) -> (H, W, N)
         mask, keep = self.filter_empty_masks(mask, return_idx=True) 
-        overlaps = self.get_overlaps(mask)
-        visible_mask = self.get_visible_mask(mask)
+        # overlaps = self.get_overlaps(mask)
+        # visible_mask = self.get_visible_mask(mask)
         # occluders = self.get_occluders(mask)
         # borders_mask = self.get_borders(mask)
         # bboxes = self.masks_to_boxes(mask)
@@ -89,12 +88,13 @@ class Rectangle(BaseCOCODataset):
         mask = mask.transpose((2, 0, 1))
         mask = torch.tensor(mask, dtype=torch.float32)
 
-        overlaps = np.transpose(overlaps, (2, 0, 1))
-        overlaps = torch.tensor(overlaps, dtype=torch.float32)
+        # overlaps = np.transpose(overlaps, (2, 0, 1))
+        # overlaps = torch.tensor(overlaps, dtype=torch.float32)
+        # visible_mask = np.transpose(visible_mask, (2, 0, 1))
+        # visible_mask = torch.tensor(visible_mask, dtype=torch.float32)
+
         # occluders = np.transpose(occluders, (2, 0, 1))
         # occluders = torch.tensor(occluders, dtype=torch.float32)
-        visible_mask = np.transpose(visible_mask, (2, 0, 1))
-        visible_mask = torch.tensor(visible_mask, dtype=torch.float32)
 
         # borders_mask = np.transpose(borders_mask, (2, 0, 1))
         # borders_mask = torch.tensor(borders_mask, dtype=torch.float32)
@@ -112,10 +112,10 @@ class Rectangle(BaseCOCODataset):
 
         target = {
             "image": image,
-            "masks": mask,
+            "instance_masks": mask,
             # "occluder_masks": occluders,
-            "overlap_masks": overlaps,
-            "visible_masks": visible_mask,
+            # "overlap_masks": overlaps,
+            # "visible_masks": visible_mask,
             "labels": labels,
             # "borders_masks": borders_mask,
             # "occluders_bounds": occluder_bound
@@ -203,7 +203,7 @@ if __name__ == "__main__":
     print(targets["labels"])
     # print(targets["bboxes"])
 
-    print(targets["image"].shape, targets["masks"].shape)
+    print(targets["image"].shape, targets["instance_masks"].shape)
     print(f'std: {targets["image"].std()}, mean: {targets["image"].mean()}')
 
     
@@ -228,7 +228,7 @@ if __name__ == "__main__":
     # bboxes = bboxes * torch.tensor([w, h, w, h], dtype=torch.float32)
 
     visualize_grid_v2(
-        masks=targets["masks"].numpy(), 
+        masks=targets["instance_masks"].numpy(), 
         # bboxes=bboxes.numpy(), 
         path='./test_inst.jpg',
         ncols=5

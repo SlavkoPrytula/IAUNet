@@ -1,0 +1,17 @@
+instance_visualizer:
+  type: InstanceVisualizer
+  inst_type: instance
+  ncols: 5
+  show_bboxes: False
+
+overlap_visualizer:
+  type: InstanceVisualizer
+  inst_type: overlap
+  ncols: 5
+  show_bboxes: False
+
+visible_visualizer:
+  type: InstanceVisualizer
+  inst_type: visible
+  ncols: 5
+  show_bboxes: False

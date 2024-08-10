@@ -12,11 +12,11 @@ from models.build_model import get_model
 # https://github.com/MrYxJ/calculate-flops.pytorch
 
 
-# cfg.model.instance_head.type = "InstanceHead-v1.1"
+cfg.model.instance_head.type = "InstanceHead-v1.1"
 # cfg.model.instance_head.type = "InstanceHead-v1.2-occluders"
 # cfg.model.instance_head.type = "InstanceHead-v1.3-overlaps"
 # cfg.model.instance_head.type = "InstanceHead-v3-multiheaded"
-cfg.model.instance_head.type = "InstanceHead-v2.2-overlaps"
+# cfg.model.instance_head.type = "InstanceHead-v2.0-overlaps-attn"
 # cfg.model.instance_head.type = "Refiner"
 cfg.model.instance_head.in_channels = 256
 cfg.model.instance_head.kernel_dim = 256
@@ -26,14 +26,13 @@ cfg.model.instance_head.num_masks = 100
 # cfg.model.instance_head.activation = "sigmoid"
 cfg.model.mask_dim = 256
 # cfg.model.inst_dim = 256
-cfg.model.num_convs = 2
+cfg.model.num_convs = 4
 cfg.model.n_levels = 4
 
-# cfg.model.type = "iaunet"
-cfg.model.type = "iaunet_occluders"
+cfg.model.type = "iaunet"
+# cfg.model.type = "iaunet_occluders"
 # cfg.model.type = "iaunet_ml"
 # cfg.model.type = "custom/truncated_decoder/iaunet"
-# cfg.model.type = "custom-truncated_decoder-iaunet_double_decoder"
 
 cfg.model.backbone.out_indices = [1, 2, 3, 4]
 

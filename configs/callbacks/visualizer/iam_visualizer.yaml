@@ -1,0 +1,17 @@
+instance_iam_visualizer:
+  type: IAMVisualizer
+  inst_type: instance
+  ncols: 5
+  nrows: 15
+
+overlap_iam_visualizer:
+  type: IAMVisualizer
+  inst_type: overlap
+  ncols: 5
+  nrows: 15
+
+visible_iam_visualizer:
+  type: IAMVisualizer
+  inst_type: visible
+  ncols: 5
+  nrows: 15

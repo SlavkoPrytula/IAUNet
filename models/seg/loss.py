@@ -7,7 +7,7 @@ import sys
 sys.path.append("./")
 
 from utils.utils import nested_tensor_from_tensor_list, compute_mask_iou
-from utils.comm import is_dist_avail_and_initialized, get_world_size
+from utils.dist.comm import is_dist_avail_and_initialized, get_world_size
 from utils.losses import sigmoid_ce_loss_jit, dice_loss_jit, sigmoid_focal_loss
 from utils.box_ops import box_cxcywh_to_xyxy, generalized_box_iou
 
@@ -193,9 +193,10 @@ class SparseInstCriterion(nn.Module):
         target_masks = target_masks.to(src_masks)
         target_masks = target_masks[tgt_idx]
 
-        # upsample predictions to the target size
-        src_masks = F.interpolate(src_masks[:, None], size=target_masks.shape[-2:],
-                                    mode="bilinear", align_corners=False)
+        # upsample predictions to the target size.
+        # the masks should be upscaled inside the model.
+        # src_masks = F.interpolate(src_masks[:, None], size=target_masks.shape[-2:],
+        #                             mode="bilinear", align_corners=False)
 
         src_masks = src_masks.squeeze(1)
         target_masks = target_masks.squeeze(1)
@@ -217,7 +218,7 @@ class SparseInstCriterion(nn.Module):
 
 
     def loss_masks(self, outputs, targets, indices, num_masks, **kwargs):
-        return self._loss_masks(outputs, targets, indices, num_masks, name="masks")
+        return self._loss_masks(outputs, targets, indices, num_masks, name="instance_masks")
     
     def loss_occluders(self, outputs, targets, indices, num_masks, **kwargs):
         return self._loss_masks(outputs, targets, indices, num_masks, name="occluder_masks")

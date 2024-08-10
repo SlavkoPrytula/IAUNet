@@ -78,21 +78,21 @@ class HungarianMatcher(nn.Module):
         for b in range(bs):
 
             out_prob = outputs["pred_logits"][b].softmax(-1)  # [num_queries, num_classes]
-            out_mask = outputs["pred_masks"][b]  # [num_queries, H, W]
+            pred_mask = outputs["pred_masks"][b]  # [num_queries, H, W]
 
             tgt_ids = targets[b]["labels"]
-            tgt_mask = targets[b]["masks"].to(out_mask)
+            tgt_mask = targets[b]["masks"].to(pred_mask)
 
             # Downsample gt masks to save memory
-            tgt_mask = F.interpolate(tgt_mask[:, None], size=out_mask.shape[-2:], mode="nearest")
+            tgt_mask = F.interpolate(tgt_mask[:, None], size=pred_mask.shape[-2:], mode="nearest")
 
             # Flatten spatial dimension
-            out_mask = out_mask.flatten(1)  # [batch_size * num_queries, H*W]
+            pred_mask = pred_mask.flatten(1)  # [batch_size * num_queries, H*W]
             tgt_mask = tgt_mask[:, 0].flatten(1)  # [num_total_targets, H*W]
 
 
             with amp.autocast(enabled=False):
-                out_mask = out_mask.float()
+                pred_mask = pred_mask.float()
                 tgt_mask = tgt_mask.float()
                 out_prob = out_prob.float()
 
@@ -116,14 +116,14 @@ class HungarianMatcher(nn.Module):
 
 
                 # Compute the focal loss between masks
-                # cost_mask = batch_sigmoid_focal_loss(out_mask, tgt_mask)
+                # cost_mask = batch_sigmoid_focal_loss(pred_mask, tgt_mask)
                 # cost_iams_mask = batch_sigmoid_focal_loss(out_iams, tgt_mask)
 
                 # binary cross entropy cost
-                cost_mask = batch_sigmoid_ce_loss_jit(out_mask, tgt_mask)
+                cost_mask = batch_sigmoid_ce_loss_jit(pred_mask, tgt_mask)
                 
                 # Compute the dice loss betwen masks
-                cost_dice = batch_dice_loss_jit(out_mask, tgt_mask)
+                cost_dice = batch_dice_loss_jit(pred_mask, tgt_mask)
 
                 # Final cost matrix
                 C = (
@@ -238,11 +238,11 @@ class PointSampleHungarianMatcher(nn.Module):
 
 
             # masks.
-            out_mask = outputs["pred_masks"][b]  # [num_queries, H_pred, W_pred]
+            pred_mask = outputs["pred_instance_masks"][b]  # [num_queries, H_pred, W_pred]
             # gt masks are already padded when preparing target
-            tgt_mask = targets[b]["masks"].to(out_mask)
+            tgt_mask = targets[b]["instance_masks"].to(pred_mask)
 
-            out_mask = out_mask[:, None]
+            pred_mask = pred_mask[:, None]
             tgt_mask = tgt_mask[:, None]
 
 
@@ -255,7 +255,7 @@ class PointSampleHungarianMatcher(nn.Module):
 
 
             # all masks share the same set of points for efficient matching!
-            point_coords = torch.rand(1, self.num_points, 2, device=out_mask.device)
+            point_coords = torch.rand(1, self.num_points, 2, device=pred_mask.device)
             # get gt labels
             tgt_mask = point_sample(
                 tgt_mask,
@@ -263,23 +263,34 @@ class PointSampleHungarianMatcher(nn.Module):
                 align_corners=False,
             ).squeeze(1)
 
-            out_mask = point_sample(
-                out_mask,
-                point_coords.repeat(out_mask.shape[0], 1, 1),
+            pred_mask = point_sample(
+                pred_mask,
+                point_coords.repeat(pred_mask.shape[0], 1, 1),
                 align_corners=False,
             ).squeeze(1)
             # tgt_mask = tgt_mask.flatten(1)
-            # out_mask = out_mask.flatten(1)
+            # pred_mask = pred_mask.flatten(1)
+
+
+            # iams.
+            # pred_iams = outputs["pred_iams"]["instance_iams"][b]
+            # pred_iams = point_sample(
+            #     tgt_mask.unsqueeze(0),
+            #     pred_iams.unsqueeze(0),
+            #     align_corners=False,
+            # ).squeeze(0)
+            # cost_iams = (cost_iams > 0).to(pred_mask)
+            # cost_iams = -cost_iams.transpose(0, 1)
 
             with amp.autocast(enabled=False):
-                out_mask = out_mask.float()
+                pred_mask = pred_mask.float()
                 tgt_mask = tgt_mask.float()
 
                 # Compute the bce loss between masks
-                cost_mask = batch_sigmoid_ce_loss_jit(out_mask, tgt_mask)
+                cost_mask = batch_sigmoid_ce_loss_jit(pred_mask, tgt_mask)
 
                 # Compute the dice loss betwen masks
-                cost_dice = batch_dice_loss_jit(out_mask, tgt_mask)
+                cost_dice = batch_dice_loss_jit(pred_mask, tgt_mask)
 
             
             # Final cost matrix
@@ -289,10 +300,11 @@ class PointSampleHungarianMatcher(nn.Module):
                 + self.cost_dice * cost_dice
                 # + self.cost_bbox * cost_bbox 
                 # + self.cost_giou * cost_giou
+                # + self.cost_mask * cost_iams
             )
             C = C.reshape(num_queries, -1).cpu()
             # quick fix.
-            C = torch.nan_to_num(C, nan=0, posinf=0, neginf=0)
+            # C = torch.nan_to_num(C, nan=0)
 
             indices.append(linear_sum_assignment(C))
 
