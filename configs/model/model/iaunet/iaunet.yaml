@@ -9,7 +9,7 @@ model:
   out_channels: 1
   num_classes: 1
   n_levels: 4
-  num_convs: 4
+  num_convs: 2
   coord_conv: true
   multi_level: true
   mask_dim: 256
