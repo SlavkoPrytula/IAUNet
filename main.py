@@ -22,12 +22,10 @@ from utils.augmentations import train_transforms, valid_transforms
 from utils.augmentations import normalize
 
 from utils.seed import set_seed
-from utils.comm import setup, cleanup
+from utils.dist.comm import setup, cleanup
 from utils.logging import setup_logger
 
 import torch.multiprocessing as mp
-import torch.distributed as dist
-from torch.nn.parallel import DistributedDataParallel as DDP
 
 from utils.optimizers import *
 from utils.schedulers import *
@@ -44,7 +42,6 @@ from models.build_model import build_model
 from engine.trainer import Trainer
 
 TIME = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
-
 
 
 def run(rank: int = 0, world_size: int = 1, cfg: cfg = None):
@@ -109,14 +106,14 @@ def run(rank: int = 0, world_size: int = 1, cfg: cfg = None):
                             )
 
     train_dataloader = build_loader(train_dataset, 
-                                    batch_size=16, #cfg.dataset.train_dataset.batch_size, 
-                                    num_workers=4, #cfg.trainer.num_workers, 
+                                    batch_size=20, #cfg.dataset.train_dataset.batch_size, 
+                                    num_workers=2, #cfg.trainer.num_workers, 
                                     collate_fn=trivial_batch_collator, 
                                     seed=cfg.seed, 
                                     distributed=distributed)
     valid_dataloader = build_loader(valid_dataset, 
-                                    batch_size=16, #cfg.dataset.valid_dataset.batch_size, 
-                                    num_workers=4, #cfg.trainer.num_workers, 
+                                    batch_size=20, #cfg.dataset.valid_dataset.batch_size, 
+                                    num_workers=2, #cfg.trainer.num_workers, 
                                     collate_fn=trivial_batch_collator, 
                                     seed=cfg.seed, 
                                     distributed=distributed)

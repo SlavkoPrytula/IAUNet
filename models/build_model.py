@@ -5,7 +5,7 @@ import shutil
 import torch
 from torch.nn.parallel import DistributedDataParallel as DDP
 
-from utils.comm import get_world_size, get_local_rank
+# from utils.comm import get_world_size, get_local_rank
 from configs import cfg
 
 from . import get_model, load_weights, save_model_files
@@ -15,18 +15,18 @@ __all__ = [
     ]
 
 
-def create_ddp_model(model, *, fp16_compression=False, **kwargs):
-    if get_world_size() == 1:
-        return model
+# def create_ddp_model(model, *, fp16_compression=False, **kwargs):
+#     if get_world_size() == 1:
+#         return model
     
-    if "device_ids" not in kwargs:
-        kwargs["device_ids"] = [get_local_rank()]
-    ddp = DDP(model, **kwargs)
-    if fp16_compression:
-        from torch.distributed.algorithms.ddp_comm_hooks import default as comm_hooks
+#     if "device_ids" not in kwargs:
+#         kwargs["device_ids"] = [get_local_rank()]
+#     ddp = DDP(model, **kwargs)
+#     if fp16_compression:
+#         from torch.distributed.algorithms.ddp_comm_hooks import default as comm_hooks
 
-        ddp.register_comm_hook(state=None, hook=comm_hooks.fp16_compress_hook)
-    return ddp
+#         ddp.register_comm_hook(state=None, hook=comm_hooks.fp16_compress_hook)
+#     return ddp
 
 
 

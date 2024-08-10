@@ -81,9 +81,7 @@ class Trainer(BaseTrainer):
             
             if epoch % self.check_val_every_n_epoch == 0:
                 results_valid = self.valid_loop.run()
-
                 self._update_results(results_train, results_valid)
-
 
         # saving last checkpoint.
         if self.cfg.model.save_checkpoint:
@@ -116,16 +114,16 @@ class Trainer(BaseTrainer):
 
     @rank_zero_only
     def _save_results_csv(self, metrics, vals):
+        print(metrics)
+        print(vals)
         csv_path = self.cfg.run.save_dir / 'results.csv'
-        if self.rank == 0:
-            s = '' if csv_path.exists() else (('%13s,' * (len(metrics)) % tuple(metrics)).rstrip(',') + '\n')  # header
-            with open(csv_path, 'a') as f:
-                f.write(s + ('%13.5g,' * (len(metrics)) % tuple(vals)).rstrip(',') + '\n')
+        s = '' if csv_path.exists() else (('%13s,' * (len(metrics)) % tuple(metrics)).rstrip(',') + '\n')  # header
+        with open(csv_path, 'a') as f:
+            f.write(s + ('%13.5g,' * (len(metrics)) % tuple(vals)).rstrip(',') + '\n')
 
     @rank_zero_only
     def save_checkpoint(self, filepath):
-        if self.rank == 0:
-            if self.strategy == 'ddp':
-                torch.save(self.model.module.state_dict(), filepath)
-            else:
-                torch.save(self.model.state_dict(), filepath)
+        if self.strategy == 'ddp':
+            torch.save(self.model.module.state_dict(), filepath)
+        else:
+            torch.save(self.model.state_dict(), filepath)

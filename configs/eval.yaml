@@ -2,15 +2,16 @@
 
 defaults:
   - _self_
-  - dataset: livecell
-  - model: iaunet/iaunet
-  - model/encoder: resnet/resnet_50 # ??
-  - logger: null
+  - dataset: worms
+  - model: model/iaunet/iaunet
+  - model/encoder: resnet/resnet_50
+  - logger: log
   - trainer: gpu
   - run: default
+  - hydra: default
 
-  # - callbacks: default
-  # - visualizer: default
+test: True
 
-
-# to add extra model configs
+seed: 3407
+job_id: null
+run_id: null

@@ -67,8 +67,8 @@ class ValidLoop(BaseLoop):
             batch_size = images.tensors.size(0)
             
             output = self.model(images.tensors)
-            output["img_id"] = target["img_id"]
-            output["ori_shape"] = target["ori_shape"]
+            output["img_id"] = [targets[i]["img_id"] for i in range(len(targets))]
+            output["ori_shape"] = [targets[i]["ori_shape"] for i in range(len(targets))]
 
             # evaluator.
             for evaluator_name in self.evaluators:
@@ -86,17 +86,8 @@ class ValidLoop(BaseLoop):
             epoch_loss = running_loss / dataset_size
             self.trainer.loss = epoch_loss
 
-            # for callback in self.callbacks:
-            #     callback.on_valid_batch_end(step=step, epoch=epoch, loss=epoch_loss)
-            # # loss_callback.on_valid_batch_end(step, epoch, epoch_loss)
-            
             self.trigger_callbacks('on_valid_batch_end', trainer=self.trainer, cfg=self.cfg, batch=step)
 
-        print()
-        for l in loss_dict:
-            self.logger.info(f'{l}: {loss_dict[l]}')
-        print()
-        
         
         # TODO: this should go into callback
         # NOTE: evaluation is now done every n epochs, this is not needed
@@ -147,8 +138,8 @@ class ValidLoop(BaseLoop):
             for l in loss_dict:
                 wandb.log({f"valid/{l}_valid": loss_dict[l]})
 
-
         self.trainer.output = output
+        self.trainer.loss_dict = loss_dict
         self.trigger_callbacks('on_valid_epoch_end', trainer=self.trainer, cfg=self.cfg, epoch=self.epoch)
         
         return results

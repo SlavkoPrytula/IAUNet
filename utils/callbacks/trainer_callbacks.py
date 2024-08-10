@@ -21,13 +21,19 @@ class LossLoggerCallback(Callback):
         self.start_time = time.time()
     
     def on_train_batch_end(self, trainer, cfg, batch, **kwargs):
-        self.log_loss(trainer, cfg, batch, stage="train")
+        self.log_step(trainer, cfg, batch, stage="train")
 
     def on_valid_batch_end(self, trainer, cfg, batch, **kwargs):
-        self.log_loss(trainer, cfg, batch, stage="valid")
+        self.log_step(trainer, cfg, batch, stage="valid")
+
+    def on_train_epoch_end(self, trainer, cfg, epoch, **kwargs):
+        self.log_epoch(trainer, cfg, epoch, stage="train")
+
+    def on_valid_epoch_end(self, trainer, cfg, epoch, **kwargs):
+        self.log_epoch(trainer, cfg, epoch, stage="valid")
 
     @rank_zero_only
-    def log_loss(self, trainer, cfg, batch, stage="train"):
+    def log_step(self, trainer, cfg, batch, stage="train"):
         optimizer = trainer.optimizer
         total_steps = trainer.train_loop.total_steps if stage == "train" else trainer.valid_loop.total_steps
         logger = trainer.logger
@@ -46,3 +52,14 @@ class LossLoggerCallback(Callback):
             eta = str(datetime.timedelta(seconds=int(eta)))
 
             logger.info(f'Epoch({stage}) [{epoch}][{batch}/{total_steps}] loss: {loss:.4f}, eta: {eta}, lr: {current_lr:.6f}, mem: {mem:.0f}')
+
+
+    @rank_zero_only
+    def log_epoch(self, trainer, cfg, epoch, stage="train"):
+        logger = trainer.logger
+        loss_dict = trainer.loss_dict
+        
+        print()
+        for l in loss_dict:
+            logger.info(f'{l}: {loss_dict[l]}')
+        print()

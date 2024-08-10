@@ -4,6 +4,9 @@ import numpy as np
 import torch
 import torch.distributed as dist
 
+from utils.rank_zero import rank_zero_only
+from . import init_dist, init_local_group
+
 
 _LOCAL_PROCESS_GROUP = None
 
@@ -16,12 +19,16 @@ def cuda_init(device_id):
 
 
 def setup(rank, world_size):
-    os.environ['MASTER_ADDR'] = 'localhost'
-    os.environ['MASTER_PORT'] = '12355'
+    os.environ['MASTER_ADDR'] = '127.0.0.1'
+    os.environ['MASTER_PORT'] = '29506'
     os.environ['WORLD_SIZE'] = str(world_size)
     os.environ['RANK'] = str(rank)
-    dist.init_process_group("nccl", rank=rank, world_size=world_size)
+    os.environ['LOCAL_RANK'] = str(rank) # ???
+    
+    init_dist('pytorch', backend='nccl')
     torch.cuda.set_device(rank)
+    init_local_group(0, world_size)
+    rank_zero_only.rank = rank
 
 
 def cleanup():
@@ -241,68 +248,3 @@ def reduce_dict(input_dict, average=True):
     return reduced_dict
 
 
-
-# def broadcast_object_list(data,
-#                           src=0,
-#                           group=None) -> None:
-#     """Broadcasts picklable objects in ``object_list`` to the whole group.
-#     Similar to :func:`broadcast`, but Python objects can be passed in. Note
-#     that all objects in ``object_list`` must be picklable in order to be
-#     broadcasted.
-
-#     Note:
-#         Calling ``broadcast_object_list`` in non-distributed environment does
-#         nothing.
-
-#     Args:
-#         data (List[Any]): List of input objects to broadcast.
-#             Each object must be picklable. Only objects on the ``src`` rank
-#             will be broadcast, but each rank must provide lists of equal sizes.
-#         src (int): Source rank from which to broadcast ``object_list``.
-#         group: (ProcessGroup, optional): The process group to work on. If None,
-#             the default process group will be used. Default is ``None``.
-#         device (``torch.device``, optional): If not None, the objects are
-#             serialized and converted to tensors which are moved to the
-#             ``device`` before broadcasting. Default is ``None``.
-
-#     Note:
-#         For NCCL-based process groups, internal tensor representations of
-#         objects must be moved to the GPU device before communication starts.
-#         In this case, the used device is given by
-#         ``torch.cuda.current_device()`` and it is the user's responsibility to
-#         ensure that this is correctly set so that each rank has an individual
-#         GPU, via ``torch.cuda.set_device()``.
-
-#     Examples:
-#         >>> import torch
-#         >>> import mmengine.dist as dist
-
-#         >>> # non-distributed environment
-#         >>> data = ['foo', 12, {1: 2}]
-#         >>> dist.broadcast_object_list(data)
-#         >>> data
-#         ['foo', 12, {1: 2}]
-
-#         >>> # distributed environment
-#         >>> # We have 2 process groups, 2 ranks.
-#         >>> if dist.get_rank() == 0:
-#         >>>     # Assumes world_size of 3.
-#         >>>     data = ["foo", 12, {1: 2}]  # any picklable object
-#         >>> else:
-#         >>>     data = [None, None, None]
-#         >>> dist.broadcast_object_list(data)
-#         >>> data
-#         ["foo", 12, {1: 2}]  # Rank 0
-#         ["foo", 12, {1: 2}]  # Rank 1
-#     """
-#     assert isinstance(data, list)
-
-#     if get_world_size(group) > 1:
-#         if group is None:
-#             group = get_default_group()
-
-#         if digit_version(TORCH_VERSION) >= digit_version(
-#                 '1.8.0') and not is_npu_available():
-#             torch_dist.broadcast_object_list(data, src, group)
-#         else:
-#             _broadcast_object_list(data, src, group)

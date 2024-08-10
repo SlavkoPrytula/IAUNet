@@ -11,6 +11,7 @@ test.py
 todo.md
 
 test.py
+pyrightconfig.json
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

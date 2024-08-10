@@ -1,8 +1,9 @@
-import torch
+from torch import Tensor
 from typing import Optional, Union, List, Any, Sequence
 from abc import ABCMeta, abstractmethod
 
-from .utils import collect_results, is_main_process, _to_cpu, broadcast_object_list
+# from .utils import collect_results, is_main_process, _to_cpu, broadcast_object_list
+from utils.dist import collect_results, is_main_process, broadcast_object_list, get_rank
 
 
 # modified from https://mmengine.readthedocs.io/en/stable/_modules/mmengine/evaluator/metric.html
@@ -47,13 +48,6 @@ class BaseMetric(metaclass=ABCMeta):
         self.prefix = prefix or self.default_prefix
         self.collect_dir = collect_dir
 
-        # if self.prefix is None:
-        #     print_log(
-        #         'The prefix is not set in metric class '
-        #         f'{self.__class__.__name__}.',
-        #         logger='current',
-        #         level=logging.WARNING)
-
     @property
     def dataset_meta(self) -> Optional[dict]:
         """Optional[dict]: Meta info of the dataset."""
@@ -88,14 +82,6 @@ class BaseMetric(metaclass=ABCMeta):
             and the values are corresponding results.
         """
 
-    # def evaluate(self) -> dict:
-    #     # compute coco metrics
-    #     eval_results = self.compute_metrics(self.results)
-    #     # reset the results list
-    #     self.results.clear()
-
-    #     return eval_results
-
     def evaluate(self, size: int) -> dict:
         if len(self.results) == 0:
             print('No results to evaluate.')
@@ -110,10 +96,8 @@ class BaseMetric(metaclass=ABCMeta):
             results = collect_results(self.results, size, self.collect_device)
 
         if is_main_process():
-            # cast all tensors in results list to cpu
             results = _to_cpu(results)
             _metrics = self.compute_metrics(results)  # type: ignore
-            # Add prefix to metric names
             if self.prefix:
                 _metrics = {
                     '/'.join((self.prefix, k)): v
@@ -125,8 +109,19 @@ class BaseMetric(metaclass=ABCMeta):
 
         broadcast_object_list(metrics)
 
-        # reset the results list
         self.results.clear()
-        print(f'metrics from base: {metrics}')
         return metrics[0]
 
+
+def _to_cpu(data: Any) -> Any:
+    """transfer all tensors and BaseDataElement to cpu."""
+    if isinstance(data, (Tensor)):
+        return data.to('cpu')
+    elif isinstance(data, list):
+        return [_to_cpu(d) for d in data]
+    elif isinstance(data, tuple):
+        return tuple(_to_cpu(d) for d in data)
+    elif isinstance(data, dict):
+        return {k: _to_cpu(v) for k, v in data.items()}
+    else:
+        return data

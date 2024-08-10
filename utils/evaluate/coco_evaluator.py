@@ -14,6 +14,7 @@ class Evaluator(nn.Module):
         self.gt_coco = {}
         self.pred_coco = {}
         self.model = model
+        self.device = next(model.parameters()).device
         if model:
             self.model.eval()
         else:

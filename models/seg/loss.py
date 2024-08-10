@@ -7,7 +7,7 @@ import sys
 sys.path.append("./")
 
 from utils.utils import nested_tensor_from_tensor_list, compute_mask_iou
-from utils.comm import is_dist_avail_and_initialized, get_world_size
+from utils.dist.comm import is_dist_avail_and_initialized, get_world_size
 from utils.losses import sigmoid_ce_loss_jit, dice_loss_jit, sigmoid_focal_loss
 from utils.box_ops import box_cxcywh_to_xyxy, generalized_box_iou
 

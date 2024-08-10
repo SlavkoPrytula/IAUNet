@@ -41,6 +41,8 @@ class Dataset:
     train_dataset: COCODataset
     eval_dataset: COCODataset
     valid_dataset: COCODataset
+    mean: List[float]
+    std: List[float]
 
 @dataclass
 class Trainer:

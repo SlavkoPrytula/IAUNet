@@ -1,7 +1,7 @@
 # @package _global_
 dataset:
-  name: LiveCell
-  type: LiveCell
+  name: LiveCellCrop
+  type: LiveCellCrop
 
   data_root: /gpfs/space/projects/PerkinElmer/cytoplasm_segmentation/datasets/LiveCell/crop_512x512/coco
 
@@ -22,3 +22,6 @@ dataset:
     ann_file: ${dataset.data_root}/annotations/livecell_coco_test.json
     size: [512, 512]
     batch_size: 16
+
+  mean: [127.926, 127.926, 127.926]
+  std: [5.991, 5.991, 5.991]

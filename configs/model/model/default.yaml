@@ -21,7 +21,7 @@ criterion:
 evaluator:
   type: MMDetDataloaderEvaluator
   mask_thr: 0.5
-  score_thr: 0.1
+  score_thr: 0.05
   nms_thr: 0.5
   metric: segm
   classwise: true

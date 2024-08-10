@@ -53,14 +53,11 @@ class MMDetDataloaderEvaluator(Evaluator):
             # prepare targets
             images = []
             targets = []
-
-            images = []
-            targets = []
             for i in range(len(batch)):
                 target = batch[i]
 
                 ignore = ["img_id", "img_path", "ori_shape", "file_name", "coco_id"]
-                target = {k: v.to(self.model.device) if k not in ignore else v 
+                target = {k: v.to(self.device) if k not in ignore else v 
                         for k, v in target.items()}
                 images.append(target["image"])
                 targets.append(target)
@@ -71,26 +68,20 @@ class MMDetDataloaderEvaluator(Evaluator):
             # ============= PREDICTION ==============
             # predict.
             preds = self.inference_single(image.tensors)
-            preds["img_id"] = targets["img_id"]
-            preds["ori_shape"] = targets["ori_shape"]
+            preds["img_id"] = [targets[i]["img_id"] for i in range(len(targets))]
+            preds["ori_shape"] = [targets[i]["ori_shape"] for i in range(len(targets))]
 
             self.process(preds)
 
-    
 
-    def process(self, pred: dict):
-        scores_batch = pred['pred_logits'].softmax(-1)
-        masks_pred_batch = pred['pred_instance_masks'].sigmoid()
-        iou_scores_batch = pred['pred_scores'].sigmoid()
-        bboxes_pred_batch = pred['pred_bboxes']
+    def process(self, preds: dict):
+        scores_batch = preds['pred_logits'].softmax(-1)
+        masks_pred_batch = preds['pred_instance_masks'].sigmoid()
+        iou_scores_batch = preds['pred_scores'].sigmoid()
+        bboxes_pred_batch = preds['pred_bboxes']
 
         for batch_idx, (scores, masks_pred, iou_scores, bboxes_pred) in enumerate(zip(
             scores_batch, masks_pred_batch, iou_scores_batch, bboxes_pred_batch)):
-            # masks_pred = masks_pred[0, ...]
-            # scores = scores[0, :, :-1]
-            # iou_scores = iou_scores[0, ...].flatten(0, 1)
-            # bboxes_pred = bboxes_pred[0, ...]
-
             scores = scores[:, :-1]
             iou_scores = iou_scores.flatten(0, 1)
 
@@ -145,8 +136,8 @@ class MMDetDataloaderEvaluator(Evaluator):
             # ================================================
 
             results = dict()
-            results["img_id"] = pred["img_id"]
-            results["ori_shape"] = pred["ori_shape"]
+            results["img_id"] = preds["img_id"][batch_idx]
+            results["ori_shape"] = preds["ori_shape"][batch_idx]
             results["pred_instances"] = {
                 "masks": masks_pred,
                 "labels": labels,
@@ -161,44 +152,27 @@ class MMDetDataloaderEvaluator(Evaluator):
 
     def evaluate(self, verbose=False):
         key_mapping = {
-            'segm_mAP': "mAP@0.5:0.95",
-            'segm_mAP_50': "mAP@0.5",
-            'segm_mAP_75': "mAP@0.75",
-            'segm_mAP_s': "mAP(s)@0.5",
-            'segm_mAP_m': "mAP(m)@0.5",
-            'segm_mAP_l': "mAP(l)@0.5",
+            'coco/segm_mAP': "mAP@0.5:0.95",
+            'coco/segm_mAP_50': "mAP@0.5",
+            'coco/segm_mAP_75': "mAP@0.75",
+            'coco/segm_mAP_s': "mAP(s)@0.5",
+            'coco/segm_mAP_m': "mAP(m)@0.5",
+            'coco/segm_mAP_l': "mAP(l)@0.5",
         }
 
         # Compute metrics
         size = len(self.dataset)
         eval_results = self.coco_metric.evaluate(size)
-        print(f'metrics from mm: {eval_results}')
+        print()
+        print(f'final metrics from mm: {eval_results}')
+        print()
 
         # Update self.stats based on the mapping
         for key, value in eval_results.items():
             if key in key_mapping:
                 self.stats[key_mapping[key]] = value
 
+        print(self.stats)
+
         self.gt_coco = self.coco_metric._coco_api
         self.pred_coco = self.coco_metric.coco_dt
-
-        if torch.distributed.is_initialized():
-            # Collect gt_coco and pred_coco from all ranks
-            _gt_coco = [None for _ in range(torch.distributed.get_world_size())]
-            _pred_coco = [None for _ in range(torch.distributed.get_world_size())]
-
-            # Gather gt_coco and pred_coco objects
-            torch.distributed.all_gather_object(_gt_coco, self.gt_coco)
-            torch.distributed.all_gather_object(_pred_coco, self.pred_coco)
-
-            print(_gt_coco)
-            print(len(_gt_coco))
-
-            # Use the objects from rank 0
-            if torch.distributed.get_rank() == 0:
-                self.gt_coco = _gt_coco[0]
-                self.pred_coco = _pred_coco[0]
-            else:
-                self.gt_coco = None
-                self.pred_coco = None
-

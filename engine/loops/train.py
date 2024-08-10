@@ -90,12 +90,6 @@ class TrainLoop(BaseLoop):
 
             self.trigger_callbacks('on_train_batch_end', trainer=self.trainer, cfg=self.cfg, batch=step)
 
-        
-        print()
-        for l in loss_dict:
-            self.logger.info(f'{l}: {loss_dict[l]}')
-        print()
-
         # wandb results.
         # TODO: check from cfg
         if wandb.run is not None:
@@ -109,6 +103,7 @@ class TrainLoop(BaseLoop):
             results[f"{l}_train"] = loss_dict[l]
 
         self.trainer.output = output
+        self.trainer.loss_dict = loss_dict
         self.trigger_callbacks('on_train_epoch_end', trainer=self.trainer, cfg=self.cfg, epoch=self.epoch)
         
         return results
