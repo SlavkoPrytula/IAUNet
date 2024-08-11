@@ -1,10 +1,11 @@
 from .registry import Registry
 from .build_functions import (build_matcher, build_criterion, build_callback, 
-                              build_optimizer, build_scheduler)
+                              build_optimizer, build_scheduler, build_decoder)
 
 
 MODELS = Registry("model")
 HEADS = Registry("head")
+DECODERS = Registry("decoder", build_func=build_decoder)
 CRITERIONS = Registry("criterion", build_func=build_criterion)
 MATCHERS = Registry("matcher", build_func=build_matcher)
 

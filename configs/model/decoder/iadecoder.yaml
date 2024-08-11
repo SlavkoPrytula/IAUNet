@@ -1,0 +1,16 @@
+type: iadecoder
+
+num_convs: 2
+coord_conv: True
+multi_level: True # depr
+last_layer_only: False
+
+mask_branch:
+  type: MaskDoubleConv #MaskStackedConv
+  dim: 256
+
+instance_branch:
+  type: InstDoubleConv # InstStackedConv
+  dim: 256
+
+instance_head: ${instance_head}

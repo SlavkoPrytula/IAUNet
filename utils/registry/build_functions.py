@@ -3,7 +3,7 @@ from typing import Any
 from utils import visualise
 
 from .registry import build_from_cfg
-from omegaconf import OmegaConf
+from omegaconf import OmegaConf, DictConfig
 from configs import cfg
 from configs.structure import Callbacks, Visualizer
 
@@ -111,3 +111,17 @@ def build_callback(cfg, registry: Registry=None) -> Any:
     
     return build_from_cfg(cfg, registry)
 
+
+def build_decoder(cfg: cfg, registry: Registry=None, **kwargs) -> Any:
+    if registry is None:
+        from . import DECODERS
+        registry = DECODERS
+        
+    name = cfg.get('type')
+    if isinstance(cfg, dict):
+        _cfg = cfg.copy()
+    elif isinstance(cfg, OmegaConf) or isinstance(cfg, DictConfig):
+        _cfg = OmegaConf.to_container(cfg, resolve=True)
+    
+    _cfg.pop("type", None)
+    return registry.get(name)(cfg=cfg, **kwargs)

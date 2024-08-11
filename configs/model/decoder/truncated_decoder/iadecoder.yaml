@@ -1,0 +1,5 @@
+type: truncated_decoder-iadecoder
+
+defaults:
+ - iadecoder
+ - _self_

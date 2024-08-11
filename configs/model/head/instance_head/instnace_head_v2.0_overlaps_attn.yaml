@@ -1,0 +1,15 @@
+# @package _global_
+
+instance_head:
+  type: InstanceHead-v2.0-overlaps-attn
+  in_channels: 256
+  num_classes: 1
+  kernel_dim: 256
+  num_masks: 100
+  num_groups: 1
+  activation: softmax
+  num_layers: 1
+  nhead: 8
+  dim_feedforward: 2048
+  dropout: 0.0
+  normalize_before: False
