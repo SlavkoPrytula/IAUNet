@@ -109,7 +109,7 @@ class IAMVisualizer(BaseVisualizer):
 
     def _plot_iam_heads(self, cfg, masks, iams, save_path, name=''): 
         B, N, H, W = iams.shape
-        groups = iams.shape[1] // cfg.model.instance_head.num_masks
+        groups = iams.shape[1] // cfg.model.decoder.instance_head.num_masks
 
         fig, axs = plt.subplots(self.nrows, groups+1, figsize=((groups+1)*2, 30))
         for i in range(self.nrows):

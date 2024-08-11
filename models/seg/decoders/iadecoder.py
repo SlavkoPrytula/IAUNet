@@ -22,7 +22,7 @@ class IADecoder(BaseDecoder):
 
         return results
     
-    
+
     def _forward(self, skips, ori_shape):
         x = skips[-1]
 
@@ -59,7 +59,6 @@ class IADecoder(BaseDecoder):
                     inst_feats = self.instance_branch[i](inst_feats)
             else:
                 if i == self.n_levels - 1:
-                    print('self.last_layer_only = True')
                     coord_features = self.compute_coordinates(x)
                     mask_feats = self.mask_branch[0](x)
                     inst_feats = torch.cat([coord_features, x], dim=1)

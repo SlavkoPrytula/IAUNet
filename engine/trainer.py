@@ -68,6 +68,7 @@ class Trainer(BaseTrainer):
 
         self.model.to(self.device)
         if self.strategy == 'ddp':
+            self.model = torch.nn.SyncBatchNorm.convert_sync_batchnorm(self.model)
             self.model = DDP(self.model, device_ids=[self.rank])
 
         # TODO: ProfileModelCallback - on_init

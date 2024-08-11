@@ -3,6 +3,7 @@ from torch import nn
 from torch.nn import functional as F
 from fvcore.nn.weight_init import c2_msra_fill
 from torch.nn import init
+from functools import wraps
 
 from abc import ABC, abstractmethod
 
@@ -16,6 +17,26 @@ from ..nn.blocks import (DoubleConv, DoubleConv_v1)
 
 from configs.structure import Decoder
 from utils.registry import HEADS
+
+
+
+
+def cache_coordinates(func):
+    cache = {}
+
+    @wraps(func)
+    def wrapper(self, x, *args, **kwargs):
+        h, w = x.size(2), x.size(3)
+        size = (h, w)
+
+        if size in cache:
+            return cache[size]
+
+        coord_feat = func(self, x, *args, **kwargs)
+        cache[size] = coord_feat
+        return coord_feat
+
+    return wrapper
 
 
 class BaseDecoder(nn.Module, ABC):
@@ -124,6 +145,7 @@ class BaseDecoder(nn.Module, ABC):
 
         c2_msra_fill(self.projection)
 
+    @cache_coordinates
     @torch.no_grad()
     def compute_coordinates(self, x):
         h, w = x.size(2), x.size(3)
