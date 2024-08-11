@@ -9,7 +9,7 @@ import inspect
 import os
 
 
-def build_from_cfg(cfg, registry) -> Any:
+def build_from_cfg(cfg, registry, **kwargs) -> Any:
     name = cfg.get('type')
 
     if isinstance(cfg, dict):
@@ -19,7 +19,7 @@ def build_from_cfg(cfg, registry) -> Any:
     
     _cfg.pop("type", None)
 
-    return registry.get(name)(**_cfg)
+    return registry.get(name)(**_cfg, **kwargs)
 
 
 from tabulate import tabulate
@@ -113,7 +113,7 @@ class Registry(Iterable[Tuple[str, Any]]):
         return ret
     
 
-    def build(self, cfg: dict) -> Any:
+    def build(self, cfg: dict, **kwargs) -> Any:
         """Build an instance.
 
         Build an instance by calling :attr:`build_func`.
@@ -125,7 +125,7 @@ class Registry(Iterable[Tuple[str, Any]]):
             Any: The constructed object.
         """
         # assert isinstance(cfg, dict)
-        return self.build_func(cfg, registry=self)
+        return self.build_func(cfg, registry=self, **kwargs)
 
 
     def __contains__(self, name: str) -> bool:

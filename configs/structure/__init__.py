@@ -66,14 +66,6 @@ class Callbacks:
     visualizer: Visualizer
 
 @dataclass
-class Encoder:
-    type: str
-    depth: Optional[int] = None
-    num_stages: Optional[int] = None
-    out_indices: Optional[tuple] = None
-    pretrained: Optional[bool] = True
-
-@dataclass
 class Criterion:
     type: Optional[str] = "SparseCriterion"
     losses: Optional[List[str]] = field(default_factory=lambda: ["labels", "masks"])
@@ -104,19 +96,36 @@ class Scheduler:
     T_max: int = 16000
     verbose: bool = False
 
+
+@dataclass
+class Encoder:
+    type: str
+    depth: int = None
+    num_stages: int = None
+    out_indices: tuple = None
+    pretrained: bool = True
+
+
+@dataclass
+class Decoder:
+    type: str
+    num_convs: int = 2
+    coord_conv: bool = True
+    last_layer_only: bool = False
+    mask_branch: Optional[dict] = None
+    instance_branch: Optional[dict] = None
+    instance_head: Optional[dict] = None
+
+
 @dataclass
 class Model:
     type: str
     in_channels: int = 3
-    out_channels: int = 1
     num_classes: int = 1
     n_levels: int = 4
-    num_convs: int = 4
-    coord_conv: bool = True
-    multi_level: bool = True
-    mask_dim: int = 256
+
     encoder: Optional[Encoder] = None
-    instance_head: Optional[dict] = None
+    decoder: Optional[Decoder] = None
     criterion: Optional[Criterion] = None
     evaluator: Optional[Evaluator] = None
     optimizer: Optional[Optimizer] = None

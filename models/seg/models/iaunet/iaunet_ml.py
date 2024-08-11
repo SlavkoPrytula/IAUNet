@@ -13,6 +13,7 @@ from configs import cfg
 from utils.registry import MODELS, HEADS
 
 
+# depr.
 @MODELS.register(name="iaunet_ml")
 class IAUNet(BaseModel):
     def __init__(self, cfg: cfg):

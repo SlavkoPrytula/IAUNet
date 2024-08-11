@@ -8,14 +8,22 @@ sys.path.append("./")
 
 from models.seg.models.iaunet.iaunet import IAUNet as BaseModel
 from configs import cfg
-from utils.registry import MODELS
+from utils.registry import MODELS, DECODERS
 
 
 @MODELS.register(name="iaunet_occluders")
 class IAUNet(BaseModel):
     def __init__(self, cfg: cfg):
         super(IAUNet, self).__init__(cfg)
-        self._init_weights()
+
+        self.encoder = MODELS.build(cfg.model.encoder)
+        embed_dims = self.encoder.embed_dims
+        self.embed_dims = embed_dims
+
+        self.decoder = DECODERS.build(cfg.model.decoder, 
+                                      embed_dims=self.embed_dims,
+                                      n_levels=self.n_levels)
+
 
     def forward(self, x):
         ori_shape = x.shape
@@ -103,16 +111,17 @@ class IAUNet(BaseModel):
         return output
         
 
-if __name__ == "__main__":
-    import time 
-
-    model = IAUNet(cfg)
-    x = torch.rand(1, 3, 512, 512)
-    
-    time_s = time.time()
-    out = model(x)
-    print(out["pred_masks"].shape)
-    print(out["pred_occluder_masks"].shape)
-    print(out["pred_overlap_masks"].shape)
-    time_e = time.time()
-    print(f'loaded in {time_e - time_s}(s)')
+    def process_output(self, output, ori_shape):
+        output['pred_instance_masks'] = F.interpolate(output['pred_instance_masks'], 
+                                                      size=ori_shape[-2:], 
+                                                      mode="bilinear", 
+                                                      align_corners=False)
+        output['pred_overlap_masks'] = F.interpolate(output['pred_overlap_masks'], 
+                                                     size=ori_shape[-2:], 
+                                                     mode="bilinear", 
+                                                     align_corners=False)
+        output['pred_visible_masks'] = F.interpolate(output['pred_visible_masks'], 
+                                                     size=ori_shape[-2:], 
+                                                     mode="bilinear", 
+                                                     align_corners=False)
+        return output
