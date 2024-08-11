@@ -9,16 +9,16 @@ dataset:
     images: None
     ann_file: ${dataset.data_root}/worms_[train]_[max_s=3]_[min_l=0.01_max_l=0.5]_[min_t=30_max_t=30]_[n=4000]_[R_min=1_R_max=25]_[25.04.24].json
     size: [512, 512]
-    batch_size: 16
+    batch_size: 20
 
   valid_dataset:
     images: None
     ann_file: ${dataset.data_root}/worms_[valid]_[max_s=3]_[min_l=0.01_max_l=0.5]_[min_t=30_max_t=30]_[n=1000]_[R_min=1_R_max=25]_[25.04.24].json
     size: [512, 512]
-    batch_size: 16
+    batch_size: 20
 
   eval_dataset:
     images: None
     ann_file: ${dataset.data_root}/worms_[valid]_[max_s=3]_[min_l=0.01_max_l=0.5]_[min_t=30_max_t=30]_[n=1000]_[R_min=1_R_max=25]_[25.04.24].json
     size: [512, 512]
-    batch_size: 16
+    batch_size: 20

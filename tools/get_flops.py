@@ -9,11 +9,11 @@ from thop import profile
 import torch
 
 
-def get_flops(model):
+def get_flops(model, device="cuda:0"):
     # get-flops
     x = torch.randn(1, 3, 512, 512)
     if torch.cuda.is_available():
-        x = x.to("cuda:0")
+        x = x.to(device)
     flops, params = profile(model, inputs=(x,), verbose=True)
 
     gflops = flops / 1e9

@@ -2,6 +2,7 @@ import time
 import torch
 from torch.nn.parallel import DistributedDataParallel as DDP
 from utils.rank_zero import rank_zero_only
+from tools.get_flops import get_flops
 from configs import cfg
 
 from .base import BaseTrainer
@@ -68,6 +69,9 @@ class Trainer(BaseTrainer):
         self.model.to(self.device)
         if self.strategy == 'ddp':
             self.model = DDP(self.model, device_ids=[self.rank])
+
+        # TODO: ProfileModelCallback - on_init
+        get_flops(model, device=self.device)
 
 
     def train(self):
