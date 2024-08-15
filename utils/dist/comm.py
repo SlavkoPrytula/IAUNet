@@ -18,16 +18,24 @@ def cuda_init(device_id):
     torch.cuda.set_device(device_id)
 
 
-def setup(rank, world_size):
-    os.environ['MASTER_ADDR'] = '127.0.0.1'
-    os.environ['MASTER_PORT'] = '29505'
-    os.environ['WORLD_SIZE'] = str(world_size)
-    os.environ['RANK'] = str(rank)
-    os.environ['LOCAL_RANK'] = str(rank) # ???
-    
-    init_dist('pytorch', backend='nccl')
-    torch.cuda.set_device(rank)
-    init_local_group(0, world_size)
+def setup(rank, world_size, distributed=False, accelerator='cpu', devices=1):
+    if distributed:
+        os.environ['MASTER_ADDR'] = '127.0.0.1'
+        os.environ['MASTER_PORT'] = '29506'
+        os.environ['WORLD_SIZE'] = str(world_size)
+        os.environ['RANK'] = str(rank)
+        os.environ['LOCAL_RANK'] = str(rank) # ???
+        
+        backend = 'nccl' if accelerator == 'gpu' else 'gloo'
+        init_dist('pytorch', backend=backend)
+        torch.cuda.set_device(rank) if accelerator == 'gpu' else None
+        init_local_group(0, world_size)
+
+    elif accelerator == 'gpu' and devices > 1:
+        torch.cuda.set_device(rank)
+    elif accelerator == 'gpu':
+        torch.cuda.set_device(0)
+        
     rank_zero_only.rank = rank
 
 

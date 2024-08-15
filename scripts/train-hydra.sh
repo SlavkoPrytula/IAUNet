@@ -1,1 +1,1 @@
-python main.py job_id=11111 dataset=livecell_crop
+python main.py job_id=11111 dataset=livecell_crop trainer=gpu

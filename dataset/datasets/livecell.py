@@ -37,7 +37,8 @@ class LiveCell30Images(LiveCell):
 
 @hydra.main(version_base="1.3", config_path="../../configs", config_name="train")
 def main(cfg: cfg):
-    from utils.visualise import visualize
+    from utils.visualise import visualize, visualize_grid_v2
+    from visualizations import visualize_masks
     from utils.utils import flatten_mask
     from utils.augmentations import normalize
     from utils.augmentations import train_transforms, valid_transforms
@@ -45,19 +46,20 @@ def main(cfg: cfg):
 
     time_s = time.time()
 
-    dataset = LiveCell(cfg, dataset_type="train", 
+    dataset = LiveCell(cfg, dataset_type="valid", 
                     #   normalization=normalize,
-                      transform=train_transforms(cfg)
+                      transform=valid_transforms(cfg)
                       )
     
     print(len(dataset))
     
-    targets = dataset[5]
+    targets = dataset[8]
     time_e = time.time()
     print(f'loaded in {time_e - time_s}(s)')
 
     print(targets["image"].shape, targets["ori_shape"])
     print(targets["labels"])
+    print(len(targets["labels"]), len(targets["instance_masks"]))
 
     print(targets["image"].shape, targets["instance_masks"].shape)
     print(f'std: {targets["image"].std()}, mean: {targets["image"].mean()}')
@@ -67,10 +69,22 @@ def main(cfg: cfg):
         path='./test_image.jpg', 
         cmap='gray'
     )
-    visualize(
-        images=flatten_mask(targets["instance_masks"].numpy(), axis=0)[0], 
-        path='./test_mask.jpg', 
-        cmap='gray'
+
+    H, W = targets["ori_shape"]
+    visualize_masks(
+        img=targets["image"][0, ...],
+        masks=targets["instance_masks"],
+        shape=[H, W],
+        alpha=0.65,
+        draw_border=True, 
+        static_color=False,
+        path='./test_mask.jpg'
+    )
+
+    visualize_grid_v2(
+        masks=targets["instance_masks"].numpy(), 
+        path='./test_inst.jpg',
+        ncols=5
     )
 
 if __name__ == "__main__":

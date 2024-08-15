@@ -1,3 +1,4 @@
+import einops
 import torch 
 from torch import nn
 from torch.nn import init
@@ -81,15 +82,11 @@ class InstanceHead(nn.Module):
         self.activation = activation
         self.scale_factor = 1
         
-        # iam prediction, a simple conv
         self.iam_conv = IAM(self.dim, self.num_masks * self.num_groups, groups=self.num_groups)
         
         expand_dim = self.dim * self.num_groups
         self.fc = nn.Linear(expand_dim, expand_dim)
-        # self.fc_fuse = nn.Linear(expand_dim*2, expand_dim)
-        self.fc_fuse = MLP(expand_dim*2, expand_dim*4, expand_dim, 2)
 
-        # Outputs
         self.cls_score = nn.Linear(expand_dim, self.num_classes)
         self.inst_kernel = nn.Linear(expand_dim, self.kernel_dim)
         self.objectness = nn.Linear(expand_dim, 1)
@@ -111,26 +108,28 @@ class InstanceHead(nn.Module):
         init.constant_(self.inst_kernel.bias, 0.0)
 
         c2_xavier_fill(self.fc)
-        # c2_xavier_fill(self.fc_fuse)
 
 
     def forward(self, features, prev_inst_features=None):
         iam = self.iam_conv(features)
         B, N, H, W = iam.shape
         C = features.size(1)
-        
+
         if self.activation == "softmax":
             iam_prob = F.softmax(iam.view(B, N, -1) + self.softmax_bias, dim=-1)
         else:
             raise NotImplementedError(f"No activation {self.activation} found!")
         
         inst_features = torch.bmm(iam_prob, features.view(B, C, -1).permute(0, 2, 1))
-        inst_features = inst_features.reshape(B, self.num_groups, N // self.num_groups, -1).transpose(1, 2).reshape(B, N // self.num_groups, -1)
+        
+        # features_rearranged = rearrange(features, 'b c h w -> b (h w) c')
+        # inst_features = einops.einsum(iam_prob, features_rearranged, 'b n d, b d c -> b n c')
+
+        # inst_features = inst_features.reshape(B, self.num_groups, N // self.num_groups, -1).transpose(1, 2).reshape(B, N // self.num_groups, -1)
         
         if prev_inst_features is not None:
             inst_features = torch.cat([inst_features, prev_inst_features], -1)
             inst_features = F.relu_(self.fc_fuse(inst_features))
-            # inst_features = self.fc_fuse(inst_features)
         
         inst_features = F.relu_(self.fc(inst_features))
 

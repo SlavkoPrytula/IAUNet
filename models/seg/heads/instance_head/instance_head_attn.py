@@ -26,10 +26,10 @@ class InstanceHead(nn.Module):
                  num_groups: int = 1,
                  activation: str = "softmax", 
                  num_layers: int = 1,
-                 nhead: int = 8, 
                  dim_feedforward: int = 2048,
-                 dropout: float = 0.0,
-                 normalize_before: bool = False):
+                 nhead: int = 8, 
+                 normalize_before: bool = False,
+                 dropout: float = 0.0):
         super().__init__()
         self.dim = in_channels
         self.num_convs = num_convs
@@ -141,7 +141,7 @@ class InstanceHead(nn.Module):
             raise NotImplementedError(f"No activation {self.activation} found!")
         
         inst_features = torch.bmm(inst_iam_prob, features.view(B, C, -1).permute(0, 2, 1))
-        inst_features = inst_features.reshape(B, self.num_groups, N // self.num_groups, -1).transpose(1, 2).reshape(B, N // self.num_groups, -1)
+        # inst_features = inst_features.reshape(B, self.num_groups, N // self.num_groups, -1).transpose(1, 2).reshape(B, N // self.num_groups, -1)
         
         inst_features = inst_features.transpose(0, 1)
         pixel_features = features.flatten(2).permute(2, 0, 1)

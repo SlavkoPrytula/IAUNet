@@ -39,11 +39,9 @@ class InstanceVisualizer(BaseVisualizer):
         vis_preds_inst = output[f'pred_{self.inst_type}_masks'].sigmoid().cpu().detach().numpy()
         probs = output['pred_logits'].softmax(-1)
         scores = probs[0, :, 0].cpu().detach().numpy()
-        scores = np.round(scores, 2)
 
         iou_scores = output['pred_scores'].sigmoid()
         iou_scores = iou_scores[0, :, 0].cpu().detach().numpy()
-        iou_scores = np.round(iou_scores, 2)
 
         h, w = output[f'pred_{self.inst_type}_masks'].shape[-2:]
         bboxes = box_cxcywh_to_xyxy(output["pred_bboxes"])
@@ -55,14 +53,37 @@ class InstanceVisualizer(BaseVisualizer):
             f"conf: {score:.2f}, iou: {iou_score:.2f}"
             for score, iou_score in zip(scores, iou_scores)
         ]
+
+        # -----------
+        # sort.
+        idx = np.argsort(-scores)
+        vis_preds_inst = vis_preds_inst[0][idx]
+        bboxes = bboxes[0][idx]
+        titles = [titles[i] for i in idx]
         
-        visualize_grid_v2(
-            masks=vis_preds_inst[0, ...], 
-            bboxes=bboxes[0, ...] if self.show_bboxes else None,
-            titles=titles,
-            ncols=self.ncols, 
-            path=f'{save_path}/{self.inst_type}/pred_masks.jpg'
-        )
+        # -----------
+        # grid plot.
+        nrows = ncols = self.ncols
+        num_masks = vis_preds_inst.shape[0]
+        num_grids = (num_masks + nrows * ncols - 1) // (nrows * ncols)
+
+        for grid_idx in range(num_grids):
+            start_idx = grid_idx * nrows * ncols
+            end_idx = min(start_idx + nrows * ncols, num_masks)
+
+            grid_masks = vis_preds_inst[start_idx:end_idx]
+            grid_bboxes = bboxes[start_idx:end_idx] if self.show_bboxes else None
+            grid_titles = titles[start_idx:end_idx]
+
+            visualize_grid_v2(
+                masks=grid_masks, 
+                bboxes=grid_bboxes,
+                titles=grid_titles,
+                ncols=self.ncols, 
+                nrows=nrows,
+                path=f'{save_path}/{self.inst_type}/batch_{grid_idx}/pred_masks.jpg'
+            )
+
         
     def plot_preds(self, cfg, output, save_path):
         self._plot_preds(output, save_path=save_path)

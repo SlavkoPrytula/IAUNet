@@ -163,16 +163,11 @@ class MMDetDataloaderEvaluator(Evaluator):
         # Compute metrics
         size = len(self.dataset)
         eval_results = self.coco_metric.evaluate(size)
-        print()
-        print(f'final metrics from mm: {eval_results}')
-        print()
 
         # Update self.stats based on the mapping
         for key, value in eval_results.items():
             if key in key_mapping:
                 self.stats[key_mapping[key]] = value
-
-        print(self.stats)
 
         self.gt_coco = self.coco_metric._coco_api
         self.pred_coco = self.coco_metric.coco_dt

@@ -123,7 +123,7 @@ class ValidLoop(BaseLoop):
                 H, W = targets["ori_shape"]
                 
                 save_coco_vis(img, gt_coco, pred_coco, idx, shape=[H, W], 
-                            path=f'{self.cfg.run.save_dir}/train_visuals/epoch_{self.epoch}/results/pred_[{evaluator_name}]_[{fname}].jpg')
+                              path=f'{self.cfg.run.save_dir}/train_visuals/epoch_{self.epoch}/results/pred_[{evaluator_name}]_[{fname}].jpg')
                     
 
         # logging results.

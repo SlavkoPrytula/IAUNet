@@ -1,9 +1,6 @@
 
-import os
-from os import mkdir, makedirs
+from os import makedirs
 from os.path import join
-import torch
-import argparse
 from pathlib import Path
 from datetime import datetime
 import wandb
@@ -46,8 +43,7 @@ TIME = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
 
 def run(rank: int = 0, world_size: int = 1, cfg: cfg = None):
     distributed = cfg.trainer.get('strategy') == 'ddp'
-    if distributed:
-        setup(rank, world_size)
+    setup(rank, world_size, distributed=distributed)
 
     if cfg.job_id and cfg.run_id:
         cfg.run.save_dir = join(cfg.run.save_dir, f"[job={cfg.job_id}]-[group_run]", f"run={cfg.run_id}")
@@ -96,27 +92,35 @@ def run(rank: int = 0, world_size: int = 1, cfg: cfg = None):
 
     train_dataset = dataset(cfg, 
                             dataset_type="train", 
-                            # normalization=normalize, 
                             transform=train_transforms(cfg)
                             )
     valid_dataset = dataset(cfg, 
                             dataset_type="valid",
-                            # normalization=normalize, 
                             transform=valid_transforms(cfg)
                             )
+    # eval_dataset = dataset(cfg, 
+    #                         dataset_type="eval",
+    #                         transform=valid_transforms(cfg)
+    #                         )
 
     train_dataloader = build_loader(train_dataset, 
-                                    batch_size=20, #cfg.dataset.train_dataset.batch_size, 
-                                    num_workers=2, #cfg.trainer.num_workers, 
+                                    batch_size=cfg.dataset.train_dataset.batch_size, 
+                                    num_workers=8, #cfg.trainer.num_workers, 
                                     collate_fn=trivial_batch_collator, 
                                     seed=cfg.seed, 
                                     distributed=distributed)
     valid_dataloader = build_loader(valid_dataset, 
-                                    batch_size=20, #cfg.dataset.valid_dataset.batch_size, 
-                                    num_workers=2, #cfg.trainer.num_workers, 
+                                    batch_size=cfg.dataset.valid_dataset.batch_size, 
+                                    num_workers=8, #cfg.trainer.num_workers, 
                                     collate_fn=trivial_batch_collator, 
                                     seed=cfg.seed, 
                                     distributed=distributed)
+    # eval_dataloader = build_loader(eval_dataset, 
+    #                                 batch_size=cfg.dataset.eval_dataset.batch_size, 
+    #                                 num_workers=8, #cfg.trainer.num_workers, 
+    #                                 collate_fn=trivial_batch_collator, 
+    #                                 seed=cfg.seed, 
+    #                                 distributed=distributed)
     
     # - build and prepare model
     model = build_model(cfg)
@@ -155,7 +159,8 @@ def run(rank: int = 0, world_size: int = 1, cfg: cfg = None):
                       callbacks=callbacks,
                       logger=logger,
                       rank=rank,
-                      strategy=cfg.trainer.get('strategy')
+                      strategy=cfg.trainer.get('strategy'),
+                      sync_batchnorm=cfg.trainer.get('sync_batchnorm')
                     )
     trainer.train()
 

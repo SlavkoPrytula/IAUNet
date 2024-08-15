@@ -181,7 +181,7 @@ if __name__ == '__main__':
     sys.path.append("./")
     args = parse_args()
 
-    experiment_path = Path("runs/[iaunet]/[ResNet]/[worms]/[softmax_iam]/[kernel_dim=256]-[multi_level=True]-[coord_conv=True]-[losses=['labels', 'masks']]/[InstanceHead-v1.1]/[job=51882842]-[2024-08-07 08:16:42]")
+    experiment_path = Path("runs/[iaunet]/[iadecoder]/[ResNet]/[worms]/[softmax_iam]/[kernel_dim=256]-[multi_level=True]-[coord_conv=True]-[losses=['labels', 'masks']]/[InstanceHead-v2.0-attn]/[job=51901826]-[2024-08-15 02:03:01]")
     cfg = get_config_from_path(experiment_path)
     old_dataset = cfg.dataset.name
     
@@ -252,3 +252,6 @@ if __name__ == '__main__':
 
     run(cfg)
 
+
+
+# python eval.py

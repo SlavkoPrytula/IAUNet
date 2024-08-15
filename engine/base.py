@@ -18,7 +18,8 @@ class BaseTrainer:
             callbacks, 
             logger, 
             rank, 
-            strategy
+            strategy, 
+            sync_batchnorm
     ) -> None:
         self.cfg = cfg
         self.model = model
@@ -32,6 +33,7 @@ class BaseTrainer:
         self.logger = logger
         self.rank = rank
         self.strategy = strategy
+        self.sync_batchnorm = sync_batchnorm
         self.device = self._get_device()
 
         self.train_loop = None

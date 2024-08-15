@@ -6,13 +6,13 @@ criterion:
   weights:
     labels: 2.0
     bce_masks: 5.0
-    dice_masks: 2.0
+    dice_masks: 5.0
     iou_masks: 2.0
     no_object_weight: 0.1
   matcher:
     type: PointSampleHungarianMatcher
     cost_cls: 2.0
-    cost_dice: 2.0
+    cost_dice: 5.0
     cost_mask: 5.0
     cost_bbox: 1.0
     cost_giou: 2.0
@@ -21,7 +21,7 @@ criterion:
 evaluator:
   type: MMDetDataloaderEvaluator
   mask_thr: 0.5
-  score_thr: 0.05
+  score_thr: 0.1
   nms_thr: 0.5
   metric: segm
   classwise: true

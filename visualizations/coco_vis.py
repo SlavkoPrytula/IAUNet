@@ -3,6 +3,7 @@ import matplotlib.pyplot as plt
 import os
 from scipy.ndimage import binary_dilation, binary_erosion
 from pycocotools import mask as maskUtils
+from torch.nn import functional as F
 
 from .palette import jitter_color, random_color
 
@@ -21,7 +22,7 @@ def _visualize_masks(ax, masks, draw_border=False):
         ax.imshow(mask)
 
 
-def getMasks(coco_api, anns, alpha=1, static_color=False):
+def getMasks(coco_api, anns, shape, alpha=1, static_color=False):
     """
     Generate and return colored masks for specified annotations with optional transparency.
     :param anns: Annotations to display, each with segmentation info.
@@ -60,7 +61,7 @@ def getMasks(coco_api, anns, alpha=1, static_color=False):
     return np.array(masks) if masks else np.zeros((0, 0, 4)) 
 
 
-def getNPMasks(masks, static_color=False, alpha=1):
+def getNPMasks(masks, shape, alpha=1, static_color=False):
     colored_masks = []
     for mask in masks:
         color_mask = jitter_color([1, 0, 0]) if static_color else random_color()
@@ -79,7 +80,7 @@ def visualize_coco_anns(coco_api, idx, ax, shape, alpha=1, draw_border=False, st
     
     annIds = coco_api.getAnnIds(imgIds=[idx])
     anns = coco_api.loadAnns(annIds)
-    masks = getMasks(coco_api, anns, alpha=alpha, static_color=static_color)
+    masks = getMasks(coco_api, anns, shape, alpha=alpha, static_color=static_color)
     _visualize_masks(ax, masks, draw_border)
 
 
@@ -89,7 +90,7 @@ def visualize_masks(img, masks, shape, alpha=1, draw_border=False, static_color=
 
     ax.imshow(img, cmap='gray')
 
-    masks = getNPMasks(masks, static_color=static_color, alpha=alpha)
+    masks = getNPMasks(masks, shape, alpha=alpha, static_color=static_color)
     _visualize_masks(ax, masks, draw_border)
     
     ax.axis('off')

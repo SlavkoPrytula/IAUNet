@@ -10,6 +10,7 @@ sys.path.append('.')
 from utils.utils import flatten_mask
 from utils.box_ops import box_cxcywh_to_xyxy, box_xyxy_to_cxcywh
 
+import hydra
 from configs import cfg
 
 from dataset.datasets.base_coco_dataset import BaseCOCODataset
@@ -26,7 +27,14 @@ class Rectangle(BaseCOCODataset):
         image = flatten_mask(image, -1)[..., 0]
         image = np.stack((image,) * 3, axis=-1)
         image = image.astype(np.float32)
-        return image
+
+        image = image + 1
+        scaled_image = image / 0.5
+        noisy_scaled_image = np.random.poisson(scaled_image)
+        noise_image = noisy_scaled_image * 0.5
+        noise_image = noise_image / np.max(noise_image) * np.max(image)
+
+        return noise_image
 
     def img_infos(self, img_id):
         img_id = self.image_ids[img_id]
@@ -46,36 +54,26 @@ class Rectangle(BaseCOCODataset):
 
     def __getitem__(self, idx):
         image = self.get_image(idx)
-        mask = self.get_mask(idx)
+        masks = self.get_mask(idx)
         # bboxes = self.get_bboxes(idx)
         labels = self.get_labels(idx)
 
-        if idx not in self.means:
-            self.means[idx] = np.mean(image, axis=None, keepdims=True)
-            self.stds[idx] = np.std(image, axis=None, keepdims=True)
-
-        # if self.normalization:
-        mean = self.means[idx]
-        std = self.stds[idx]
-        image = (image - mean) / std
-
-        assert image.shape[-1] != 0
-        assert mask.shape[-1] != 0
+        image = (image - self.mean) / self.std
 
         if self.transform:
             data = self.transform(
                 image=image, 
-                mask=mask, 
+                mask=masks, 
                 # bboxes=bboxes,
                 # labels=labels
                 )
             image = data['image']
-            mask = data['mask']
+            masks = data['mask']
             # bboxes = data['bboxes']
             # labels = data['labels']
 
         # (H, W, M) -> (H, W, N)
-        mask, keep = self.filter_empty_masks(mask, return_idx=True) 
+        masks, keep = self.filter_empty_masks(masks, return_idx=True) 
         # overlaps = self.get_overlaps(mask)
         # visible_mask = self.get_visible_mask(mask)
         # occluders = self.get_occluders(mask)
@@ -85,8 +83,8 @@ class Rectangle(BaseCOCODataset):
         image = image.transpose((2, 0, 1))
         image = torch.tensor(image, dtype=torch.float32)
         
-        mask = mask.transpose((2, 0, 1))
-        mask = torch.tensor(mask, dtype=torch.float32)
+        masks = masks.transpose((2, 0, 1))
+        masks = torch.tensor(masks, dtype=torch.float32)
 
         # overlaps = np.transpose(overlaps, (2, 0, 1))
         # overlaps = torch.tensor(overlaps, dtype=torch.float32)
@@ -112,7 +110,7 @@ class Rectangle(BaseCOCODataset):
 
         target = {
             "image": image,
-            "instance_masks": mask,
+            "instance_masks": masks,
             # "occluder_masks": occluders,
             # "overlap_masks": overlaps,
             # "visible_masks": visible_mask,
@@ -133,7 +131,6 @@ class Rectangle(BaseCOCODataset):
         all_masks_summed = np.sum(masks, axis=-1)
         for i in range(N):
             overlaps[:, :, i] = masks[:, :, i] & (all_masks_summed - masks[:, :, i] > 0)
-
         return overlaps
     
 
@@ -143,7 +140,6 @@ class Rectangle(BaseCOCODataset):
         all_masks_summed = np.sum(masks, axis=-1)
         for i in range(N):
             visible[:, :, i] = masks[:, :, i] - (masks[:, :, i] & (all_masks_summed - masks[:, :, i] > 0))
-
         return visible
 
 
@@ -176,51 +172,54 @@ class Rectangle(BaseCOCODataset):
 
 
 
-if __name__ == "__main__":
-    from utils.visualise import visualize, visualize_grid_v2, plot3d
+
+
+@hydra.main(version_base="1.3", config_path="../../configs", config_name="train")
+def main(cfg: cfg):
+    from utils.visualise import visualize, visualize_grid_v2
+    from visualizations import visualize_masks
+    from utils.utils import flatten_mask
     from utils.augmentations import normalize
     from utils.augmentations import train_transforms, valid_transforms
-    from utils.registry import DATASETS_CFG
-    from visualizations import visualize_masks
     import time
 
     time_s = time.time()
-    
-    cfg.dataset = DATASETS_CFG.get("worms")
 
-    dataset = Rectangle(cfg, dataset_type="valid", 
-                      normalization=normalize,
-                      transform=valid_transforms(cfg)
-                      )
+    dataset = Rectangle(cfg, dataset_type='valid', 
+                        normalization=normalize,
+                        transform=valid_transforms(cfg)
+                        )
     
     print(len(dataset))
     
-    targets = dataset[4]
+    targets = dataset[5]
     time_e = time.time()
     print(f'loaded in {time_e - time_s}(s)')
 
     print(targets["image"].shape, targets["ori_shape"])
     print(targets["labels"])
-    # print(targets["bboxes"])
+    print(len(targets["labels"]), len(targets["instance_masks"]))
 
     print(targets["image"].shape, targets["instance_masks"].shape)
     print(f'std: {targets["image"].std()}, mean: {targets["image"].mean()}')
 
-    
-    # visualize(images=targets["image"][0, ...], path='./test_image.jpg', cmap='gray',)
-    # visualize(images=flatten_mask(targets["masks"].numpy(), axis=0)[0], path='./test_mask.jpg', cmap='gray',)
 
+    visualize(
+        images=targets["image"][0, ...], 
+        path='./test_image.jpg', 
+        cmap='gray'
+    )
+    
     H, W = targets["ori_shape"]
     visualize_masks(
         img=targets["image"][0, ...],
-        masks=targets["masks"],
+        masks=targets["instance_masks"],
         shape=[H, W],
         alpha=0.65,
         draw_border=True, 
         static_color=False,
         path='./test_mask.jpg'
     )
-    
     
     # bbox.
     # h, w = targets["image"].shape[-2:]
@@ -240,15 +239,26 @@ if __name__ == "__main__":
     #     ncols=5
     # )
 
-    visualize_grid_v2(
-        masks=targets["overlap_masks"].numpy(), 
-        path='./test_overlap_mask.jpg',
-        ncols=5
-    )
+    # visualize_grid_v2(
+    #     masks=targets["overlap_masks"].numpy(), 
+    #     path='./test_overlap_mask.jpg',
+    #     ncols=5
+    # )
 
-    visualize_grid_v2(
-        masks=targets["visible_masks"].numpy(), 
-        path='./test_visible_mask.jpg',
-        ncols=5
-    )
+    # visualize_grid_v2(
+    #     masks=targets["visible_masks"].numpy(), 
+    #     path='./test_visible_mask.jpg',
+    #     ncols=5
+    # )
     
+
+if __name__ == "__main__":
+    main()
+
+
+# images = np.stack([self.get_image(idx) for idx in range(len(self.image_ids))], axis=0)
+# mean = np.mean(images, axis=(0, 1, 2))
+# std = np.std(images, axis=(0, 1, 2))
+# print(mean)
+# print(std)
+# raise
