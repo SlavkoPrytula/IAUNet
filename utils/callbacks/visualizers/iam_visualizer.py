@@ -1,13 +1,12 @@
 import numpy as np
 import matplotlib.pyplot as plt
 import torch.nn.functional as F
+from os.path import join
 
 import sys
 sys.path.append("./")
 
 from utils.visualise import visualize, visualize_grid, visualize_grid_v2
-
-from configs import cfg
 from .base_visualizer import BaseVisualizer
 from utils.registry import CALLBACKS
 
@@ -21,55 +20,45 @@ class IAMVisualizer(BaseVisualizer):
         self.nrows = nrows
         
     def plot(self, cfg, output, save_path):
-        self.plot_preds(cfg, output, save_path)
-        self.plot_aux_preds(cfg, output, save_path)
+        self.plot_iam_preds(cfg, output, save_path)
+        self.plot_aux_iam_preds(cfg, output, save_path)
         self.plot_iam_heads(cfg, output, save_path)
 
 
-    def plot_logits_iam(self, iams, titles, save_path):
+    def _plot_iam(self, iams, titles, save_path, batch_idx, mode='logits'):
+        batch_folder = join(save_path, self.inst_type, f'batch_{batch_idx}')
+        visualize_grid_v2(
+            masks=iams, 
+            titles=titles,
+            ncols=self.ncols, 
+            path=join(batch_folder, f'[pred_iam]_{mode}.jpg'),
+            cmap='jet', # plasma
+        )
+
+
+    def plot_logits_iam(self, iams, titles, save_path, batch_idx):
         # -----------
         # IAM Logits. 
         vis_preds_iams = iams.clone().cpu().detach().numpy()
-        
-        visualize_grid_v2(
-            masks=vis_preds_iams[0, ...], 
-            titles=titles,
-            ncols=self.ncols, 
-            path=f'{save_path}/{self.inst_type}/[pred_iam]_logits.jpg',
-            cmap='jet',
-        )
+        self._plot_iam(vis_preds_iams, titles, save_path, batch_idx, mode='logits')
 
 
-    def plot_softmax_iam(self, iams, titles, save_path):
+    def plot_softmax_iam(self, iams, titles, save_path, batch_idx):
         # -----------
         # IAM Softmax.  
-        B, N, H, W = iams.shape
+        N, H, W = iams.shape
         _iam = iams.clone()
-        _iam = F.softmax(_iam.view(B, N, -1), dim=-1)
-        _iam = _iam.view(B, N, H, W)
+        _iam = F.softmax(_iam.view(N, -1), dim=-1)
+        _iam = _iam.view(N, H, W)
         vis_preds_iams = _iam.cpu().detach().numpy()
-        
-        visualize_grid_v2(
-            masks=vis_preds_iams[0, ...], 
-            titles=titles,
-            ncols=self.ncols, 
-            path=f'{save_path}/{self.inst_type}/[pred_iam]_softmax.jpg',
-            cmap='jet',
-        )
+        self._plot_iam(vis_preds_iams, titles, save_path, batch_idx, mode='softmax')
     
 
-    def plot_sigmoid_iam(self, iams, titles, save_path):
+    def plot_sigmoid_iam(self, iams, titles, save_path, batch_idx):
         # -----------
         # IAM Sigmoid.
         vis_preds_iams = iams.clone().sigmoid().cpu().detach().numpy()
-        
-        visualize_grid_v2(
-            masks=vis_preds_iams[0, ...], 
-            titles=titles,
-            ncols=self.ncols, 
-            path=f'{save_path}/{self.inst_type}/[pred_iam]_sigmoid.jpg',
-            cmap='jet', # plasma
-        )
+        self._plot_iam(vis_preds_iams, titles, save_path, batch_idx, mode='sigmoid')
 
 
     def _plot_preds(self, output, save_path):
@@ -87,17 +76,36 @@ class IAMVisualizer(BaseVisualizer):
         titles = [', '.join([f"({class_idx}, {score:.2f})" for class_idx, score in 
                              zip(range(scores.shape[1]), score)]) for score in scores]
 
-        self.plot_logits_iam(iams, titles, save_path)
-        self.plot_softmax_iam(iams, titles, save_path)
-        self.plot_sigmoid_iam(iams, titles, save_path)
+        # -----------
+        # sort.
+        idx = np.argsort(-scores[:, 0])
+        iams = iams[0][idx]
+        titles = [titles[i] for i in idx]
+
+        # -----------
+        # grid plot.
+        nrows = ncols = self.ncols
+        num_masks = iams.shape[0]
+        num_grids = (num_masks + nrows * ncols - 1) // (nrows * ncols)
+
+        for grid_idx in range(num_grids):
+            start_idx = grid_idx * nrows * ncols
+            end_idx = min(start_idx + nrows * ncols, num_masks)
+
+            grid_masks = iams[start_idx:end_idx]
+            grid_titles = titles[start_idx:end_idx]
+
+            self.plot_logits_iam(grid_masks, grid_titles, save_path, batch_idx=grid_idx)
+            self.plot_softmax_iam(grid_masks, grid_titles, save_path, batch_idx=grid_idx)
+            self.plot_sigmoid_iam(grid_masks, grid_titles, save_path, batch_idx=grid_idx)
         
 
         
-    def plot_preds(self, cfg, output, save_path):
+    def plot_iam_preds(self, cfg, output, save_path):
         self._plot_preds(output, save_path=save_path)
 
 
-    def plot_aux_preds(self, cfg, output, save_path):
+    def plot_aux_iam_preds(self, cfg, output, save_path):
         """
         Aux Mask Visuals
         """
@@ -107,9 +115,12 @@ class IAMVisualizer(BaseVisualizer):
                 self._plot_preds(aux_outputs, save_path=f"{save_path}/aux_outputs")
 
 
-    def _plot_iam_heads(self, cfg, masks, iams, save_path, name=''): 
-        B, N, H, W = iams.shape
-        groups = iams.shape[1] // cfg.model.instance_head.num_masks
+    # ==============
+    # Multiple Heads.
+    # ==============
+    def _plot_iam_heads(self, cfg, masks, iams, save_path, mode=''): 
+        N, H, W = iams.shape
+        groups = iams.shape[1] // cfg.model.decoder.instance_head.num_masks
 
         fig, axs = plt.subplots(self.nrows, groups+1, figsize=((groups+1)*2, 30))
         for i in range(self.nrows):
@@ -118,15 +129,15 @@ class IAMVisualizer(BaseVisualizer):
                 ax.axis('off')
 
                 if j == 0:
-                    ax.imshow(masks[0, i, :, :], cmap='viridis')
+                    ax.imshow(masks[i, :, :], cmap='viridis')
                     ax.set_title(f'pred {i}', fontsize=10)
                 else:
                     channel_idx = N // groups * (j-1) + i
-                    ax.imshow(iams[0, channel_idx, :, :], cmap='jet')
+                    ax.imshow(iams[channel_idx, :, :], cmap='jet')
                     ax.set_title(f'head {j-1}', fontsize=10)
         
         fig.tight_layout(pad=0.5)
-        plt.savefig(f'{save_path}/{self.inst_type}/[pred_iam]_{name}_grouped.jpg')
+        plt.savefig(f'{save_path}/{self.inst_type}/[pred_iam]_{mode}_grouped.jpg')
         plt.close()
 
 
@@ -134,25 +145,25 @@ class IAMVisualizer(BaseVisualizer):
         # -----------
         # IAM Logits [Grouped]. 
         iams = iams.clone().cpu().detach().numpy()
-        self._plot_iam_heads(cfg, masks, iams, save_path, name='logits')
+        self._plot_iam_heads(cfg, masks, iams, save_path, mode='logits')
 
 
     def plot_softmax_iam_heads(self, cfg, masks, iams, save_path):
         # -----------
         # IAM Softmax [Grouped].  
-        B, N, H, W = iams.shape
+        N, H, W = iams.shape
         _iam = iams.clone()
-        _iam = F.softmax(_iam.view(B, N, -1), dim=-1)
-        _iam = _iam.view(B, N, H, W)
+        _iam = F.softmax(_iam.view(N, -1), dim=-1)
+        _iam = _iam.view(N, H, W)
         iams = _iam.cpu().detach().numpy()
-        self._plot_iam_heads(cfg, masks, iams, save_path, name='softmax')
+        self._plot_iam_heads(cfg, masks, iams, save_path, mode='softmax')
 
 
     def plot_sigmoid_iam_heads(self, cfg, masks, iams, save_path):
         # -----------
         # IAM Sigmoid [Grouped]. 
         iams = iams.clone().sigmoid().cpu().detach().numpy()
-        self._plot_iam_heads(cfg, masks, iams, save_path, name='sigmoid')
+        self._plot_iam_heads(cfg, masks, iams, save_path, mode='sigmoid')
 
 
     def plot_iam_heads(self, cfg, output, save_path):
@@ -161,6 +172,14 @@ class IAMVisualizer(BaseVisualizer):
         
         masks = output[f'pred_{self.inst_type}_masks'].sigmoid().cpu().detach().numpy()
         iams = output['pred_iams'][f'{self.inst_type}_iams']
+        probs = output['pred_logits'].softmax(-1)
+        scores = probs[0, ...].cpu().detach().numpy()
+
+        # -----------
+        # sort.
+        idx = np.argsort(-scores[:, 0])
+        iams = iams[0][idx]
+        masks = masks[0][idx]
         
         self.plot_logits_iam_heads(cfg, masks, iams, save_path)
         self.plot_softmax_iam_heads(cfg, masks, iams, save_path)

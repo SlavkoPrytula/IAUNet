@@ -31,6 +31,8 @@
 
 import time
 import torch
+import einops
+from tqdm import tqdm
 
 # Define the dimensions
 B = 16  # batch size
@@ -48,20 +50,24 @@ bchw = torch.randn(B, C, H, W).to(device)
 
 # Function to test einsum
 def test_einsum():
-    return torch.einsum("bqc,bchw->bqhw", bqc, bchw)
+    # return einops.einsum(bqc, bchw, "b q c, b c h w -> b q h w")
+    
+    return bchw.view(B, C, -1)
 
 # Function to test bmm
 def test_bmm():
-    bchw_flat = bchw.view(B, C, -1)  # Flatten the spatial dimensions
-    result_flat = torch.bmm(bqc, bchw_flat)  # Perform batch matrix multiplication
-    return result_flat.view(B, Q, H, W)  # Reshape back to the original spatial dimensions
+    # bchw_flat = bchw.view(B, C, -1)  # Flatten the spatial dimensions
+    # result_flat = torch.bmm(bqc, bchw_flat)  # Perform batch matrix multiplication
+    # return result_flat.view(B, Q, H, W)  # Reshape back to the original spatial dimensions
+    
+    return bchw.flatten(2)
 
 # Number of iterations
-iterations = 1000
+iterations = 4000
 
 # Test einsum
 einsum_times = []
-for _ in range(iterations):
+for _ in tqdm(range(iterations)):
     start_time = time.time()
     test_einsum()
     torch.cuda.synchronize()  # Ensure all CUDA ops are finished
@@ -70,7 +76,7 @@ for _ in range(iterations):
 
 # Test bmm
 bmm_times = []
-for _ in range(iterations):
+for _ in tqdm(range(iterations)):
     start_time = time.time()
     test_bmm()
     torch.cuda.synchronize()  # Ensure all CUDA ops are finished

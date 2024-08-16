@@ -1,5 +1,6 @@
 from os import makedirs
 from os.path import join
+from typing import Dict
 import wandb
 
 import torch
@@ -7,7 +8,7 @@ from itertools import islice
 from visualizations.coco_vis import save_coco_vis
 from utils.utils import nested_tensor_from_tensor_list
 
-from utils.evaluate.coco_evaluator import Evaluator
+from evaluation.evaluators import BaseEvaluator
 from configs import cfg
 from .base import BaseLoop
 
@@ -22,7 +23,7 @@ class ValidLoop(BaseLoop):
         device, 
         logger, 
         callbacks,
-        evaluators, 
+        evaluators: Dict[str, BaseEvaluator], 
     ):
         super().__init__(
             cfg, 
@@ -69,6 +70,7 @@ class ValidLoop(BaseLoop):
             output = self.model(images.tensors)
             output["img_id"] = [targets[i]["img_id"] for i in range(len(targets))]
             output["ori_shape"] = [targets[i]["ori_shape"] for i in range(len(targets))]
+            output["instance_masks"] = [targets[i]["instance_masks"] for i in range(len(targets))]
 
             # evaluator.
             for evaluator_name in self.evaluators:
@@ -100,31 +102,30 @@ class ValidLoop(BaseLoop):
             evaluator = self.evaluators[evaluator_name]
             evaluator.evaluate(verbose=True)
             stats = evaluator.stats
+            results.update(stats)  
 
-            if evaluator_name in ["valid", "eval"]:
-                results.update(stats)  
-
+            if "coco" in evaluator_name:
                 # TODO: check from cfg
                 if wandb.run is not None:
                     for s in stats:
                         # wandb results.
                         wandb.log({f"metrics/{s}": stats[s]})
 
-            # plot results.
-            gt_coco = evaluator.gt_coco
-            pred_coco = evaluator.pred_coco
+                # plot results.
+                gt_coco = evaluator.gt_coco
+                pred_coco = evaluator.pred_coco
 
-            for batch in islice(self.dataloader, 2):
-                targets = batch[0]
-                
-                img = targets["image"][0]
-                fname = targets["file_name"]
-                idx = targets["coco_id"]
-                H, W = targets["ori_shape"]
-                
-                save_coco_vis(img, gt_coco, pred_coco, idx, shape=[H, W], 
-                            path=f'{self.cfg.run.save_dir}/train_visuals/epoch_{self.epoch}/results/pred_[{evaluator_name}]_[{fname}].jpg')
+                for batch in islice(self.dataloader, 2):
+                    targets = batch[0]
                     
+                    img = targets["image"][0]
+                    fname = targets["file_name"]
+                    idx = targets["coco_id"]
+                    H, W = targets["ori_shape"]
+                    
+                    save_coco_vis(img, gt_coco, pred_coco, idx, shape=[H, W], 
+                                path=f'{self.cfg.run.save_dir}/train_visuals/epoch_{self.epoch}/results/pred_[{evaluator_name}]_[{fname}].jpg')
+                        
 
         # logging results.
         results["loss_valid"] = epoch_loss

@@ -23,16 +23,20 @@ class ResNet(nn.Module):
         assert self.num_stages <= len(self.out_indices)
 
         if depth == 34:
-            model = models.resnet34(pretrained=pretrained)
+            weights = models.ResNet34_Weights.DEFAULT if pretrained else None
+            model = models.resnet34(weights=weights)
             self.embed_dims = [64, 64, 128, 256, 512]
         elif depth == 50:
-            model = models.resnet50(pretrained=pretrained)
+            weights = models.ResNet50_Weights.DEFAULT if pretrained else None
+            model = models.resnet50(weights=weights)
             self.embed_dims = [64, 256, 512, 1024, 2048]
         elif depth == 101:
-            model = models.resnet101(pretrained=pretrained)
+            weights = models.ResNet101_Weights.DEFAULT if pretrained else None
+            model = models.resnet101(weights=weights)
             self.embed_dims = [64, 256, 512, 1024, 2048]
         elif depth == 152:
-            model = models.resnet152(pretrained=pretrained)
+            weights = models.ResNet152_Weights.DEFAULT if pretrained else None
+            model = models.resnet152(weights=weights)
             self.embed_dims = [64, 256, 512, 1024, 2048]
         else:
             raise ValueError(f"Unsupported ResNet depth: {depth}")

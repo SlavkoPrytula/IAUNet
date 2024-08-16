@@ -78,9 +78,16 @@ class IADecoder(BaseDecoder):
         self.instance_head = HEADS.build(cfg.instance_head)
 
         self._init_weights()
+
+
+    def forward(self, skips, ori_shape):
+        results, mask_feats = self._forward(skips, ori_shape)
+        results = self.process_outputs(results, mask_feats, ori_shape)
+
+        return results
     
 
-    def forward(self, skips):
+    def _forward(self, skips, ori_shape):
         x = self.bridge(skips[-1])
         skips = skips[:-1]
 
@@ -114,5 +121,4 @@ class IADecoder(BaseDecoder):
         results = self.instance_head(inst_feats)
         mask_feats = self.projection(mask_feats)
 
-        results = self.process_outputs(results, mask_feats)
-        return results
+        return results, mask_feats

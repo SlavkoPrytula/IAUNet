@@ -3,7 +3,7 @@ import torch
 from configs import cfg
 
 from utils.coco.mask2coco import masks2coco
-from .coco_evaluator import Evaluator
+from ..coco_evaluator import COCOEvaluator
 from utils.utils import nested_tensor_from_tensor_list
 
 from utils.opt.mask_nms import mask_nms
@@ -16,7 +16,7 @@ from utils.common.decorators import timeit_evaluator, memory_evaluator
 @timeit_evaluator
 @memory_evaluator
 @EVALUATORS.register(name="DataloaderEvaluator")
-class DataloaderEvaluator(Evaluator):
+class DataloaderEvaluator(COCOEvaluator):
     # coco_eval
     def __init__(self, cfg: cfg, model=None, **kwargs):
         super(DataloaderEvaluator, self).__init__(cfg, model, **kwargs)

@@ -19,11 +19,22 @@ def trivial_batch_collator(batch):
     return batch
 
 
+# def empty_collate_fn(batch):
+#     """
+#     Empty collate_fn to filter out None items in a batch.
+#     """
+#     batch = [item for item in batch if item is not None]
+#     if not batch: 
+#         return None
+    
+#     return trivial_batch_collator(batch)
+
+
 def empty_collate_fn(batch):
     """
     Empty collate_fn to filter out None items in a batch.
     """
-    batch = [item for item in batch if item is not None]
+    batch = [item for item in batch if item['labels'].shape[0] > 0]
     if not batch: 
         return None
     
@@ -230,7 +241,7 @@ def build_loader(
         torch.utils.data.DataLoader: A data loader for the specified dataset.
     """
     if distributed:
-        sampler = DistributedSampler(dataset)
+        sampler = DistributedSampler(dataset, shuffle=True)
     else:
         sampler = None
 

@@ -1,5 +1,5 @@
 from configs import cfg
-# from engine.trainer import Trainer
+from engine.trainer import BaseTrainer
 
 
 class BaseLoop:
@@ -15,7 +15,7 @@ class BaseLoop:
             evaluators, 
             **kwargs
     ):
-        self.trainer = None
+        self.trainer: BaseTrainer = None
         self.cfg = cfg
         self.model = model
         self.criterion = criterion

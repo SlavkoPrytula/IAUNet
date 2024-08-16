@@ -47,24 +47,24 @@ class BaseCOCODataset(Dataset):
         return self.total_size
 
     def __getitem__(self, idx):
-        image = self.get_image(idx)
-        masks = self.get_mask(idx)
-        labels = self.get_labels(idx)
+        img_id = self.image_ids[idx]
+        img_info = self.coco.loadImgs([img_id])[0]
+        annIds = self.coco.getAnnIds(imgIds=[img_id])
+        anns = self.coco.loadAnns(annIds)
 
-        image = (image - self.mean) / self.std
+        image = self.get_image(img_info)
+        masks, labels = self.load_annotations(anns, img_info)
 
-        if self.transform:
-            data = self.transform(
-                image=image, 
-                mask=masks, 
-                )
-            image = data['image']
-            masks = data['mask']
+        # image = (image - self.mean) / self.std
+
+        # if self.transform:
+        #     data = self.transform(image=image, mask=masks)
+        #     image = data['image']
+        #     masks = data['mask']
 
         # (H, W, M) -> (H, W, N)
-        masks, keep = self.filter_empty_masks(masks, return_idx=True) 
+        # masks, keep = self.filter_empty_masks(masks, return_idx=True) 
         # bboxes = self.masks_to_boxes(masks)
-        # labels = labels[keep]
 
         image = image.transpose((2, 0, 1))
         image = torch.tensor(image, dtype=torch.float32)
@@ -72,9 +72,12 @@ class BaseCOCODataset(Dataset):
         masks = masks.transpose((2, 0, 1))
         masks = torch.tensor(masks, dtype=torch.float32)
 
-        # labels
-        labels = torch.tensor(labels, dtype=torch.int64)
-        labels = labels[keep]
+        # labels = torch.tensor(labels, dtype=torch.int64)
+        # labels = labels[keep]
+        N, _, _ = masks.shape
+        labels = torch.zeros(N, dtype=torch.int64)
+
+        # assert len(masks) == len(labels)
 
         # h, w = image.shape[-2:]
         # bboxes = torch.tensor(bboxes, dtype=torch.float32)
@@ -109,24 +112,51 @@ class BaseCOCODataset(Dataset):
             masks = np.zeros((h, w, 1), dtype=masks.dtype)
         
         return masks
+    
+
+    def load_annotations(self, anns, img_info):
+        h, w = img_info['height'], img_info['width']
+        masks = np.zeros((h, w, len(anns)), dtype=np.uint8)
+        labels = []
+
+        for i, ann in enumerate(anns):
+            mask = self.coco.annToMask(ann)
+            if mask.sum() == 0:  # Skip empty masks
+                continue
+            masks[:, :, i] = mask
+            labels.append(ann['category_id'] - 1)
+
+        labels = np.array(labels)
+        return masks, labels
 
 
-    def get_image(self, img_id):
-        img_id = self.image_ids[img_id]
-        img_info = self.coco.loadImgs([img_id])[0]
+    def get_image(self, img_info):
         img_path = join(self.img_folder, img_info['file_name'])
-        image = cv2.imread(img_path, -1).astype(np.float32)
-
-        # image = Image.open(img_path)
-        # image = np.array(image, dtype=np.float32)
-
+        image = cv2.imread(img_path)
         if image is None:
-            raise FileNotFoundError(f"Image with id {img_id} not found in path: {img_path}")
+            raise FileNotFoundError(f"Image {img_path} not found.")
         
         if len(image.shape) != 3:
             image = np.repeat(image[..., np.newaxis], 3, axis=-1)
 
-        return image
+        return image.astype(np.float32)
+
+    # def get_image(self, img_id):
+    #     img_id = self.image_ids[img_id]
+    #     img_info = self.coco.loadImgs([img_id])[0]
+    #     img_path = join(self.img_folder, img_info['file_name'])
+    #     image = cv2.imread(img_path, -1).astype(np.float32)
+
+    #     # image = Image.open(img_path)
+    #     # image = np.array(image, dtype=np.float32)
+
+    #     if image is None:
+    #         raise FileNotFoundError(f"Image with id {img_id} not found in path: {img_path}")
+        
+    #     if len(image.shape) != 3:
+    #         image = np.repeat(image[..., np.newaxis], 3, axis=-1)
+
+    #     return image
 
 
     def img_infos(self, img_id):
@@ -146,13 +176,13 @@ class BaseCOCODataset(Dataset):
         return metadata
     
 
-    def get_labels(self, img_id: int, cat_id: list=[], iscrowd=None):
-        img_id = self.image_ids[img_id]
-        annIds = self.coco.getAnnIds(imgIds=[img_id], catIds=cat_id, iscrowd=iscrowd)
-        anns = self.coco.loadAnns(annIds)
+    # def get_labels(self, img_id: int, cat_id: list=[], iscrowd=None):
+    #     img_id = self.image_ids[img_id]
+    #     annIds = self.coco.getAnnIds(imgIds=[img_id], catIds=cat_id, iscrowd=iscrowd)
+    #     anns = self.coco.loadAnns(annIds)
 
-        labels = np.array([ann['category_id'] - 1 for ann in anns])
-        return labels
+    #     labels = np.array([ann['category_id'] - 1 for ann in anns])
+    #     return labels
     
 
     def get_bboxes(self, img_id: int, cat_id: list=[0], iscrowd=None):
@@ -220,18 +250,28 @@ class BaseCOCODataset(Dataset):
     
     
     @staticmethod
-    def filter_empty_masks(sample, return_idx=False):
+    def filter_empty_masks(masks, return_idx=False):
         # Compute a mask indicating whether each channel is empty
-        is_empty = np.all(sample == 0, axis=(0, 1))
-        kept_indices = np.where(~is_empty)[0]
+        # is_empty = np.all(sample == 0, axis=(0, 1))
+        # kept_indices = np.where(~is_empty)[0]
 
-        sample = sample[..., kept_indices]
+        # sample = sample[..., kept_indices]
 
-        if sample.shape[-1] == 0:
-            # If all channels were empty, add an all-zero channel
-            sample = np.zeros(sample.shape[:-1] + (1,), dtype=sample.dtype)
+        # if sample.shape[-1] == 0:
+        #     # If all channels were empty, add an all-zero channel
+        #     sample = np.zeros(sample.shape[:-1] + (1,), dtype=sample.dtype)
 
-        if return_idx:
-            return sample, kept_indices
-        else:
-            return sample
+        # if return_idx:
+        #     return sample, kept_indices
+        # else:
+        #     return sample
+
+        kept_indices = np.any(masks, axis=(0, 1))
+        masks = masks[..., kept_indices]
+
+        if masks.shape[-1] == 0:
+            masks = np.zeros(masks.shape[:-1] + (1,), dtype=masks.dtype)
+
+        return masks, kept_indices if return_idx else masks
+
+

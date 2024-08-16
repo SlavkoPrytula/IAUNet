@@ -3,7 +3,7 @@ from os.path import join
 from configs import cfg
 from tqdm import tqdm
 
-from .coco_evaluator import Evaluator
+from .coco_evaluator import COCOEvaluator
 from utils.utils import nested_tensor_from_tensor_list
 from utils.opt.mask_nms import mask_nms
 from utils.registry import EVALUATORS, DATASETS
@@ -15,15 +15,15 @@ from utils.common.decorators import timeit_evaluator, memory_evaluator
 @timeit_evaluator
 @memory_evaluator
 @EVALUATORS.register(name="MMDetDataloaderEvaluator")
-class MMDetDataloaderEvaluator(Evaluator):
+class MMDetDataloaderEvaluator(COCOEvaluator):
     # coco_eval
     def __init__(self, cfg: cfg, model=None, dataset=None, **kwargs):
-        super(MMDetDataloaderEvaluator, self).__init__(cfg, model, **kwargs)
+        super().__init__(cfg, model, **kwargs)
 
         self.dataset = dataset
         outfile_prefix = cfg.model.evaluator.outfile_prefix
         coco_api = cfg.model.evaluator.get("coco_api", None)
-        self.num_classes = cfg.model.instance_head.num_classes
+        self.num_classes = cfg.model.decoder.instance_head.num_classes
 
         print(f"Doing evaluation on dataset.ann_file: {dataset.ann_file}")
 
@@ -163,16 +163,11 @@ class MMDetDataloaderEvaluator(Evaluator):
         # Compute metrics
         size = len(self.dataset)
         eval_results = self.coco_metric.evaluate(size)
-        print()
-        print(f'final metrics from mm: {eval_results}')
-        print()
 
         # Update self.stats based on the mapping
         for key, value in eval_results.items():
             if key in key_mapping:
                 self.stats[key_mapping[key]] = value
-
-        print(self.stats)
 
         self.gt_coco = self.coco_metric._coco_api
         self.pred_coco = self.coco_metric.coco_dt

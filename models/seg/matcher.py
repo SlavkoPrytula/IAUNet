@@ -78,10 +78,10 @@ class HungarianMatcher(nn.Module):
         for b in range(bs):
 
             out_prob = outputs["pred_logits"][b].softmax(-1)  # [num_queries, num_classes]
-            pred_mask = outputs["pred_masks"][b]  # [num_queries, H, W]
+            pred_mask = outputs["pred_instance_masks"][b]  # [num_queries, H, W]
 
             tgt_ids = targets[b]["labels"]
-            tgt_mask = targets[b]["masks"].to(pred_mask)
+            tgt_mask = targets[b]["instance_masks"].to(pred_mask)
 
             # Downsample gt masks to save memory
             tgt_mask = F.interpolate(tgt_mask[:, None], size=pred_mask.shape[-2:], mode="nearest")
@@ -100,19 +100,19 @@ class HungarianMatcher(nn.Module):
                 # Compute the classification cost. Contrary to the loss, we don't use the NLL,
                 # but approximate it in 1 - proba[target class].
                 # The 1 is a constant that doesn't change the matching, it can be ommitted.
-                # cost_class = -out_prob[:, tgt_ids]
+                cost_class = -out_prob[:, tgt_ids]
 
                 # v2 - same as focal loss
                 # Compute the classification cost.
-                alpha = 0.25
-                gamma = 2.0
-                neg_cost_class = (
-                    (1 - alpha) * (out_prob ** gamma) * (-(1 - out_prob + 1e-8).log())
-                )
-                pos_cost_class = (
-                    alpha * ((1 - out_prob) ** gamma) * (-(out_prob + 1e-8).log())
-                )
-                cost_class = pos_cost_class[:, tgt_ids] - neg_cost_class[:, tgt_ids]
+                # alpha = 0.25
+                # gamma = 2.0
+                # neg_cost_class = (
+                #     (1 - alpha) * (out_prob ** gamma) * (-(1 - out_prob + 1e-8).log())
+                # )
+                # pos_cost_class = (
+                #     alpha * ((1 - out_prob) ** gamma) * (-(out_prob + 1e-8).log())
+                # )
+                # cost_class = pos_cost_class[:, tgt_ids] - neg_cost_class[:, tgt_ids]
 
 
                 # Compute the focal loss between masks
@@ -133,7 +133,7 @@ class HungarianMatcher(nn.Module):
                 )
             
             C = C.reshape(num_queries, -1).cpu()
-            C = torch.nan_to_num(C, nan=0, posinf=0, neginf=0)
+            C = torch.nan_to_num(C, nan=0)
             indices.append(linear_sum_assignment(C))
 
         return [
@@ -245,6 +245,7 @@ class PointSampleHungarianMatcher(nn.Module):
             pred_mask = pred_mask[:, None]
             tgt_mask = tgt_mask[:, None]
 
+            # tgt_mask = F.interpolate(tgt_mask, size=pred_mask.shape[-2:], mode="nearest")
 
             # bboxes.
             # out_bbox = outputs["pred_bboxes"][b]
@@ -256,7 +257,7 @@ class PointSampleHungarianMatcher(nn.Module):
 
             # all masks share the same set of points for efficient matching!
             point_coords = torch.rand(1, self.num_points, 2, device=pred_mask.device)
-            # get gt labels
+            
             tgt_mask = point_sample(
                 tgt_mask,
                 point_coords.repeat(tgt_mask.shape[0], 1, 1),
@@ -270,7 +271,6 @@ class PointSampleHungarianMatcher(nn.Module):
             ).squeeze(1)
             # tgt_mask = tgt_mask.flatten(1)
             # pred_mask = pred_mask.flatten(1)
-
 
             # iams.
             # pred_iams = outputs["pred_iams"]["instance_iams"][b]
@@ -304,7 +304,7 @@ class PointSampleHungarianMatcher(nn.Module):
             )
             C = C.reshape(num_queries, -1).cpu()
             # quick fix.
-            # C = torch.nan_to_num(C, nan=0)
+            C = torch.nan_to_num(C, nan=0)
 
             indices.append(linear_sum_assignment(C))
 

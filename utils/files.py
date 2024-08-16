@@ -49,7 +49,7 @@ def _copy_folder(src, dst, base_src_dir=None, ignore=None):
     os.makedirs(os.path.dirname(dst_file_path), exist_ok=True)
     
     if os.path.isdir(src):
-        shutil.copytree(src, dst_file_path)
+        shutil.copytree(src, dst_file_path, dirs_exist_ok=True)
     elif os.path.isfile(src):
         shutil.copy2(src, dst_file_path)
     else:

@@ -3,6 +3,7 @@ from torch import nn
 from torch.nn import functional as F
 from fvcore.nn.weight_init import c2_msra_fill
 from torch.nn import init
+from functools import wraps
 
 from abc import ABC, abstractmethod
 
@@ -12,10 +13,11 @@ sys.path.append("./")
 from ..heads.instance_head import InstanceBranch
 from ..heads.mask_head import MaskBranch
 
-from ..nn.blocks import (DoubleConv, DoubleConv_v1)
+from ..nn.blocks import (DoubleConv, DoubleConv_v1, DoubleConv_v2)
 
 from configs.structure import Decoder
 from utils.registry import HEADS
+
 
 
 class BaseDecoder(nn.Module, ABC):
@@ -37,7 +39,7 @@ class BaseDecoder(nn.Module, ABC):
 
         self.up_conv_layers = nn.ModuleList([])
         for i in range(self.n_levels):
-            in_channels = embed_dims[i] * 2 + 2
+            in_channels = embed_dims[i] * 2 #+ 2
 
             if i != self.n_levels - 1:
                 out_channels = embed_dims[i+1]
@@ -166,3 +168,25 @@ class BaseDecoder(nn.Module, ABC):
         }
     
         return output
+
+
+# 08/13 10:29:07 - iaunet - INFO - Avg. Batch Time: 0.0572s
+# 08/13 10:29:07 - iaunet - INFO - Avg. Forward Time: 1.9059s
+# 08/13 10:29:07 - iaunet - INFO - Avg. Loss Time: 0.2510s
+# 08/13 10:29:07 - iaunet - INFO - Avg. Backward Time: 0.3752s
+# 08/13 10:29:07 - iaunet - INFO - Avg. Total Time: 2.3383s
+# 08/13 10:29:07 - iaunet - INFO - Epoch Time: 605.0145s
+
+# 08/13 12:44:47 - iaunet - INFO - Avg. Batch Time: 0.0608s
+# 08/13 12:44:47 - iaunet - INFO - Avg. Forward Time: 1.9326s
+# 08/13 12:44:47 - iaunet - INFO - Avg. Loss Time: 0.1820s
+# 08/13 12:44:47 - iaunet - INFO - Avg. Backward Time: 0.2686s
+# 08/13 12:44:47 - iaunet - INFO - Avg. Total Time: 2.2620s
+# 08/13 12:44:47 - iaunet - INFO - Epoch Time: 621.5210s
+
+# 08/13 13:57:54 - iaunet - INFO - Avg. Batch Time: 0.1990s
+# 08/13 13:57:54 - iaunet - INFO - Avg. Forward Time: 3.5797s
+# 08/13 13:57:54 - iaunet - INFO - Avg. Loss Time: 0.4774s
+# 08/13 13:57:54 - iaunet - INFO - Avg. Backward Time: 0.5146s
+# 08/13 13:57:54 - iaunet - INFO - Avg. Total Time: 4.2932s
+# 08/13 13:57:54 - iaunet - INFO - Epoch Time: 545.6076s

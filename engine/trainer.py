@@ -2,6 +2,7 @@ import time
 import torch
 from torch.nn.parallel import DistributedDataParallel as DDP
 from utils.rank_zero import rank_zero_only
+from tools.get_flops import get_flops
 from configs import cfg
 
 from .base import BaseTrainer
@@ -22,7 +23,8 @@ class Trainer(BaseTrainer):
             callbacks, 
             logger, 
             rank, 
-            strategy
+            strategy,
+            sync_batchnorm
     ) -> None:
         super().__init__(
             cfg, 
@@ -36,38 +38,44 @@ class Trainer(BaseTrainer):
             callbacks, 
             logger, 
             rank, 
-            strategy
+            strategy,
+            sync_batchnorm
         )
 
+        self.model.to(self.device)
+        if self.strategy == 'ddp':
+            if self.sync_batchnorm:
+                self.model = torch.nn.SyncBatchNorm.convert_sync_batchnorm(self.model)
+            self.model = DDP(self.model, device_ids=[self.rank])
+
+        # TODO: ProfileModelCallback - on_init
+        get_flops(model, device=self.device)
+
         self.train_loop = TrainLoop(
-            cfg=cfg,
-            model=model,
-            criterion=criterion,
-            optimizer=optimizer,
-            scheduler=scheduler,
-            dataloader=train_dataloader,
+            cfg=self.cfg,
+            model=self.model,
+            criterion=self.criterion,
+            optimizer=self.optimizer,
+            scheduler=self.scheduler,
+            dataloader=self.train_dataloader,
             device=self.device,
-            logger=logger,
-            evaluators=evaluators,
-            callbacks=callbacks,
+            logger=self.logger,
+            evaluators=self.evaluators,
+            callbacks=self.callbacks,
         )
         self.train_loop.trainer = self
 
         self.valid_loop = ValidLoop(
-            cfg=cfg,
-            model=model,
-            criterion=criterion,
-            dataloader=valid_dataloader,
+            cfg=self.cfg,
+            model=self.model,
+            criterion=self.criterion,
+            dataloader=self.valid_dataloader,
             device=self.device,
-            logger=logger,
-            evaluators=evaluators,
-            callbacks=callbacks,
+            logger=self.logger,
+            evaluators=self.evaluators,
+            callbacks=self.callbacks,
         )
         self.valid_loop.trainer = self
-
-        self.model.to(self.device)
-        if self.strategy == 'ddp':
-            self.model = DDP(self.model, device_ids=[self.rank])
 
 
     def train(self):
@@ -83,8 +91,7 @@ class Trainer(BaseTrainer):
                 results_valid = self.valid_loop.run()
                 self._update_results(results_train, results_valid)
 
-        # saving last checkpoint.
-        if self.cfg.model.save_checkpoint:
+            # saving last checkpoint.
             self.save_checkpoint(self.cfg.run.save_dir / 'checkpoints/last.pth')
 
         end = time.time()
@@ -104,9 +111,8 @@ class Trainer(BaseTrainer):
             self.best_loss = val_loss
             
             # saving best model.
-            if self.cfg.model.save_checkpoint:
-                self.save_checkpoint(self.cfg.run.save_dir / 'checkpoints/best.pth')
-                print()
+            self.save_checkpoint(self.cfg.run.save_dir / 'checkpoints/best.pth')
+            print()
 
         metrics = ['epoch'] + list(results.keys())
         vals = [self.current_epoch] + list(results.values())
@@ -114,8 +120,6 @@ class Trainer(BaseTrainer):
 
     @rank_zero_only
     def _save_results_csv(self, metrics, vals):
-        print(metrics)
-        print(vals)
         csv_path = self.cfg.run.save_dir / 'results.csv'
         s = '' if csv_path.exists() else (('%13s,' * (len(metrics)) % tuple(metrics)).rstrip(',') + '\n')  # header
         with open(csv_path, 'a') as f:
@@ -123,6 +127,9 @@ class Trainer(BaseTrainer):
 
     @rank_zero_only
     def save_checkpoint(self, filepath):
+        if not self.cfg.model.save_checkpoint:
+            return 
+        
         if self.strategy == 'ddp':
             torch.save(self.model.module.state_dict(), filepath)
         else:

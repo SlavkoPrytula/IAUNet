@@ -14,9 +14,10 @@ from utils.registry import HEADS
 class MaskBranch(nn.Module):
     def __init__(self, in_channels, out_channels=256, num_convs=4):
         super().__init__()
+        layers = [DoubleConv_v1(in_channels if i == 0 else out_channels, out_channels) 
+                  for i in range(num_convs)]
         self.mask_convs = nn.Sequential(
-            DoubleConv_v1(in_channels, out_channels), 
-            DoubleConv_v1(out_channels, out_channels), 
+            *layers,
             nn.Conv2d(out_channels, out_channels, 3, padding=1),
             nn.BatchNorm2d(out_channels),
             nn.ReLU(inplace=True)
