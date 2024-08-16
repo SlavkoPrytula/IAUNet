@@ -1,8 +1,10 @@
 import wandb
+from typing import Dict
 
 from torch.cuda import amp
 from utils.utils import nested_tensor_from_tensor_list
-from utils.evaluate.coco_evaluator import Evaluator
+
+from evaluation.evaluators import BaseEvaluator
 from configs import cfg
 from .base import BaseLoop
 
@@ -19,7 +21,7 @@ class TrainLoop(BaseLoop):
         device, 
         callbacks,
         logger,
-        evaluators, 
+        evaluators: Dict[str, BaseEvaluator], 
     ):
         super().__init__(
             cfg, 

@@ -2,7 +2,7 @@
 #SBATCH --partition=gpu
 #SBATCH --gres=gpu:a100-40g
 #SBATCH --time=64:00:00
-#SBATCH --mem=96GB
+#SBATCH --mem=64GB
 #SBATCH --exclude=falcon3
 #SBATCH --cpus-per-task=8
 

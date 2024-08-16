@@ -40,7 +40,7 @@ class InstanceHead(nn.Module):
         self.activation = activation
         self.scale_factor = 1
 
-        self.num_layers = 4
+        self.num_layers = 1
         hidden_dim = self.dim * self.num_groups
         
         # iam.

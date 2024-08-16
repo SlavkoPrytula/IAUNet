@@ -16,7 +16,6 @@ from dataset.dataloaders import (build_loader,
                                  trivial_batch_collator, 
                                  worker_init_fn)
 from utils.augmentations import train_transforms, valid_transforms
-from utils.augmentations import normalize
 
 from utils.seed import set_seed
 from utils.dist.comm import setup, cleanup
@@ -26,11 +25,10 @@ import torch.multiprocessing as mp
 
 from utils.optimizers import *
 from utils.schedulers import *
-from utils.evaluate import *
+from utils.callbacks import *
+from evaluation import *
 from models.seg.loss import *
 from models.seg.matcher import *
-
-from utils.callbacks import *
 
 from utils.registry import build_from_cfg, build_criterion, build_matcher, build_optimizer, build_scheduler
 from utils.registry import DATASETS, OPTIMIZERS, SCHEDULERS, CRITERIONS, EVALUATORS, CALLBACKS
@@ -140,8 +138,10 @@ def run(rank: int = 0, world_size: int = 1, cfg: cfg = None):
     # the evaluation should have information about the dataset
     # evaluator = EVALUATORS.get(cfg.model.evaluator.type)(cfg=cfg.model.evaluator)
     # potentially with this you can add multiple datasets.
+    from evaluation import OverlapIOUEvaluator
     evaluators = {
-        "valid": EVALUATORS.get(cfg.model.evaluator.type)(cfg=cfg, model=model, dataset=valid_dataset)
+        "valid_coco": EVALUATORS.get(cfg.model.evaluator.type)(cfg=cfg, model=model, dataset=valid_dataset),
+        "overlap_iou": OverlapIOUEvaluator(cfg=cfg, model=model, dataset=valid_dataset)
     }
 
     # setup callbacks.

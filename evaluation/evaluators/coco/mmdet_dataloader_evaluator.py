@@ -3,7 +3,7 @@ from os.path import join
 from configs import cfg
 from tqdm import tqdm
 
-from .coco_evaluator import Evaluator
+from .coco_evaluator import COCOEvaluator
 from utils.utils import nested_tensor_from_tensor_list
 from utils.opt.mask_nms import mask_nms
 from utils.registry import EVALUATORS, DATASETS
@@ -15,10 +15,10 @@ from utils.common.decorators import timeit_evaluator, memory_evaluator
 @timeit_evaluator
 @memory_evaluator
 @EVALUATORS.register(name="MMDetDataloaderEvaluator")
-class MMDetDataloaderEvaluator(Evaluator):
+class MMDetDataloaderEvaluator(COCOEvaluator):
     # coco_eval
     def __init__(self, cfg: cfg, model=None, dataset=None, **kwargs):
-        super(MMDetDataloaderEvaluator, self).__init__(cfg, model, **kwargs)
+        super().__init__(cfg, model, **kwargs)
 
         self.dataset = dataset
         outfile_prefix = cfg.model.evaluator.outfile_prefix

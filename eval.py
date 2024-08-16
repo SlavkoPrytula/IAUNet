@@ -7,21 +7,17 @@ import argparse
 from itertools import islice
 import json
 
-
 import hydra
 from omegaconf import OmegaConf
 from configs import cfg, experiment_name
-
 
 from configs import cfg as _cfg
 from models.build_model import build_model
 from utils.seed import set_seed
 from utils.logging import setup_logger
-
 from utils.augmentations import train_transforms, valid_transforms
-from utils.augmentations import normalize
 
-from utils.evaluate import *
+from evaluation import *
 from utils.optimizers import *
 from utils.schedulers import *
 from models.seg.loss import *

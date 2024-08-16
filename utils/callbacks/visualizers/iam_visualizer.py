@@ -71,13 +71,14 @@ class IAMVisualizer(BaseVisualizer):
         iams = output['pred_iams'][f'{self.inst_type}_iams']
 
         probs = output['pred_logits'].softmax(-1)
-        scores = probs[0, :, 0].cpu().detach().numpy()
+        scores = probs[0, ...].cpu().detach().numpy()
+        scores = np.round(scores, 3)
         titles = [', '.join([f"({class_idx}, {score:.2f})" for class_idx, score in 
                              zip(range(scores.shape[1]), score)]) for score in scores]
 
         # -----------
         # sort.
-        idx = np.argsort(-scores)
+        idx = np.argsort(-scores[:, 0])
         iams = iams[0][idx]
         titles = [titles[i] for i in idx]
 
