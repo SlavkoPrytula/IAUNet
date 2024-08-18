@@ -9,9 +9,34 @@ model:
   num_classes: 1
   n_levels: 4
 
+  # model params.
   encoder: null
-  decoder: null
+  decoder: 
+    type: iadecoder
+    num_convs: 2
+    coord_conv: True
+    multi_level: True # depr
+    last_layer_only: False
 
+    mask_branch:
+      type: MaskStackedConv # MaskDoubleConv, MaskStackedConv
+      dim: 256
+
+    instance_branch:
+      type: InstStackedConv # InstDoubleConv, InstStackedConv
+      dim: 256
+
+    instance_head: 
+      type: InstanceHead-v1.1
+      # type: InstanceHead-v2.0-attn
+      in_channels: 256
+      num_classes: 1
+      kernel_dim: 256
+      num_masks: 100
+      num_groups: 1
+      activation: softmax
+
+  # model loading and saving.
   load_pretrained: false
   weights: ''
   # TODO: to callbacks
@@ -20,6 +45,7 @@ model:
   load_from_files: false
   model_files: ''
 
+  # model training params.
   optimizer:
     type: AdamW
     lr: 0.0001

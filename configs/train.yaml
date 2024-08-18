@@ -6,8 +6,6 @@ defaults:
 
   - model: model/iaunet/iaunet
   - model/encoder: resnet/resnet_50
-  - model/decoder: iadecoder
-  - model/head/instance_head: instance_head # ??? this is dumb
 
   - logger: log
   - trainer: ddp
@@ -23,3 +21,7 @@ test: True
 seed: 3407
 job_id: null
 run_id: null
+
+
+# the model folder should have a .yaml config file per model variation
+# hydra allows to change the config on runtime if needed

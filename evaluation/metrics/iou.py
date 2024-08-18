@@ -1,4 +1,5 @@
 import numpy as np
+import torch
 from torch import Tensor
 from typing import Optional, Union, List, Any, Sequence
 
@@ -30,12 +31,18 @@ class IOUMetric(BaseMetric):
             all_iou_scores.extend(result["iou_score"])
 
         mean_iou = np.mean(all_iou_scores)
+        mean_iou = round(mean_iou, 3)
         return {"mean_IoU": mean_iou}
 
     @staticmethod
     def compute_iou(pred_masks, gt_masks):
         intersection = (pred_masks * gt_masks).sum(-1)
         union = pred_masks.sum(-1) + gt_masks.sum(-1) - intersection
+
+        # fix: perfect match when both gt and pred are empty.
+        if union == 0 and intersection == 0:
+            return torch.tensor([1.0])
+    
         score = intersection / (union + 1e-6)
 
         return score

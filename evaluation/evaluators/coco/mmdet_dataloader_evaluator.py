@@ -27,7 +27,7 @@ class MMDetDataloaderEvaluator(COCOEvaluator):
 
         print(f"Doing evaluation on dataset.ann_file: {dataset.ann_file}")
 
-        self.coco_metric = CocoMetric(
+        self.metric = CocoMetric(
             ann_file=dataset.ann_file,
             metric=cfg.model.evaluator.metric,
             classwise=cfg.model.evaluator.classwise,
@@ -35,9 +35,9 @@ class MMDetDataloaderEvaluator(COCOEvaluator):
             coco_api=coco_api if coco_api else 'COCOeval'
             )
 
-        categories = self.coco_metric._coco_api.loadCats(self.coco_metric._coco_api.getCatIds())
+        categories = self.metric._coco_api.loadCats(self.metric._coco_api.getCatIds())
         class_names = [category['name'] for category in categories]
-        self.coco_metric.dataset_meta = dict(classes=class_names)
+        self.metric.dataset_meta = dict(classes=class_names)
 
         self.nms_threshold = cfg.model.evaluator.nms_thr
 
@@ -147,7 +147,7 @@ class MMDetDataloaderEvaluator(COCOEvaluator):
             }
 
             data_samples = [results]
-            self.coco_metric.process({}, data_samples)
+            self.metric.process({}, data_samples)
         
 
     def evaluate(self, verbose=False):
@@ -162,12 +162,12 @@ class MMDetDataloaderEvaluator(COCOEvaluator):
 
         # Compute metrics
         size = len(self.dataset)
-        eval_results = self.coco_metric.evaluate(size)
+        eval_results = self.metric.evaluate(size)
 
         # Update self.stats based on the mapping
         for key, value in eval_results.items():
             if key in key_mapping:
                 self.stats[key_mapping[key]] = value
 
-        self.gt_coco = self.coco_metric._coco_api
-        self.pred_coco = self.coco_metric.coco_dt
+        self.gt_coco = self.metric._coco_api
+        self.pred_coco = self.metric.coco_dt
