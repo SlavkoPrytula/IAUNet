@@ -4,7 +4,7 @@ defaults:
  - _self_
 
 model:
-  type: iaunet
+  type: resnet_iaunet_multitask_ml
   in_channels: 3
   num_classes: 1
   n_levels: 4
@@ -12,7 +12,7 @@ model:
   # model params.
   encoder: null
   decoder: 
-    type: iadecoder
+    type: truncated_decoder-iadecoder_ml
     num_convs: 2
     coord_conv: True
     multi_level: True # depr
@@ -27,8 +27,10 @@ model:
       dim: 256
 
     instance_head: 
-      type: InstanceHead-v1.1
+      # type: InstanceHead-v1.1
       # type: InstanceHead-v2.0-attn
+      # type: InstanceHead-v2.1-attn
+      type: InstanceHead-v2.2-two-way-attn
       in_channels: 256
       num_classes: 1
       kernel_dim: 256

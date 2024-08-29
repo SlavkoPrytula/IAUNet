@@ -35,8 +35,8 @@ class ValidLoop(BaseLoop):
             callbacks,
             evaluators
         )
-        self.evaluators = evaluators
-        self.total_steps = len(self.dataloader)
+        self.evaluators = evaluators.get('valid')
+
 
     @torch.no_grad()
     def run(self):

@@ -25,6 +25,8 @@ class BaseLoop:
         self.callbacks = callbacks
         self.evaluators = evaluators
 
+        self.total_steps = len(self.dataloader) if self.dataloader else None
+
         for key, value in kwargs.items():
             setattr(self, key, value)
 

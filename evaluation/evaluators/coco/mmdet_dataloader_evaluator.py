@@ -115,7 +115,7 @@ class MMDetDataloaderEvaluator(COCOEvaluator):
             # ========== NMS ==========
             # pre_nms sort.
             sort_inds = torch.argsort(scores, descending=True)
-            masks_pred = masks_pred[sort_inds, :, :]
+            masks_pred = masks_pred[sort_inds]
             scores = scores[sort_inds]
             labels = labels[sort_inds]
             iou_scores = iou_scores[sort_inds]
@@ -126,7 +126,7 @@ class MMDetDataloaderEvaluator(COCOEvaluator):
             sum_masks = seg_masks.sum((1, 2)).float()
             
             keep = mask_nms(labels, seg_masks, sum_masks, scores, nms_thr=self.nms_threshold)
-            masks_pred = masks_pred[keep, :, :]
+            masks_pred = masks_pred[keep]
             scores = scores[keep]
             labels = labels[keep]
             iou_scores = iou_scores[keep]

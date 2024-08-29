@@ -142,11 +142,13 @@ class BaseDecoder(nn.Module, ABC):
     def forward(skips, ori_shape):
         ...
 
-    def process_outputs(self, results, mask_feats, ori_shape):
+    def process_outputs(self, results, ori_shape):
         logits = results["logits"]
         scores = results["objectness_scores"]
         inst_kernel = results["kernels"]["instance_kernel"]
         bboxes = results["bboxes"]['instance_bboxes']
+        mask_feats = results["mask_feats"]
+        inst_feats = results["inst_feats"]
         
         # instance masks.
         N = inst_kernel.shape[1]
@@ -165,6 +167,10 @@ class BaseDecoder(nn.Module, ABC):
             'pred_iams': results['iams'],
             'pred_instance_masks': inst_masks,
             'pred_bboxes': bboxes,
+            'pred_instance_feats': {
+                "mask_feats": mask_feats,
+                "inst_feats": inst_feats
+            }
         }
     
         return output

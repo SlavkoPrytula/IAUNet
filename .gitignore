@@ -5,6 +5,8 @@ visuals/*
 runs/*
 outputs/*
 
+tools/analysis/outputs
+
 *.jpg
 *.png
 test.py

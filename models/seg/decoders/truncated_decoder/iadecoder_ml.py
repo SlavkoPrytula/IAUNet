@@ -4,16 +4,16 @@ from torch import nn
 import sys
 sys.path.append("./")
 
-from models.seg.decoders.base import BaseDecoder
+from models.seg.decoders.truncated_decoder.iadecoder import IADecoder as BaseDecoder
 from configs.structure import Decoder
-from utils.registry import HEADS, DECODERS
+from utils.registry import DECODERS, HEADS
 
 
-@DECODERS.register(name='iadecoder_ml')
+@DECODERS.register(name='truncated_decoder-iadecoder_ml')
 class IADecoder(BaseDecoder):
     def __init__(self, cfg: Decoder, embed_dims: list = [], n_levels: int = 4):
         super().__init__(cfg, embed_dims, n_levels)
-
+        
         # instance head.
         self.instance_head = nn.ModuleList([])
         for i in range(self.n_levels):
@@ -28,24 +28,19 @@ class IADecoder(BaseDecoder):
         results = self.process_outputs(results, ori_shape)
 
         return results
-
     
+
     def _forward(self, skips, ori_shape):
-        x = skips[-1]
-        for i in skips:
-            print(i.shape)
+        x = self.bridge(skips[-1])
+        skips = skips[:-1]
 
         # go up
-        for i in range(self.n_levels):
-            if i != 0:
-                x = nn.UpsamplingBilinear2d(scale_factor=2)(x)
-
+        for i in range(self.n_levels-1):
+            x = nn.UpsamplingBilinear2d(scale_factor=2)(x)
             x = torch.cat([x, skips[-(i + 1)]], dim=1)
             x = self.up_conv_layers[i](x)
 
             
-            # multi-level
-            # if self.multi_level:
             if i != 0:
                 mask_feats = nn.UpsamplingBilinear2d(scale_factor=2)(mask_feats)
                 mask_feats = torch.cat([x, mask_feats], dim=1)
@@ -81,6 +76,3 @@ class IADecoder(BaseDecoder):
         results["inst_feats"] = inst_feats
 
         return results
-
-
-        

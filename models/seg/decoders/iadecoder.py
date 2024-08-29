@@ -17,8 +17,8 @@ class IADecoder(BaseDecoder):
 
 
     def forward(self, skips, ori_shape):
-        results, mask_feats = self._forward(skips, ori_shape)
-        results = self.process_outputs(results, mask_feats, ori_shape)
+        results = self._forward(skips, ori_shape)
+        results = self.process_outputs(results, ori_shape)
 
         return results
     
@@ -65,5 +65,7 @@ class IADecoder(BaseDecoder):
         # out layer.
         results = self.instance_head(inst_feats)
         mask_feats = self.projection(mask_feats)
+        results["mask_feats"] = mask_feats
+        results["inst_feats"] = inst_feats
 
-        return results, mask_feats
+        return results

@@ -9,7 +9,7 @@ from fvcore.nn.weight_init import c2_msra_fill, c2_xavier_fill
 import sys
 sys.path.append('.')
 
-from .iam import (IAM, AttentionIAM)
+from .iam import (IAM)
 from ..common import _make_stack_3x3_convs
 from models.seg.nn.blocks import (DoubleConv_v1, DoubleConv_v3_1)
 from models.seg.nn.blocks import MLP

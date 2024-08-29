@@ -6,7 +6,7 @@ from tools.get_flops import get_flops
 from configs import cfg
 
 from .base import BaseTrainer
-from .loops import TrainLoop, ValidLoop
+from .loops import TrainLoop, ValidLoop, EvalLoop
 
 
 class Trainer(BaseTrainer):
@@ -19,6 +19,7 @@ class Trainer(BaseTrainer):
             scheduler, 
             train_dataloader, 
             valid_dataloader, 
+            eval_dataloader,
             evaluators, 
             callbacks, 
             logger, 
@@ -34,6 +35,7 @@ class Trainer(BaseTrainer):
             scheduler, 
             train_dataloader, 
             valid_dataloader, 
+            eval_dataloader,
             evaluators, 
             callbacks, 
             logger, 
@@ -77,6 +79,18 @@ class Trainer(BaseTrainer):
         )
         self.valid_loop.trainer = self
 
+        self.eval_loop = EvalLoop(
+            cfg=self.cfg,
+            model=self.model,
+            criterion=self.criterion,
+            dataloader=self.eval_dataloader,
+            device=self.device,
+            logger=self.logger,
+            evaluators=self.evaluators,
+            callbacks=self.callbacks,
+        )
+        self.eval_loop.trainer = self
+
 
     def train(self):
         start = time.time()
@@ -84,11 +98,11 @@ class Trainer(BaseTrainer):
         for epoch in range(self.max_epochs):
             self.logger.info(f'Epoch {epoch}/{self.max_epochs}')
             self.current_epoch = epoch
-
             results_train = self.train_loop.run()
             
             if epoch % self.check_val_every_n_epoch == 0:
                 results_valid = self.valid_loop.run()
+                results_eval = self.eval_loop.run()
                 self._update_results(results_train, results_valid)
 
             # saving last checkpoint.
@@ -98,6 +112,18 @@ class Trainer(BaseTrainer):
         time_elapsed = end - start
         self.logger.info('Training complete in {:.0f}h {:.0f}m {:.0f}s'.format(
             time_elapsed // 3600, (time_elapsed % 3600) // 60, (time_elapsed % 3600) % 60))
+        
+
+    def test(self):
+        model = self.get_model('best')
+        model.to(self.device)
+
+        if self.strategy == 'ddp':
+            model = DDP(model, device_ids=[self.rank])
+
+        self.logger.info("Evaluating the best model...")
+        self.eval_loop.model = model
+        self.eval_loop.run()
 
 
     def _update_results(self, train_results, valid_results):
@@ -134,3 +160,19 @@ class Trainer(BaseTrainer):
             torch.save(self.model.module.state_dict(), filepath)
         else:
             torch.save(self.model.state_dict(), filepath)
+
+    def get_model(self, model_type='best'):
+        from models import load_weights
+
+        if model_type == 'best':
+            checkpoint_path = self.cfg.run.save_dir / 'checkpoints/best.pth'
+        elif model_type == 'latest':
+            checkpoint_path = self.cfg.run.save_dir / 'checkpoints/last.pth'
+        else:
+            raise ValueError(f"Unknown model type '{model_type}'")
+
+        print(f'Loading "{model_type}" weights from {checkpoint_path}...')
+        model = self.model.__class__(self.cfg)
+        model = load_weights(model, checkpoint_path)
+        
+        return model

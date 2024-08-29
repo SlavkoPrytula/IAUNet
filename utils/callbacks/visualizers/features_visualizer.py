@@ -1,0 +1,56 @@
+import sys
+sys.path.append("./")
+
+from utils.visualise import visualize
+from .base_visualizer import BaseVisualizer
+from utils.registry import CALLBACKS
+
+
+@CALLBACKS.register(name="FeaturesVisualizer")
+class FeaturesVisualizer(BaseVisualizer):
+    def __init__(self, inst_type, **kwargs):
+        super().__init__(**kwargs)
+        self.inst_type = inst_type
+        
+    def plot(self, cfg, output, save_path):
+        self.plot_preds(cfg, output, save_path)
+        self.plot_aux_preds(cfg, output, save_path)
+
+
+    def _plot_feats(self, output, save_path, type='mask_feats'):
+        if not type in output[f'pred_{self.inst_type}_feats']:
+            return 
+        
+        vis_pred_feats = output[f'pred_{self.inst_type}_feats'][type].cpu().detach().numpy()
+        vis_pred_feats = vis_pred_feats[0]
+
+        visualize(
+            figsize=[15, 5],
+            mask_feats1=vis_pred_feats[0], 
+            mask_feats2=vis_pred_feats[1], 
+            mask_feats3=vis_pred_feats[2], 
+            mask_feats4=vis_pred_feats[3], 
+            show_title=False,
+            path=f'{save_path}/{self.inst_type}/{type}.jpg'
+        )
+        
+
+    def _plot_preds(self, output, save_path):
+        if not f'pred_{self.inst_type}_feats' in output:
+            return 
+
+        self._plot_feats(output, save_path, type='mask_feats')
+        self._plot_feats(output, save_path, type='inst_feats')
+        
+        
+    def plot_preds(self, cfg, output, save_path):
+        self._plot_preds(output, save_path=save_path)
+
+    def plot_aux_preds(self, cfg, output, save_path):
+        # Aux Pred Masks.
+        if "aux_outputs" in output:
+            for i, aux_outputs in enumerate(output['aux_outputs']):
+                self._plot_preds(aux_outputs, save_path=f"{save_path}/aux_outputs")
+
+
+
