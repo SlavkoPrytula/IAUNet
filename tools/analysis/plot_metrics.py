@@ -18,14 +18,16 @@ def plot_metrics(csv_dict, metric_name, xlabel='Epochs', ylabel='Metric Value'):
         df = preprocess_columns(df)
 
         if metric_name in df.columns:
-            plt.plot(df['epoch'], df[metric_name], linewidth=4,
+            # Apply rolling average
+            rolling_metric = df[metric_name].rolling(window=1, min_periods=1).mean()
+            plt.plot(df['epoch'], rolling_metric, linewidth=4,
                      label=name, color=colors[idx % len(colors)])
         else:
             print(f"Metric '{metric_name}' not found in {path}.")
     
     plt.xlabel(xlabel)
     plt.ylabel(ylabel)
-    # plt.ylim([0.6, 0.9])
+    plt.ylim([0.6, 0.9])
     plt.title(f'{metric_name}')
     plt.grid(True, which='both', linestyle='--', alpha=0.5)
     plt.legend(loc='best')
@@ -34,9 +36,9 @@ def plot_metrics(csv_dict, metric_name, xlabel='Epochs', ylabel='Metric Value'):
 
 
 csv_dict = {
-    'Run 1': "runs/[resnet_iaunet_multitask]/[truncated_decoder-iadecoder_ml]/[ResNet]/[LiveCellCrop]/[softmax_iam]/[kernel_dim=256]-[multi_level=True]-[coord_conv=True]-[losses=['labels', 'masks']]/[InstanceHead-v1.1]/[job=51958106]-[2024-08-27 00:14:43]/results.csv",
-    'Run 2': "runs/[resnet_iaunet_multitask]/[truncated_decoder-iadecoder_ml]/[ResNet]/[LiveCellCrop]/[softmax_iam]/[kernel_dim=256]-[multi_level=True]-[coord_conv=True]-[losses=['labels', 'masks']]/[InstanceHead-v1.1]/[job=51959650]-[2024-08-27 15:00:50]/results.csv",
-    'Run 3': "runs/[resnet_iaunet_multitask_ml]/[truncated_decoder-iadecoder_ml]/[ResNet]/[LiveCellCrop]/[softmax_iam]/[kernel_dim=256]-[multi_level=True]-[coord_conv=True]-[losses=['labels', 'masks']]/[InstanceHead-v2.2-two-way-attn]/[job=51967871]-[2024-08-28 10:13:47]/results.csv"
+    'Run 1': "runs/[resnet_iaunet_multitask]/[truncated_decoder-iadecoder_ml]/[ResNet]/[LiveCellCrop]/[softmax_iam]/[kernel_dim=256]-[multi_level=True]-[coord_conv=True]-[losses=['labels', 'masks']]/[InstanceHead-v1.1]/[job=51958106]-[2024-08-27 00:14:43]/results.csv", 
+    'Run 3': "runs/[resnet_iaunet_multitask_ml]/[truncated_decoder-iadecoder_ml]/[ResNet]/[LiveCellCrop]/[softmax_iam]/[kernel_dim=256]-[multi_level=True]-[coord_conv=True]-[losses=['labels', 'masks']]/[InstanceHead-v2.2-two-way-attn]/[job=51973059]-[2024-08-30 02:25:55]/results.csv", 
+    'Run 4': "runs/[resnet_iaunet_multitask_ml]/[truncated_decoder-iadecoder_ml]/[ResNet]/[LiveCellCrop]/[softmax_iam]/[kernel_dim=256]-[multi_level=True]-[coord_conv=True]-[losses=['labels', 'masks']]/[InstanceHead-v2.2.1-dual-update]/[job=51978235]-[2024-08-31 21:43:39]/results.csv", 
 }
 
 plot_metrics(csv_dict, 'loss_valid')

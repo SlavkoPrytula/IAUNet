@@ -126,39 +126,49 @@ print("Full loss:", loss_full.item())
 print("Loss Group 1:", loss_group1.item())
 print("Loss Group 2:", loss_group2.item())
 print("Total Split Loss:", total_loss_split.item())
-
+print()
 
 
 import torch
 import torch.nn as nn
 
-# Define the CrossEntropyLoss function
 criterion = nn.CrossEntropyLoss()
 
-# Define the logits for 3 classes (batch size = 1, number of classes = 3)
-logits = torch.tensor([[2.0, 1.0, 0.1]])  # Shape (1, 3)
-true_label = torch.tensor([0])  # Ground truth label for the single sample, Shape (1)
+logits = torch.tensor([[2.0, 1.0, 0.1]])
+true_label = torch.tensor([0])
 
-# Calculate the loss using a single CrossEntropyLoss on all logits
 loss_full = criterion(logits, true_label)
 
-# Split the logits into two groups
-logits_group1 = torch.tensor([[2.0, 1.0, -float('inf')]])  # Mask the last logit with -inf
-logits_group2 = torch.tensor([[-float('inf'), -float('inf'), 0.1]])  # Mask the first two logits with -inf
-
-# Apply CrossEntropyLoss separately on each group
-label_group1 = torch.tensor([0])  # Label for the first group (Shape (1))
-label_group2 = torch.tensor([2])  # Label for the second group (Shape (1))
+logits_group1 = torch.tensor([[2.0, 1.0, -10]])
+logits_group2 = torch.tensor([[-10, -10, 0.1]])
+label_group1 = torch.tensor([0])
+label_group2 = torch.tensor([0])
 
 loss_group1 = criterion(logits_group1, label_group1)
 loss_group2 = criterion(logits_group2, label_group2)
 
-# Total loss when using split logits
 total_loss_split = loss_group1 + loss_group2
 
 print("Full loss:", loss_full.item())
 print("Loss Group 1:", loss_group1.item())
 print("Loss Group 2:", loss_group2.item())
 print("Total Split Loss:", total_loss_split.item())
+print()
+
+
+import torch.nn.functional as F
+
+logits = torch.tensor([[2.0, 1.0, 0.1]])
+probs = F.softmax(logits, dim=1)
+print(f'full probs: {probs}')
+
+
+logits_group1 = torch.tensor([[2.0, 1.0, -10]])
+logits_group2 = torch.tensor([[-10, -10, 0.1]])
+probs1 = F.softmax(logits_group1, dim=1)
+probs2 = F.softmax(logits_group2, dim=1)
+print(f'probs1: {probs1}')
+print(f'probs2: {probs2}')
+
 
 

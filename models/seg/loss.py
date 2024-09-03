@@ -251,84 +251,6 @@ class SparseInstCriterion(nn.Module):
         return losses
     
 
-    # def _loss_masks(self, outputs, targets, indices, num_masks, name, loss_type="bce"):
-    #     """
-    #     Compute the losses related to the masks: the focal loss and the dice loss.
-    #     targets dicts must contain the key "masks" containing a tensor of dim [nb_target_boxes, h, w]
-    #     """
-    #     assert f"pred_{name}" in outputs, f"{name} not found in losses."
-
-    #     src_idx = self._get_src_permutation_idx(indices)
-    #     tgt_idx = self._get_tgt_permutation_idx(indices)
-    #     src_masks = outputs[f"pred_{name}"]
-    #     src_masks = src_masks[src_idx]
-
-    #     masks = [t[f"{name}"] for t in targets]
-    #     # TODO use valid to mask invalid areas due to padding in loss
-    #     target_masks, valid = nested_tensor_from_tensor_list(masks).decompose()
-    #     target_masks = target_masks.to(src_masks)
-    #     target_masks = target_masks[tgt_idx]
-
-
-    #     # upsample predictions to the target size.
-    #     # the masks should be upscaled inside the model.
-    #     # src_masks = F.interpolate(src_masks[:, None], size=target_masks.shape[-2:],
-    #     #                             mode="bilinear", align_corners=False)
-        
-    #     # src_masks = src_masks.squeeze(1)
-    #     # target_masks = target_masks.squeeze(1)
-    #     # src_masks = src_masks.flatten(1)
-    #     # target_masks = target_masks.flatten(1)
-
-
-    #     # This part is experimental.
-    #     # @https://github.com/junjiehe96/FastInst/blob/main/fastinst/modeling/criterion.py
-
-    #     # No need to upsample predictions as we are using normalized coordinates :)
-    #     # N x 1 x H x W
-    #     src_masks = src_masks[:, None]
-    #     target_masks = target_masks[:, None]
-
-    #     with torch.no_grad():
-    #         # sample point_coords
-    #         point_coords = get_uncertain_point_coords_with_randomness(
-    #             src_masks,
-    #             lambda logits: calculate_uncertainty(logits),
-    #             112 * 112,
-    #             3.0,
-    #             0.75,
-    #         )
-    #         # get gt labels
-    #         target_masks = point_sample(
-    #             target_masks,
-    #             point_coords,
-    #             align_corners=False,
-    #         ).squeeze(1)
-
-    #     src_masks = point_sample(
-    #         src_masks,
-    #         point_coords,
-    #         align_corners=False,
-    #     ).squeeze(1)
-
-    #     if loss_type == "focal":
-    #         loss_mask = sigmoid_focal_loss(src_masks, target_masks, num_masks)
-    #         loss_name = f"loss_focal_{name}"
-    #     elif loss_type == "bce":
-    #         loss_mask = sigmoid_ce_loss_jit(src_masks, target_masks, num_masks)
-    #         loss_name = f"loss_bce_{name}"
-
-    #     losses = {
-    #         loss_name: loss_mask,
-    #         f"loss_dice_{name}": dice_loss_jit(src_masks, target_masks, num_masks),
-    #     }
-
-    #     del src_masks
-    #     del target_masks
-
-    #     return losses
-
-
     def _loss_masks(self, outputs, targets, indices, num_masks, name, loss_type="bce"):
         """
         Compute the losses related to the masks: the focal loss and the dice loss.
@@ -347,24 +269,102 @@ class SparseInstCriterion(nn.Module):
         target_masks = target_masks.to(src_masks)
         target_masks = target_masks[tgt_idx]
 
-        # upsample predictions to the target size
-        src_masks = F.interpolate(src_masks[:, None], size=target_masks.shape[-2:],
-                                    mode="bilinear", align_corners=False)
 
-        src_masks = src_masks.squeeze(1)
-        target_masks = target_masks.squeeze(1)
-        src_masks = src_masks.flatten(1)
-        target_masks = target_masks.flatten(1)
+        # upsample predictions to the target size.
+        # the masks should be upscaled inside the model.
+        # src_masks = F.interpolate(src_masks[:, None], size=target_masks.shape[-2:],
+        #                             mode="bilinear", align_corners=False)
+        
+        # src_masks = src_masks.squeeze(1)
+        # target_masks = target_masks.squeeze(1)
+        # src_masks = src_masks.flatten(1)
+        # target_masks = target_masks.flatten(1)
+
+
+        # This part is experimental.
+        # @https://github.com/junjiehe96/FastInst/blob/main/fastinst/modeling/criterion.py
+
+        # No need to upsample predictions as we are using normalized coordinates :)
+        # N x 1 x H x W
+        src_masks = src_masks[:, None]
+        target_masks = target_masks[:, None]
+
+        with torch.no_grad():
+            # sample point_coords
+            point_coords = get_uncertain_point_coords_with_randomness(
+                src_masks,
+                lambda logits: calculate_uncertainty(logits),
+                112 * 112,
+                3.0,
+                0.75,
+            )
+            # get gt labels
+            target_masks = point_sample(
+                target_masks,
+                point_coords,
+                align_corners=False,
+            ).squeeze(1)
+
+        src_masks = point_sample(
+            src_masks,
+            point_coords,
+            align_corners=False,
+        ).squeeze(1)
+
+        if loss_type == "focal":
+            loss_mask = sigmoid_focal_loss(src_masks, target_masks, num_masks)
+            loss_name = f"loss_focal_{name}"
+        elif loss_type == "bce":
+            loss_mask = sigmoid_ce_loss_jit(src_masks, target_masks, num_masks)
+            loss_name = f"loss_bce_{name}"
 
         losses = {
-            "loss_bce_masks": sigmoid_ce_loss_jit(src_masks, target_masks, num_masks),
-            "loss_dice_masks": dice_loss_jit(src_masks, target_masks, num_masks),
+            loss_name: loss_mask,
+            f"loss_dice_{name}": dice_loss_jit(src_masks, target_masks, num_masks),
         }
 
         del src_masks
         del target_masks
 
         return losses
+
+
+    # def _loss_masks(self, outputs, targets, indices, num_masks, name, loss_type="bce"):
+    #     """
+    #     Compute the losses related to the masks: the focal loss and the dice loss.
+    #     targets dicts must contain the key "masks" containing a tensor of dim [nb_target_boxes, h, w]
+    #     """
+    #     assert f"pred_{name}" in outputs, f"{name} not found in losses."
+
+    #     src_idx = self._get_src_permutation_idx(indices)
+    #     tgt_idx = self._get_tgt_permutation_idx(indices)
+    #     src_masks = outputs[f"pred_{name}"]
+    #     src_masks = src_masks[src_idx]
+
+    #     masks = [t[f"{name}"] for t in targets]
+    #     # TODO use valid to mask invalid areas due to padding in loss
+    #     target_masks, valid = nested_tensor_from_tensor_list(masks).decompose()
+    #     target_masks = target_masks.to(src_masks)
+    #     target_masks = target_masks[tgt_idx]
+
+    #     # upsample predictions to the target size
+    #     src_masks = F.interpolate(src_masks[:, None], size=target_masks.shape[-2:],
+    #                                 mode="bilinear", align_corners=False)
+
+    #     src_masks = src_masks.squeeze(1)
+    #     target_masks = target_masks.squeeze(1)
+    #     src_masks = src_masks.flatten(1)
+    #     target_masks = target_masks.flatten(1)
+
+    #     losses = {
+    #         "loss_bce_masks": sigmoid_ce_loss_jit(src_masks, target_masks, num_masks),
+    #         "loss_dice_masks": dice_loss_jit(src_masks, target_masks, num_masks),
+    #     }
+
+    #     del src_masks
+    #     del target_masks
+
+    #     return losses
 
 
     def loss_masks(self, outputs, targets, indices, num_masks, **kwargs):

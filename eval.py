@@ -100,6 +100,7 @@ def get_config_from_path(path: str) -> _cfg:
 
 def parse_args():
     parser = argparse.ArgumentParser(description='Run evaluation with IAUNet')
+    parser.add_argument('experiment_path', type=str, nargs='?', default=None, help='Path to the experiment directory')
     parser.add_argument('--experiment_name', type=str, default='', help='name of the experiment')
     return parser.parse_args()
 
@@ -109,7 +110,10 @@ if __name__ == '__main__':
     sys.path.append("./")
     args = parse_args()
 
-    experiment_path = Path("runs/[resnet_iaunet_multitask]/[truncated_decoder-iadecoder_ml]/[ResNet]/[LiveCellCrop]/[softmax_iam]/[kernel_dim=256]-[multi_level=True]-[coord_conv=True]-[losses=['labels', 'masks']]/[InstanceHead-v1.1]/[job=51959650]-[2024-08-27 15:00:50]")
+    experiment_path = Path("runs/[resnet_iaunet_multitask_ml]/[truncated_decoder-iadecoder_ml]/[ResNet]/[LiveCellCrop]/[softmax_iam]/[kernel_dim=256]-[multi_level=True]-[coord_conv=True]-[losses=['labels', 'masks']]/[InstanceHead-v2.2.1-dual-update]/[job=51978401]-[2024-09-01 12:28:15]")
+    if args.experiment_path:
+        experiment_path = Path(args.experiment_path)
+
     cfg = get_config_from_path(experiment_path)
     old_dataset = cfg.dataset.name
     
@@ -132,7 +136,7 @@ if __name__ == '__main__':
             'evaluator': {
                 'type': "MMDetDataloaderEvaluator",
                 'mask_thr': 0.5,
-                'score_thr': 0.1,
+                'score_thr': 0.05,
                 'nms_thr': 0.5,
                 'metric': 'segm',
                 'classwise': True,

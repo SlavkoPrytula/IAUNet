@@ -191,12 +191,15 @@ class IAUNet(nn.Module):
 
             if i != 0:
                 results = self.instance_head[i](inst_feats, mask_feats, inst_embed)
-                inst_embed = results["kernels"]['instance_kernel']
+                # inst_embed = results["kernels"]['instance_kernel']
+                inst_embed = results["inst_feats"]['instance_feats']
             else:
                 results = self.instance_head[i](inst_feats, mask_feats)
-                inst_embed = results["kernels"]['instance_kernel']
+                # inst_embed = results["kernels"]['instance_kernel']
+                inst_embed = results["inst_feats"]['instance_feats']
 
-            inst_feats = results['pixel_feats']
+            mask_feats = results['mask_pixel_feats']
+            inst_feats = results['inst_pixel_feats']
 
         
         mask_feats = self.projection(mask_feats)

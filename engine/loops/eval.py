@@ -50,6 +50,7 @@ class EvalLoop(BaseLoop):
             makedirs(self.eval_dir / 'results', exist_ok=True)
             makedirs(self.eval_dir / 'visuals', exist_ok=True)
         
+        self.logger.info('TestLoop')
         for evaluator_name in self.evaluators:
             print(f"Evaluating {evaluator_name} subset...")
             evaluator = self.evaluators[evaluator_name]

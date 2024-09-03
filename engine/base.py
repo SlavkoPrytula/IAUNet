@@ -55,6 +55,7 @@ class BaseTrainer:
         print(f"Running with {self.strategy} strategy.")
         print()
 
+        self._setup_evaluators()
 
     def _get_device(self):
         rank = self.rank
@@ -65,6 +66,11 @@ class BaseTrainer:
             device = torch.device('cpu')
             self.logger.info("Using CPU\n")
         return device
+    
+    def _setup_evaluators(self):
+        for stage in self.evaluators:
+            for evaluator in self.evaluators[stage]:
+                self.evaluators[stage][evaluator].device = self.device
 
 
     def train(self):

@@ -30,7 +30,8 @@ model:
       # type: InstanceHead-v1.1
       # type: InstanceHead-v2.0-attn
       # type: InstanceHead-v2.1-attn
-      type: InstanceHead-v2.2-two-way-attn
+      # type: InstanceHead-v2.2-two-way-attn
+      type: InstanceHead-v2.2.1-dual-update
       in_channels: 256
       num_classes: 1
       kernel_dim: 256

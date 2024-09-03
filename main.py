@@ -146,11 +146,11 @@ def run(rank: int = 0, world_size: int = 1, cfg: cfg = None):
     evaluators = {
         "valid": {
             "coco": MMDetDataloaderEvaluator(cfg=cfg, model=model, dataset=valid_dataset), 
-            "overlap_iou": OverlapIOUEvaluator(cfg=cfg, model=model, dataset=valid_dataset)
+            # "overlap_iou": OverlapIOUEvaluator(cfg=cfg, model=model, dataset=valid_dataset)
         },
         "eval": {
             "coco": MMDetDataloaderEvaluator(cfg=cfg, model=model, dataset=eval_dataset), 
-            "overlap_iou": OverlapIOUEvaluator(cfg=cfg, model=model, dataset=eval_dataset)
+            # "overlap_iou": OverlapIOUEvaluator(cfg=cfg, model=model, dataset=eval_dataset)
         },
     }
 

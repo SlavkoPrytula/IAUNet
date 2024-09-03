@@ -72,7 +72,7 @@ class IADecoder(BaseDecoder):
                 results = self.instance_head[i](inst_feats, mask_feats)
                 inst_embed = results["kernels"]['instance_kernel']
 
-            mask_feats = results['pixel_feats']
+            inst_feats = results['pixel_feats']
 
         # out layer.
         mask_feats = self.projection(mask_feats)

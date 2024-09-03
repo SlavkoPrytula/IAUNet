@@ -102,11 +102,8 @@ class Trainer(BaseTrainer):
             
             if epoch % self.check_val_every_n_epoch == 0:
                 results_valid = self.valid_loop.run()
-                results_eval = self.eval_loop.run()
+                # results_eval = self.eval_loop.run()
                 self._update_results(results_train, results_valid)
-
-            # saving last checkpoint.
-            self.save_checkpoint(self.cfg.run.save_dir / 'checkpoints/last.pth')
 
         end = time.time()
         time_elapsed = end - start
@@ -139,6 +136,9 @@ class Trainer(BaseTrainer):
             # saving best model.
             self.save_checkpoint(self.cfg.run.save_dir / 'checkpoints/best.pth')
             print()
+
+        # saving last checkpoint.
+        self.save_checkpoint(self.cfg.run.save_dir / 'checkpoints/last.pth')
 
         metrics = ['epoch'] + list(results.keys())
         vals = [self.current_epoch] + list(results.values())

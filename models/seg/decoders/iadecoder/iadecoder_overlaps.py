@@ -4,7 +4,7 @@ from torch.nn import functional as F
 import sys
 sys.path.append("./")
 
-from models.seg.decoders.iadecoder import IADecoder as BaseDecoder
+from models.seg.decoders.iadecoder.iadecoder import IADecoder as BaseDecoder
 from configs.structure import Decoder
 from utils.registry import DECODERS
 
