@@ -1,22 +1,70 @@
-from pycocotools.coco import COCO
-from pycocotools.cocoeval import COCOeval
+# from pycocotools.coco import COCO
+# from pycocotools.cocoeval import COCOeval
 
 from os.path import join
 import cv2
+import json
 
 import sys
 sys.path.append(".")
+
+from utils.coco.coco import COCO 
+from utils.coco.cocoeval import COCOeval 
 
 from visualizations import save_coco_vis
 
 
 def load_coco_json(json_file_path):
-    coco = COCO(json_file_path)
+    coco = COCO(annotation_file=json_file_path)
     return coco
 
-def json_coco_evaluation(gt_json_path, pred_json_path, return_stats=False):
+def extract_image_ids(json_path):
+    with open(json_path, 'r') as f:
+        data = json.load(f)
+    image_ids = {item['image_id'] for item in data}
+    return image_ids
+
+def compare_image_ids(gt_json_path, pred_json_path):
     coco_gt = load_coco_json(gt_json_path)
-    coco_pred = coco_gt.loadRes(pred_json_path)
+    gt_image_ids = set(coco_gt.getImgIds())
+    
+    pred_image_ids = extract_image_ids(pred_json_path)
+
+    num_gt_images = len(gt_image_ids)
+    num_pred_images = len(pred_image_ids)
+
+    print(f"Number of unique images in GT: {num_gt_images}")
+    print(f"Number of unique images in Predictions: {num_pred_images}")
+
+    if gt_image_ids == pred_image_ids:
+        print("Image IDs match between GT and Predictions.")
+    else:
+        print("Image IDs do NOT match between GT and Predictions.")
+        missing_in_gt = pred_image_ids - gt_image_ids
+        missing_in_pred = gt_image_ids - pred_image_ids
+        
+        if missing_in_gt:
+            print(f"Image IDs in Predictions but not in GT: {missing_in_gt}")
+        if missing_in_pred:
+            print(f"Image IDs in GT but not in Predictions: {missing_in_pred}")
+
+def load(filename):
+    print(f"loading from: {filename}")
+    with open(filename, 'r') as file:
+        data = json.load(file)
+    return data
+
+def json_coco_evaluation(gt_json_path, pred_json_path, return_stats=False):
+    compare_image_ids(gt_json_path, pred_json_path)
+    coco_gt = load_coco_json(gt_json_path)
+
+    predictions = load(pred_json_path)
+
+    for pred in predictions:
+        if 'bbox' in pred:
+            del pred['bbox']
+
+    coco_pred = coco_gt.loadRes(predictions)
     
     coco_eval = COCOeval(coco_gt, coco_pred, 'segm')
     coco_eval.evaluate()
@@ -51,7 +99,7 @@ if __name__ == "__main__":
     # pred_json_path = "runs/[iaunet]/[brightfield_coco_v2.0]/[softmax_iam]/[kernel_dim=256]-[multi_level=True]-[coord_conv=True]-[losses=['labels', 'masks']]/[job=50320116]-[2024-02-11 01:15:49]/results/coco.segm.json"
 
     gt_json_path = "/gpfs/space/projects/PerkinElmer/cytoplasm_segmentation/datasets/LiveCell/crop_512x512/coco/annotations/livecell_coco_test.json"
-    pred_json_path = "/gpfs/space/home/prytula/scripts/experimental_segmentation/yolo/ultralytics/runs/LiveCell/yolo/yolov8x-seg/run_1/results/coco_temp.segm.json"
+    pred_json_path = "runs/[resnet_iaunet_multitask_ml]/[truncated_decoder-iadecoder_ml]/[ResNet]/[LiveCellCrop]/[softmax_iam]/[kernel_dim=256]-[multi_level=True]-[coord_conv=True]-[losses=['labels', 'masks']]/[InstanceHead-v2.2.1-dual-update]/[job=51978235]-[2024-08-31 21:43:39]/eval/results/coco.segm.json"
     
     # gt_json_path = "/gpfs/space/projects/PerkinElmer/cytoplasm_segmentation/datasets/synthetic_datasets/worms/mixed/coco/worms_[valid]_[max_s=3]_[min_l=0.01_max_l=0.5]_[min_t=30_max_t=30]_[n=1000]_[R_min=1_R_max=25]_[25.04.24].json"
     # pred_json_path = "/gpfs/space/home/prytula/scripts/experimental_segmentation/mmdetection/mmdetection/work_dirs_benchmarks/worms/mask-rcnn_r50_fpn_1x_coco/job=51069259/run=1/results/coco_eval.segm.json"
@@ -81,4 +129,4 @@ if __name__ == "__main__":
         img = img / img.max()
 
         H, W = img_info["height"], img_info["width"]
-        save_coco_vis(img, gt_coco, pred_coco, img_id, shape=[H, W], path=f"./tools/coco_metric/results/{base_name}_iaunet.jpg")
+        save_coco_vis(img, gt_coco, pred_coco, img_id, shape=[H, W], path=f"./tools/coco_metric/results/[InstanceHead-v2.2.1-dual-update]/{base_name}.jpg")

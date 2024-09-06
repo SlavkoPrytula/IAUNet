@@ -55,19 +55,21 @@ class IAUNet(nn.Module):
         self.encoder3 = encoder.layer3
         self.encoder4 = encoder.layer4
 
-        self.bridge = nn.Sequential(
-            nn.Conv2d(embed_dims[4], embed_dims[4], kernel_size=3, padding=1, bias=False),
-            nn.BatchNorm2d(embed_dims[4]),
-            nn.ReLU(inplace=True),
-            nn.MaxPool2d(kernel_size=2, stride=2)
-            
-        )
+        # self.bridge = nn.Sequential(
+        #     nn.Conv2d(embed_dims[4], embed_dims[3], kernel_size=3, padding=1, bias=False),
+        #     nn.BatchNorm2d(embed_dims[3]),
+        #     nn.ReLU(inplace=True),
+        #     # nn.MaxPool2d(kernel_size=2, stride=2)
+        # )
         
         embed_dims = self.embed_dims[::-1]
         
         self.up_conv_layers = nn.ModuleList([])
         for i in range(self.n_levels):
-            in_channels = embed_dims[i] * 2 + 2
+            if i == 0:
+                in_channels = embed_dims[i] + 2
+            else:
+                in_channels = embed_dims[i] * 2 + 2
             out_channels = embed_dims[i+1]
 
             upconv = nn.Sequential(
@@ -124,7 +126,9 @@ class IAUNet(nn.Module):
         for i in range(self.n_levels):
             self.instance_head.append(HEADS.build(cfg.model.decoder.instance_head))
 
-        for modules in [self.up_conv_layers, self.bridge]:
+        for modules in [self.up_conv_layers, 
+                        # self.bridge
+                        ]:
             for l in modules.modules():
                 if isinstance(l, nn.Conv2d):
                     torch.nn.init.normal_(l.weight, std=0.01)
@@ -158,16 +162,19 @@ class IAUNet(nn.Module):
 
         skips = [e1, e2, e3, e4, e5]
 
-        x = self.bridge(e5)
-
         # go up
         for i in range(self.n_levels):
-            coord_features = self.compute_coordinates(x)
-            x = torch.cat([coord_features, x], dim=1)
-            
-            x = nn.UpsamplingBilinear2d(scale_factor=2)(x)
-            x = torch.cat([x, skips[-(i + 1)]], dim=1)
-            x = self.up_conv_layers[i](x)
+            if i != 0:
+                coord_features = self.compute_coordinates(x)
+                x = torch.cat([coord_features, x], dim=1)
+                
+                x = nn.UpsamplingBilinear2d(scale_factor=2)(x)
+                x = torch.cat([x, skips[-(i + 1)]], dim=1)
+                x = self.up_conv_layers[i](x)
+            else:
+                coord_features = self.compute_coordinates(skips[-1])
+                x = torch.cat([coord_features, skips[-1]], dim=1)
+                x = self.up_conv_layers[i](x)
 
             
             if i != 0:

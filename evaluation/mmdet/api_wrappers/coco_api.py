@@ -4,10 +4,10 @@
 import warnings
 
 import pycocotools
-# from pycocotools.coco import COCO as _COCO
-from utils.coco.coco import COCO as _COCO # ADDED MANUALLY
-# from utils.coco.cocoeval import COCOeval as _COCOeval
+from pycocotools.coco import COCO as _COCO
 from pycocotools.cocoeval import COCOeval as _COCOeval
+# from utils.coco.coco import COCO as _COCO # ADDED MANUALLY
+# from utils.coco.cocoeval import COCOeval as _COCOeval
 
 
 class COCO(_COCO):

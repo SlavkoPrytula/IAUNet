@@ -110,7 +110,7 @@ if __name__ == '__main__':
     sys.path.append("./")
     args = parse_args()
 
-    experiment_path = Path("runs/[resnet_iaunet_multitask_ml]/[truncated_decoder-iadecoder_ml]/[ResNet]/[LiveCellCrop]/[softmax_iam]/[kernel_dim=256]-[multi_level=True]-[coord_conv=True]-[losses=['labels', 'masks']]/[InstanceHead-v2.2.1-dual-update]/[job=51978401]-[2024-09-01 12:28:15]")
+    experiment_path = Path("runs/[resnet_iaunet_multitask_ml]/[truncated_decoder-iadecoder_ml]/[ResNet]/[LiveCellCrop]/[softmax_iam]/[kernel_dim=256]-[multi_level=True]-[coord_conv=True]-[losses=['labels', 'masks']]/[InstanceHead-v2.2.1-dual-update]/[job=51995382]-[2024-09-05 00:43:50]")
     if args.experiment_path:
         experiment_path = Path(args.experiment_path)
 
@@ -137,10 +137,10 @@ if __name__ == '__main__':
                 'type': "MMDetDataloaderEvaluator",
                 'mask_thr': 0.5,
                 'score_thr': 0.05,
-                'nms_thr': 0.5,
+                'nms_thr': 0.7,
                 'metric': 'segm',
-                'classwise': True,
-                'outfile_prefix': "results/coco",
+                'classwise': False,
+                'outfile_prefix': "eval/results/coco",
             },
             'criterion': {
                 'matcher': {
@@ -163,10 +163,10 @@ if __name__ == '__main__':
         },
         'dataset': {
             'valid_dataset': {
-                'batch_size': 16
+                'batch_size': 32
             },
             'eval_dataset': {
-                'batch_size': 16,
+                'batch_size': 32,
             }
         }
     })
@@ -176,7 +176,7 @@ if __name__ == '__main__':
         "trainer": {
             "accelerator": "gpu",
             "devices": 1,
-            "num_workers": 2,
+            "num_workers": 8,
             "strategy": None,
         }
     })
