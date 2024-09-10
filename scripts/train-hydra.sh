@@ -1,1 +1,3 @@
-python main.py job_id=11111 dataset=livecell_crop trainer=gpu
+python main.py job_id=11111 \
+               dataset=evican2_easy \
+               trainer=gpu

@@ -13,4 +13,7 @@
 
 nvidia-smi
 
-python main.py job_id=$SLURM_JOB_ID dataset=livecell_crop trainer=gpu
+python main.py job_id=$SLURM_JOB_ID \
+               dataset=evican2_easy \
+               trainer=gpu
+               

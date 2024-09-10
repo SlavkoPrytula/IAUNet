@@ -48,15 +48,26 @@ from configs import cfg
 def train_transforms(cfg: cfg):
     size = cfg.dataset.train_dataset.size
     _transforms = A.Compose([
-        A.Resize(*size),
-        A.RandomScale(scale_limit=(-0.2, 0.5), p=1, interpolation=1),
-        A.PadIfNeeded(512, 512, border_mode=cv2.BORDER_CONSTANT, value=0),
-        A.RandomCrop(512, 512),
+        # A.Resize(*size),
+        A.LongestMaxSize(max_size=max(size)),
+        A.PadIfNeeded(*size, border_mode=cv2.BORDER_CONSTANT, value=0),
+        
+        A.RandomScale(scale_limit=(-0.2, 1.5), p=1, interpolation=1),
+        A.PadIfNeeded(*size, border_mode=cv2.BORDER_CONSTANT, value=0),
+        A.RandomCrop(*size),
 
         A.VerticalFlip(p=0.5),
         A.HorizontalFlip(p=0.5),
         A.RandomRotate90(p=1),
 
+        A.ElasticTransform(
+            alpha=10,
+            sigma=10,
+            interpolation=1,
+            border_mode=cv2.BORDER_CONSTANT,
+            approximate=True,
+            p=1
+        ),
     ], 
     # bbox_params=A.BboxParams(format='pascal_voc')
     )
@@ -66,7 +77,9 @@ def train_transforms(cfg: cfg):
 def valid_transforms(cfg: cfg):
     size = cfg.dataset.valid_dataset.size
     _transforms = A.Compose([
-        A.Resize(*size),
+        # A.Resize(*size),
+        A.LongestMaxSize(max_size=max(size)),
+        A.PadIfNeeded(*size, border_mode=cv2.BORDER_CONSTANT, value=0),
     ], 
     # bbox_params=A.BboxParams(format='pascal_voc')
     )

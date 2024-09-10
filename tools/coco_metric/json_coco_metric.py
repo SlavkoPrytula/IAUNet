@@ -84,7 +84,7 @@ def json_coco_evaluation(gt_json_path, pred_json_path, return_stats=False):
         stats = dict(zip(key_mapping, stats))
 
         return coco_gt, coco_pred, stats
-    return coco_gt, coco_pred
+    return coco_gt, coco_pred, None
 
 
 if __name__ == "__main__":
@@ -98,22 +98,19 @@ if __name__ == "__main__":
     # pred_json_path = "/gpfs/space/home/prytula/scripts/experimental_segmentation/mmdetection/mmdetection/work_dirs/brightfield_coco_v2/mask-rcnn_r50_fpn_1x_coco/job=50320803/run=1/results/coco_eval.segm.json"
     # pred_json_path = "runs/[iaunet]/[brightfield_coco_v2.0]/[softmax_iam]/[kernel_dim=256]-[multi_level=True]-[coord_conv=True]-[losses=['labels', 'masks']]/[job=50320116]-[2024-02-11 01:15:49]/results/coco.segm.json"
 
-    gt_json_path = "/gpfs/space/projects/PerkinElmer/cytoplasm_segmentation/datasets/LiveCell/crop_512x512/coco/annotations/livecell_coco_test.json"
-    pred_json_path = "runs/[resnet_iaunet_multitask_ml]/[truncated_decoder-iadecoder_ml]/[ResNet]/[LiveCellCrop]/[softmax_iam]/[kernel_dim=256]-[multi_level=True]-[coord_conv=True]-[losses=['labels', 'masks']]/[InstanceHead-v2.2.1-dual-update]/[job=51978235]-[2024-08-31 21:43:39]/eval/results/coco.segm.json"
+    # gt_json_path = "/gpfs/space/projects/PerkinElmer/cytoplasm_segmentation/datasets/LiveCell/crop_512x512/coco/annotations/livecell_coco_test.json"
+    # pred_json_path = "runs/[resnet_iaunet_multitask_ml]/[truncated_decoder-iadecoder_ml]/[ResNet]/[LiveCellCrop]/[softmax_iam]/[kernel_dim=256]-[multi_level=True]-[coord_conv=True]-[losses=['labels', 'masks']]/[InstanceHead-v2.2.1-dual-update]/[job=51978235]-[2024-08-31 21:43:39]/eval/results/coco.segm.json"
     
-    # gt_json_path = "/gpfs/space/projects/PerkinElmer/cytoplasm_segmentation/datasets/synthetic_datasets/worms/mixed/coco/worms_[valid]_[max_s=3]_[min_l=0.01_max_l=0.5]_[min_t=30_max_t=30]_[n=1000]_[R_min=1_R_max=25]_[25.04.24].json"
-    # pred_json_path = "/gpfs/space/home/prytula/scripts/experimental_segmentation/mmdetection/mmdetection/work_dirs_benchmarks/worms/mask-rcnn_r50_fpn_1x_coco/job=51069259/run=1/results/coco_eval.segm.json"
-    # pred_json_path = "runs/[resnet_iaunet_multitask]/[worms]/[softmax_iam]/[kernel_dim=256]-[multi_level=True]-[coord_conv=True]-[losses=['labels', 'masks']]/[base]/[job=51037677]-[2024-04-25 16:56:09]/results/coco.segm.json"
+    gt_json_path = "/gpfs/space/projects/PerkinElmer/cytoplasm_segmentation/datasets/EVICAN2/coco/annotations/EVICAN2/processed/instances_eval2019_easy_EVICAN2_cell.json"
+    pred_json_path = "/gpfs/space/home/prytula/scripts/experimental_segmentation/yolo/ultralytics/runs/EVICAN2_Easy/sam/sam_l/['bboxes']/results/coco_eval.segm.json"
+    image_dir = "/gpfs/space/projects/PerkinElmer/cytoplasm_segmentation/datasets/EVICAN2/coco/images/EVICAN_eval2019"
 
 
-    gt_coco, pred_coco = json_coco_evaluation(gt_json_path, pred_json_path)
+    gt_coco, pred_coco, _ = json_coco_evaluation(gt_json_path, pred_json_path)
 
 
     # plot results
-    # image_dir = "/gpfs/space/home/prytula/data/datasets/cytoplasm_segmentation/brightfield_v2.0/coco/combined_512x512-upd2/images/valid"
-    # image_dir = "/gpfs/space/home/prytula/data/datasets/cytoplasm_segmentation/brightfield_v2.0/coco/train-v1_valid-v2-upd2/images/valid"
-    image_dir = "/gpfs/space/projects/PerkinElmer/cytoplasm_segmentation/datasets/LiveCell/crop_512x512/coco/images/livecell_test_images"
-    # image_dir = "/gpfs/space/projects/PerkinElmer/cytoplasm_segmentation/datasets/synthetic_datasets/worms/mixed/coco/images/worms_[valid]_[max_s=3]_[min_l=0.01_max_l=0.5]_[min_t=30_max_t=30]_[n=1000]_[R_min=1_R_max=25]_[25.04.24]"
+    # image_dir = "/gpfs/space/projects/PerkinElmer/cytoplasm_segmentation/datasets/LiveCell/crop_512x512/coco/images/livecell_test_images"
 
     # idx = 101438
     image_ids = gt_coco.getImgIds()
@@ -125,8 +122,8 @@ if __name__ == "__main__":
         base_name = img_name.split(".")[0]
         img_path = join(image_dir, img_name)
 
-        img = cv2.imread(img_path, -1)#[..., 0]
+        img = cv2.imread(img_path, -1)[..., 0]
         img = img / img.max()
 
         H, W = img_info["height"], img_info["width"]
-        save_coco_vis(img, gt_coco, pred_coco, img_id, shape=[H, W], path=f"./tools/coco_metric/results/[InstanceHead-v2.2.1-dual-update]/{base_name}.jpg")
+        save_coco_vis(img, gt_coco, pred_coco, img_id, shape=[H, W], path=f"./tools/coco_metric/results/{base_name}.jpg")

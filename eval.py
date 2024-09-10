@@ -39,6 +39,8 @@ def run(cfg: _cfg):
 
     # get dataloaders
     dataset = DATASETS.get(cfg.dataset.type)
+    print(dataset)
+    print()
 
     eval_dataset = dataset(cfg, 
                             dataset_type="eval",
@@ -46,7 +48,7 @@ def run(cfg: _cfg):
                             )
     
     eval_dataloader = build_loader(eval_dataset, 
-                                    batch_size=cfg.dataset.valid_dataset.batch_size, 
+                                    batch_size=cfg.dataset.eval_dataset.batch_size, 
                                     num_workers=cfg.trainer.num_workers, 
                                     collate_fn=trivial_batch_collator, 
                                     seed=cfg.seed)
@@ -110,7 +112,7 @@ if __name__ == '__main__':
     sys.path.append("./")
     args = parse_args()
 
-    experiment_path = Path("runs/[resnet_iaunet_multitask_ml]/[truncated_decoder-iadecoder_ml]/[ResNet]/[LiveCellCrop]/[softmax_iam]/[kernel_dim=256]-[multi_level=True]-[coord_conv=True]-[losses=['labels', 'masks']]/[InstanceHead-v2.2.1-dual-update]/[job=51995382]-[2024-09-05 00:43:50]")
+    experiment_path = Path("runs/[resnet_iaunet_multitask_ml]/[truncated_decoder-iadecoder_ml]/[ResNet]/[EVICAN2_Easy]/[softmax_iam]/[kernel_dim=256]-[multi_level=True]-[coord_conv=True]-[losses=['labels', 'masks']]/[InstanceHead-v2.2.1-dual-update]/[job=52024927]-[2024-09-10 00:11:11]")
     if args.experiment_path:
         experiment_path = Path(args.experiment_path)
 
@@ -122,22 +124,24 @@ if __name__ == '__main__':
     # cfg.dataset = "brightfield"
     # cfg.dataset = "brightfield_coco"
     # cfg.dataset = "brightfield_coco_v2.0"
-    # cfg.dataset = "EVICAN2Easy"
-    # cfg.dataset = "EVICAN2Medium"
-    # cfg.dataset = "EVICAN2Difficult"
+    
+    cfg.dataset.name = "EVICAN2_Easy"
+    # cfg.dataset.name = "EVICAN2_Medium"
+    # cfg.dataset.name = "EVICAN2_Difficult"
+
     # cfg.dataset = "LiveCell"
-    # cfg.dataset = "LiveCell2Percent"
-    cfg.dataset.name = "LiveCellCrop"
-    # cfg.dataset = "YeastNet"
-    # cfg.dataset = "HuBMAP"
+    # cfg.dataset.name = "LiveCellCrop"
+    
+    # cfg.dataset.name = "YeastNet"
+    # cfg.dataset.name = "HuBMAP"
 
     eval_cfg = OmegaConf.create({
         'model': {
             'evaluator': {
                 'type': "MMDetDataloaderEvaluator",
                 'mask_thr': 0.5,
-                'score_thr': 0.05,
-                'nms_thr': 0.7,
+                'score_thr': 0.01,
+                'nms_thr': 0.8,
                 'metric': 'segm',
                 'classwise': False,
                 'outfile_prefix': "eval/results/coco",
@@ -163,10 +167,10 @@ if __name__ == '__main__':
         },
         'dataset': {
             'valid_dataset': {
-                'batch_size': 32
+                'batch_size': 4
             },
             'eval_dataset': {
-                'batch_size': 32,
+                'batch_size': 4,
             }
         }
     })

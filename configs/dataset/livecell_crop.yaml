@@ -9,19 +9,19 @@ dataset:
     images: ${dataset.data_root}/images/livecell_train_val_images
     ann_file: ${dataset.data_root}/annotations/livecell_coco_train.json
     size: [512, 512]
-    batch_size: 24
+    batch_size: 16
 
   valid_dataset:
     images: ${dataset.data_root}/images/livecell_train_val_images
     ann_file: ${dataset.data_root}/annotations/livecell_coco_val.json
     size: [512, 512]
-    batch_size: 24
+    batch_size: 16
 
   eval_dataset:
     images: ${dataset.data_root}/images/livecell_test_images
     ann_file: ${dataset.data_root}/annotations/livecell_coco_test.json
     size: [512, 512]
-    batch_size: 24
+    batch_size: 16
 
   mean: [127.926, 127.926, 127.926]
   std: [5.991, 5.991, 5.991]

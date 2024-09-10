@@ -2,6 +2,7 @@ import torch
 from os.path import join
 from configs import cfg
 from tqdm import tqdm
+import torch.nn.functional as F
 
 from .coco_evaluator import COCOEvaluator
 from utils.utils import nested_tensor_from_tensor_list
@@ -10,6 +11,27 @@ from utils.registry import EVALUATORS, DATASETS
 from evaluation.mmdet import CocoMetric
 
 from utils.common.decorators import timeit_evaluator, memory_evaluator
+
+
+def remove_padding(mask, ori_shape, rescale=False):
+        mask_h, mask_w = mask.shape[-2:]
+        ori_h, ori_w = ori_shape
+        
+        scale = min(mask_h / ori_h, mask_w / ori_w)
+        
+        new_h = int(ori_h * scale)
+        new_w = int(ori_w * scale)
+        
+        pad_top = (mask_h - new_h) // 2
+        pad_left = (mask_w - new_w) // 2
+        
+        mask = mask[:, pad_top:new_h + pad_top, pad_left:new_w + pad_left]
+
+        if rescale:
+            mask = F.interpolate(mask.unsqueeze(0), size=ori_shape, 
+                                mode="bilinear", align_corners=False).squeeze(0)
+        
+        return mask
 
 
 @timeit_evaluator
@@ -72,7 +94,7 @@ class MMDetDataloaderEvaluator(COCOEvaluator):
             preds["ori_shape"] = [targets[i]["ori_shape"] for i in range(len(targets))]
 
             self.process(preds)
-
+    
 
     def process(self, preds: dict):
         scores_batch = preds['pred_logits'].softmax(-1)
@@ -131,6 +153,15 @@ class MMDetDataloaderEvaluator(COCOEvaluator):
             labels = labels[keep]
             iou_scores = iou_scores[keep]
             bboxes_pred = bboxes_pred[keep]
+
+            # postprocessing - currently done here, should be moved to model.
+            ori_shape = preds["ori_shape"][batch_idx]
+            if masks_pred.shape[0]:
+                masks_pred = remove_padding(
+                    masks_pred, 
+                    ori_shape,
+                    rescale=True
+                )
 
             masks_pred = masks_pred > self.mask_threshold
             # ================================================

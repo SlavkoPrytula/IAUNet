@@ -17,7 +17,7 @@ from utils.registry import MODELS, HEADS
 import torchvision
 
 
-@MODELS.register(name="resnet_iaunet_multitask_ml")
+@MODELS.register(name="resnet_iaunet_multitask_ml_v3")
 class IAUNet(nn.Module):
     def __init__(
         self,
@@ -94,7 +94,7 @@ class IAUNet(nn.Module):
                 )
             else:
                 mask_branch = mask_branch_layer(
-                    in_channels=embed_dims[i] + self.mask_dim, 
+                    in_channels=embed_dims[i], 
                     out_channels=self.mask_dim, 
                     num_convs=self.num_convs
                 )
@@ -115,7 +115,7 @@ class IAUNet(nn.Module):
                 )
             else:
                 instance_branch = instance_branch_layer(
-                    in_channels=embed_dims[i] + self.inst_dim + 2, 
+                    in_channels=embed_dims[i] + 2, 
                     out_channels=self.inst_dim, 
                     num_convs=self.num_convs
                 )
@@ -149,14 +149,9 @@ class IAUNet(nn.Module):
         return coord_feat
         
 
-    def forward(self, x):
-        max_shape = x.shape[-2:]
-        results = self._forward(x)
-        results = self.process_outputs(results, max_shape)
-        return results
-
-
-    def _forward(self, x):    
+    def forward(self, x, idx=None):
+        ori_shape = x.shape
+        
         # go down
         e1 = self.firstlayer(x)
         maxe1 = self.maxpool(e1)
@@ -183,19 +178,17 @@ class IAUNet(nn.Module):
 
             
             if i != 0:
-                mask_feats = nn.UpsamplingBilinear2d(scale_factor=2)(mask_feats)
-                mask_feats = torch.cat([x, mask_feats], dim=1)
-                mask_feats = self.mask_branch[i](mask_feats)   
+                # mask_feats = nn.UpsamplingBilinear2d(scale_factor=2)(mask_feats)
+                mask_feats = self.mask_branch[i](x)   
             else:
                 mask_feats = self.mask_branch[i](x)
 
 
             if i != 0:
-                inst_feats = nn.UpsamplingBilinear2d(scale_factor=2)(inst_feats)
-                inst_feats = torch.cat([x, inst_feats], dim=1)
+                # inst_feats = nn.UpsamplingBilinear2d(scale_factor=2)(inst_feats)
 
-                coord_features = self.compute_coordinates(inst_feats)
-                inst_feats = torch.cat([coord_features, inst_feats], dim=1)
+                coord_features = self.compute_coordinates(x)
+                inst_feats = torch.cat([coord_features, x], dim=1)
                 inst_feats = self.instance_branch[i](inst_feats)
             else:
                 inst_feats = self.instance_branch[i](x)
@@ -217,6 +210,8 @@ class IAUNet(nn.Module):
         mask_feats = self.projection(mask_feats)
         results["mask_feats"] = mask_feats
         results["inst_feats"] = inst_feats
+
+        results = self.process_outputs(results, ori_shape)
     
         return results
     
@@ -237,7 +232,7 @@ class IAUNet(nn.Module):
         inst_masks = inst_masks.view(B, N, H, W)
         bboxes = bboxes.sigmoid()
 
-        inst_masks = F.interpolate(inst_masks, size=ori_shape, 
+        inst_masks = F.interpolate(inst_masks, size=ori_shape[-2:], 
                                    mode="bilinear", align_corners=False)
 
         output = {

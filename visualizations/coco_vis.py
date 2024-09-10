@@ -4,6 +4,8 @@ import os
 from scipy.ndimage import binary_dilation, binary_erosion
 from pycocotools import mask as maskUtils
 from torch.nn import functional as F
+import cv2
+import torch
 
 from .palette import jitter_color, random_color
 
@@ -84,20 +86,45 @@ def visualize_coco_anns(coco_api, idx, ax, shape, alpha=1, draw_border=False, st
     _visualize_masks(ax, masks, draw_border)
 
 
-def visualize_masks(img, masks, shape, alpha=1, draw_border=False, static_color=False, path=None):
-    fig, ax = plt.subplots(1, 1, figsize=[20, 10])
-    fig.subplots_adjust(wspace=0, hspace=0, left=0, right=1, bottom=0, top=1)
+def visualize_masks(img, masks, shape, alpha=1, draw_border=False, static_color=False, path=None, show_img=False):
+    img = F.interpolate(img.unsqueeze(0).unsqueeze(0), size=shape, 
+                        mode="bilinear", align_corners=False).squeeze(0).squeeze(0)
 
-    ax.imshow(img, cmap='gray')
-
-    masks = getNPMasks(masks, shape, alpha=alpha, static_color=static_color)
-    _visualize_masks(ax, masks, draw_border)
+    masks = F.interpolate(masks.unsqueeze(0), size=shape, 
+                        mode="bilinear", align_corners=False).squeeze(0)
     
-    ax.axis('off')
-    ax.set_xlim(0, shape[0])
-    ax.set_ylim(shape[1], 0)
+    if show_img:
+        fig, ax = plt.subplots(1, 2, figsize=[20, 10])
+        fig.subplots_adjust(wspace=0, hspace=0, left=0, right=1, bottom=0, top=1)
 
-    fig.savefig(path, bbox_inches='tight', pad_inches=0)
+        ax[0].imshow(img, cmap='gray')
+        ax[1].imshow(img, cmap='gray')
+
+        masks = getNPMasks(masks, shape, alpha=alpha, static_color=static_color)
+        _visualize_masks(ax[1], masks, draw_border)
+        
+        for a in ax:
+            a.axis('off')
+            a.set_xlim(0, shape[1])
+            a.set_ylim(shape[0], 0)
+        
+    else:
+        fig, ax = plt.subplots(1, 1, figsize=[20, 10])
+        fig.subplots_adjust(wspace=0, hspace=0, left=0, right=1, bottom=0, top=1)
+
+        ax.imshow(img, cmap='gray')
+
+        masks = getNPMasks(masks, shape, alpha=alpha, static_color=static_color)
+        _visualize_masks(ax, masks, draw_border)
+        
+        ax.axis('off')
+        ax.set_xlim(0, shape[1])
+        ax.set_ylim(shape[0], 0)
+
+    if path:
+        os.makedirs(os.path.dirname(path), exist_ok=True)
+        fig.savefig(path, bbox_inches='tight', pad_inches=0)
+        
     plt.close(fig)
 
 
@@ -107,14 +134,18 @@ def save_coco_vis(img, gt_coco, pred_coco, idx, shape, path=None, show_img=False
     Saves a side-by-side visualization of ground truth 
     and predicted COCO annotations for a given image, with an option to show the image separately.
     """
+    if isinstance(img, np.ndarray):
+        img = torch.tensor(img, dtype=torch.float32)
+
+    img = F.interpolate(img.unsqueeze(0).unsqueeze(0), size=shape, 
+                        mode="bilinear", align_corners=False).squeeze(0).squeeze(0)
+    img = img.cpu().numpy()
+
     if show_img:
         fig, ax = plt.subplots(1, 3, figsize=[30, 10])
         fig.subplots_adjust(wspace=0, hspace=0, left=0, right=1, bottom=0, top=1)
 
-        ax[0].imshow(img, cmap='gray')
-        ax[0].axis('off')
-        ax[0].set_xlim(0, shape[0])
-        ax[0].set_ylim(shape[1], 0)
+        ax[0].imshow(img, cmap='gray') # type: ignore
 
         ax[1].imshow(img, cmap='gray')
         visualize_coco_anns(gt_coco, idx, ax[1], shape=shape, alpha=0.65, draw_border=True, static_color=False)
@@ -134,8 +165,8 @@ def save_coco_vis(img, gt_coco, pred_coco, idx, shape, path=None, show_img=False
 
     for a in ax:
         a.axis('off')
-        a.set_xlim(0, shape[0])
-        a.set_ylim(shape[1], 0)
+        a.set_xlim(0, shape[1])
+        a.set_ylim(shape[0], 0)
 
     if path:
         os.makedirs(os.path.dirname(path), exist_ok=True)

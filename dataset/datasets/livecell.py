@@ -43,17 +43,22 @@ def main(cfg: cfg):
     from utils.augmentations import normalize
     from utils.augmentations import train_transforms, valid_transforms
     import time
+    import numpy as np
+    from tqdm import tqdm
 
     time_s = time.time()
 
-    dataset = LiveCell(cfg, dataset_type="valid", 
+    dataset = LiveCell(cfg, dataset_type="train", 
                     #   normalization=normalize,
                       transform=valid_transforms(cfg)
                       )
     
     print(len(dataset))
     
-    targets = dataset[8]
+    # for i in tqdm(range(len(dataset))):
+    #     targets = dataset[i]
+
+    targets = dataset[4]
     time_e = time.time()
     print(f'loaded in {time_e - time_s}(s)')
 
@@ -70,7 +75,7 @@ def main(cfg: cfg):
         cmap='gray'
     )
 
-    H, W = targets["ori_shape"]
+    H, W = targets["image"].shape[-2:] #targets["ori_shape"]
     visualize_masks(
         img=targets["image"][0, ...],
         masks=targets["instance_masks"],
