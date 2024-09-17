@@ -25,9 +25,9 @@ class IAUNet(BaseModel):
                                       n_levels=self.n_levels)
 
     def forward(self, x):
-        ori_shape = x.shape
+        max_shape = x.shape[-2:]
 
         skips = self.encoder(x)
-        results = self.decoder(skips, ori_shape)
+        results = self.decoder(skips, max_shape)
         
         return results

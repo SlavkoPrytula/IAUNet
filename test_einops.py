@@ -99,76 +99,90 @@
 
 
 
-import torch
-import torch.nn as nn
+# import torch
+# import torch.nn as nn
 
-criterion = nn.CrossEntropyLoss()
+# criterion = nn.CrossEntropyLoss()
 
-# -----
-logits = torch.tensor([[2.0, 1.0, 0.1]])
-true_label = torch.tensor([0])
+# # -----
+# logits = torch.tensor([[2.0, 1.0, 0.1]])
+# true_label = torch.tensor([0])
 
-loss_full = criterion(logits, true_label)
+# loss_full = criterion(logits, true_label)
 
-# -----
-logits_group1 = torch.tensor([[2.0, 1.0]])
-logits_group2 = torch.tensor([[0.1]])
-label_group1 = torch.tensor([0])
-label_group2 = torch.tensor([0])
+# # -----
+# logits_group1 = torch.tensor([[2.0, 1.0]])
+# logits_group2 = torch.tensor([[0.1]])
+# label_group1 = torch.tensor([0])
+# label_group2 = torch.tensor([0])
 
-loss_group1 = criterion(logits_group1, label_group1)
-loss_group2 = criterion(logits_group2, label_group2)
+# loss_group1 = criterion(logits_group1, label_group1)
+# loss_group2 = criterion(logits_group2, label_group2)
 
-total_loss_split = loss_group1 + loss_group2
+# total_loss_split = loss_group1 + loss_group2
 
-# -----
-print("Full loss:", loss_full.item())
-print("Loss Group 1:", loss_group1.item())
-print("Loss Group 2:", loss_group2.item())
-print("Total Split Loss:", total_loss_split.item())
-print()
-
-
-import torch
-import torch.nn as nn
-
-criterion = nn.CrossEntropyLoss()
-
-logits = torch.tensor([[2.0, 1.0, 0.1]])
-true_label = torch.tensor([0])
-
-loss_full = criterion(logits, true_label)
-
-logits_group1 = torch.tensor([[2.0, 1.0, -10]])
-logits_group2 = torch.tensor([[-10, -10, 0.1]])
-label_group1 = torch.tensor([0])
-label_group2 = torch.tensor([0])
-
-loss_group1 = criterion(logits_group1, label_group1)
-loss_group2 = criterion(logits_group2, label_group2)
-
-total_loss_split = loss_group1 + loss_group2
-
-print("Full loss:", loss_full.item())
-print("Loss Group 1:", loss_group1.item())
-print("Loss Group 2:", loss_group2.item())
-print("Total Split Loss:", total_loss_split.item())
-print()
+# # -----
+# print("Full loss:", loss_full.item())
+# print("Loss Group 1:", loss_group1.item())
+# print("Loss Group 2:", loss_group2.item())
+# print("Total Split Loss:", total_loss_split.item())
+# print()
 
 
-import torch.nn.functional as F
+# import torch
+# import torch.nn as nn
 
-logits = torch.tensor([[2.0, 1.0, 0.1]])
-probs = F.softmax(logits, dim=1)
-print(f'full probs: {probs}')
+# criterion = nn.CrossEntropyLoss()
+
+# logits = torch.tensor([[2.0, 1.0, 0.1]])
+# true_label = torch.tensor([0])
+
+# loss_full = criterion(logits, true_label)
+
+# logits_group1 = torch.tensor([[2.0, 1.0, -10]])
+# logits_group2 = torch.tensor([[-10, -10, 0.1]])
+# label_group1 = torch.tensor([0])
+# label_group2 = torch.tensor([0])
+
+# loss_group1 = criterion(logits_group1, label_group1)
+# loss_group2 = criterion(logits_group2, label_group2)
+
+# total_loss_split = loss_group1 + loss_group2
+
+# print("Full loss:", loss_full.item())
+# print("Loss Group 1:", loss_group1.item())
+# print("Loss Group 2:", loss_group2.item())
+# print("Total Split Loss:", total_loss_split.item())
+# print()
 
 
-logits_group1 = torch.tensor([[2.0, 1.0, -10]])
-logits_group2 = torch.tensor([[-10, -10, 0.1]])
-probs1 = F.softmax(logits_group1, dim=1)
-probs2 = F.softmax(logits_group2, dim=1)
-print(f'probs1: {probs1}')
-print(f'probs2: {probs2}')
+# import torch.nn.functional as F
+
+# logits = torch.tensor([[2.0, 1.0, 0.1]])
+# probs = F.softmax(logits, dim=1)
+# print(f'full probs: {probs}')
+
+
+# logits_group1 = torch.tensor([[2.0, 1.0, -10]])
+# logits_group2 = torch.tensor([[-10, -10, 0.1]])
+# probs1 = F.softmax(logits_group1, dim=1)
+# probs2 = F.softmax(logits_group2, dim=1)
+# print(f'probs1: {probs1}')
+# print(f'probs2: {probs2}')
 
 
 
+
+
+
+import cv2
+import matplotlib.pyplot as plt
+
+
+data_root = '/gpfs/space/projects/PerkinElmer/cytoplasm_segmentation/datasets/NeurlPS22-CellSeg'
+img = cv2.imread(f'{data_root}/images/cell_00719.png', -1)
+mask = cv2.imread(f'{data_root}/labels/cell_00719_label.tiff', -1)
+print(img.shape, img.min(), img.max(), mask.max())
+
+plt.imshow(img)
+plt.savefig("./test.jpg")

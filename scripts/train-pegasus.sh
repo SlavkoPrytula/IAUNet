@@ -14,6 +14,6 @@
 nvidia-smi
 
 python main.py job_id=$SLURM_JOB_ID \
-               dataset=evican2_easy \
+               dataset=neurlps22_cellseg \
                trainer=gpu
                

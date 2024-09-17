@@ -28,7 +28,7 @@ def remove_padding(mask, ori_shape, rescale=False):
         mask = mask[:, pad_top:new_h + pad_top, pad_left:new_w + pad_left]
 
         if rescale:
-            mask = F.interpolate(mask.unsqueeze(0), size=ori_shape, 
+            mask = F.interpolate(mask.float().unsqueeze(0), size=ori_shape, 
                                 mode="bilinear", align_corners=False).squeeze(0)
         
         return mask

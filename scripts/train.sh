@@ -13,5 +13,7 @@
 
 nvidia-smi
 
-python main.py job_id=$SLURM_JOB_ID dataset=livecell_crop trainer=gpu
+python main.py job_id=$SLURM_JOB_ID \
+               dataset=neurlps22_cellseg \
+               trainer=gpu
 # srun --partition=gpu --gres=gpu:tesla:1 --time=60 --exclude=falcon3 --pty /bin/bash

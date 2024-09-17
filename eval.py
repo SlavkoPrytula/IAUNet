@@ -39,7 +39,6 @@ def run(cfg: _cfg):
 
     # get dataloaders
     dataset = DATASETS.get(cfg.dataset.type)
-    print(dataset)
     print()
 
     eval_dataset = dataset(cfg, 
@@ -112,7 +111,7 @@ if __name__ == '__main__':
     sys.path.append("./")
     args = parse_args()
 
-    experiment_path = Path("runs/[resnet_iaunet_multitask_ml]/[truncated_decoder-iadecoder_ml]/[ResNet]/[EVICAN2_Easy]/[softmax_iam]/[kernel_dim=256]-[multi_level=True]-[coord_conv=True]-[losses=['labels', 'masks']]/[InstanceHead-v2.2.1-dual-update]/[job=52024927]-[2024-09-10 00:11:11]")
+    experiment_path = Path("runs/[resnet_iaunet_multitask_ml]/[truncated_decoder-iadecoder_ml]/[ResNet]/[EVICAN2_Easy]/[softmax_iam]/[kernel_dim=256]-[multi_level=True]-[coord_conv=True]-[losses=['labels', 'masks']]/[InstanceHead-v2.2.1-dual-update]/[job=52029275]-[2024-09-10 15:02:31]")
     if args.experiment_path:
         experiment_path = Path(args.experiment_path)
 
@@ -132,6 +131,7 @@ if __name__ == '__main__':
     # cfg.dataset = "LiveCell"
     # cfg.dataset.name = "LiveCellCrop"
     
+    # cfg.dataset.name = "NeurlPS22_CellSeg"
     # cfg.dataset.name = "YeastNet"
     # cfg.dataset.name = "HuBMAP"
 
@@ -139,8 +139,8 @@ if __name__ == '__main__':
         'model': {
             'evaluator': {
                 'type': "MMDetDataloaderEvaluator",
-                'mask_thr': 0.5,
-                'score_thr': 0.01,
+                'mask_thr': 0.1,
+                'score_thr': 0.1,
                 'nms_thr': 0.8,
                 'metric': 'segm',
                 'classwise': False,
@@ -155,7 +155,7 @@ if __name__ == '__main__':
                 }
             },
             'weights': experiment_path / "checkpoints/best.pth",
-            'load_pretrained': True,
+            'load_pretrained': False,
             'save_model_files': False,
             'load_from_files': True,
             'model_files': experiment_path / "model_files",
@@ -167,10 +167,11 @@ if __name__ == '__main__':
         },
         'dataset': {
             'valid_dataset': {
-                'batch_size': 4
+                'size': [512, 512],
+                'batch_size': 8
             },
             'eval_dataset': {
-                'batch_size': 4,
+                'batch_size': 8,
             }
         }
     })

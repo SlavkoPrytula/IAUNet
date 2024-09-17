@@ -22,7 +22,11 @@ class ResNet(nn.Module):
         self.out_indices = out_indices
         assert self.num_stages <= len(self.out_indices)
 
-        if depth == 34:
+        if depth == 18:
+            weights = models.ResNet18_Weights.DEFAULT if pretrained else None
+            model = models.resnet18(weights=weights)
+            self.embed_dims = [64, 64, 128, 256, 512]
+        elif depth == 34:
             weights = models.ResNet34_Weights.DEFAULT if pretrained else None
             model = models.resnet34(weights=weights)
             self.embed_dims = [64, 64, 128, 256, 512]

@@ -43,7 +43,7 @@ class BaseTrainer:
         self.eval_loop = None
 
         self.max_epochs = cfg.trainer.max_epochs + 1
-        self.best_loss = np.inf
+        self.best_metric = -np.inf
         self.loss = None
         self.loss_dict = None
         self.output = None

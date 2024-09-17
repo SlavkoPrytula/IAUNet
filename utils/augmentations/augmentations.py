@@ -52,7 +52,7 @@ def train_transforms(cfg: cfg):
         A.LongestMaxSize(max_size=max(size)),
         A.PadIfNeeded(*size, border_mode=cv2.BORDER_CONSTANT, value=0),
         
-        A.RandomScale(scale_limit=(-0.2, 1.5), p=1, interpolation=1),
+        A.RandomScale(scale_limit=(-0.2, 0.5), p=1, interpolation=1),
         A.PadIfNeeded(*size, border_mode=cv2.BORDER_CONSTANT, value=0),
         A.RandomCrop(*size),
 

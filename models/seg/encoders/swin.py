@@ -508,7 +508,8 @@ class SwinTransformer(nn.Module):
         self.mlp_ratio = mlp_ratio
         self.depths = depths
 
-        self.embed_dims = [int(embed_dim * 2 ** i) for i in out_indices]
+        # self.embed_dims = [int(embed_dim * 2 ** i) for i in out_indices]
+        self.embed_dims = [embed_dim] + [int(embed_dim * 2 ** i) for i in out_indices]
         self.out_indices = out_indices
 
         self.patch_embed = PatchEmbed(

@@ -100,6 +100,7 @@ class ValidLoop(BaseLoop):
         for evaluator_name in self.evaluators:
             print(f"Evaluating {evaluator_name} subset...")
             evaluator = self.evaluators[evaluator_name]
+            evaluator.model = self.model
             evaluator.evaluate(verbose=True)
             stats = evaluator.stats
             results.update(stats)  

@@ -88,8 +88,10 @@ class InstanceHead(nn.Module):
         self.query_embed = nn.Embedding(self.num_masks, hidden_dim)
 
         # Outputs
-        self.cls_score = nn.Linear(hidden_dim, self.num_classes)
-        self.inst_kernel = nn.Linear(hidden_dim, self.kernel_dim)
+        # self.cls_score = nn.Linear(hidden_dim, self.num_classes)
+        # self.inst_kernel = nn.Linear(hidden_dim, self.kernel_dim)
+        self.cls_score = MLP(hidden_dim, hidden_dim, self.num_classes, 3)
+        self.inst_kernel = MLP(hidden_dim, hidden_dim, self.kernel_dim, 3)
         self.objectness = nn.Linear(hidden_dim, 1)
         self.bbox_pred = nn.Linear(hidden_dim, 4)
         
@@ -717,6 +719,8 @@ class InstanceHead(nn.Module):
         # Outputs
         self.cls_score = nn.Linear(hidden_dim, self.num_classes)
         self.inst_kernel = nn.Linear(hidden_dim, self.kernel_dim)
+        # self.cls_score = MLP(hidden_dim, hidden_dim, self.num_classes, 3)
+        # self.inst_kernel = MLP(hidden_dim, hidden_dim, self.kernel_dim, 3)
         self.objectness = nn.Linear(hidden_dim, 1)
         self.bbox_pred = nn.Linear(hidden_dim, 4)
         
@@ -729,10 +733,10 @@ class InstanceHead(nn.Module):
 
     def _init_weights(self):
         bias_value = -np.log((1 - self.prior_prob) / self.prior_prob)
-        init.normal_(self.cls_score.weight, std=0.01)
-        init.constant_(self.cls_score.bias, bias_value)
-        init.normal_(self.inst_kernel.weight, std=0.01)
-        init.constant_(self.inst_kernel.bias, 0.0)
+        # init.normal_(self.cls_score.weight, std=0.01)
+        # init.constant_(self.cls_score.bias, bias_value)
+        # init.normal_(self.inst_kernel.weight, std=0.01)
+        # init.constant_(self.inst_kernel.bias, 0.0)
 
     
     def forward_one_layer(self, inst_features, inst_pixel_features, mask_pixel_features, query_embed, pos, i):
@@ -875,7 +879,7 @@ class InstanceHead(nn.Module):
 
         # predictions.
         pred_logits = self.cls_score(inst_features)
-        pred_inst_kernel = self.inst_kernel(inst_features)
+        pred_inst_features = self.inst_kernel(inst_features)
         pred_scores = self.objectness(inst_features)
         pred_bboxes = self.bbox_pred(inst_features)
 
@@ -887,7 +891,7 @@ class InstanceHead(nn.Module):
             'logits': pred_logits,
             'objectness_scores': pred_scores,
             'kernels': {
-                'instance_kernel': pred_inst_kernel,
+                'instance_kernel': pred_inst_features,
                 },
             'bboxes': {
                 'instance_bboxes': pred_bboxes

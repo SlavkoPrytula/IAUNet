@@ -45,13 +45,21 @@ def profile_model(cfg: cfg):
     # inst branch.
     cfg.model.decoder.instance_branch.type = "InstStackedConv" # InstDoubleConv, InstStackedConv
     cfg.model.decoder.instance_branch.dim = 256
+    
     # model.
-    cfg.model.type = "resnet_iaunet_multitask_ml"
-    cfg.model.encoder.out_indices = [1, 2, 3, 4]
+    # cfg.model.type = "resnet_iaunet_multitask_ml"
+    cfg.model.type = "iaunet"
+    cfg.model.decoder.type = "iadecoder_ml"
+    # cfg.model.encoder = dict(
+    #     type='ResNet',
+    #     depth=50,
+    #     num_stages=4,
+    #     out_indices=[1, 2, 3, 4],
+    #     pretrained=True,
+    # )
     cfg.model.n_levels = 4
     cfg.model.decoder.num_convs = 2
     cfg.model.decoder.last_layer_only = False
-    cfg.model.decoder.type = "truncated_decoder-iadecoder_ml"
 
     model = get_model(cfg)
 

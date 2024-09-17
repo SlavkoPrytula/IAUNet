@@ -128,10 +128,12 @@ class Trainer(BaseTrainer):
         results.update(valid_results)
         results.update(train_results)
 
-        val_loss = results["loss_valid"]
-        if val_loss <= self.best_loss:
-            self.logger.info(f"Valid Loss Improved ({self.best_loss:.4f} ---> {val_loss:.4f})")
-            self.best_loss = val_loss
+        metric = 'mAP@0.5:0.95'
+        # metric = 'loss_valid'
+        val_metric = results[metric]
+        if val_metric >= self.best_metric:
+            self.logger.info(f"{metric} improved ({self.best_metric:.4f} ---> {val_metric:.4f})")
+            self.best_metric = val_metric
             
             # saving best model.
             self.save_checkpoint(self.cfg.run.save_dir / 'checkpoints/best.pth')
@@ -166,7 +168,7 @@ class Trainer(BaseTrainer):
 
         if model_type == 'best':
             checkpoint_path = self.cfg.run.save_dir / 'checkpoints/best.pth'
-        elif model_type == 'latest':
+        elif model_type == 'last':
             checkpoint_path = self.cfg.run.save_dir / 'checkpoints/last.pth'
         else:
             raise ValueError(f"Unknown model type '{model_type}'")

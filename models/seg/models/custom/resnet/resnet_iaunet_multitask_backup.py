@@ -9,7 +9,7 @@ sys.path.append("./")
 
 from ....heads.instance_head import InstanceBranch
 from ....heads.mask_head import MaskBranch
-from ....nn.blocks import DoubleConv_v2, SE_block, DoubleConv_v1, DoubleConv_v3
+from ....nn.blocks import DoubleConv_v2, SE_block
 
 from configs.structure import cfg
 from utils.registry import MODELS, HEADS
@@ -55,25 +55,23 @@ class IAUNet(nn.Module):
         self.encoder3 = encoder.layer3
         self.encoder4 = encoder.layer4
 
-        # self.bridge = nn.Sequential(
-        #     nn.Conv2d(embed_dims[4], embed_dims[3], kernel_size=3, padding=1, bias=False),
-        #     nn.BatchNorm2d(embed_dims[3]),
-        #     nn.ReLU(inplace=True),
-        #     # nn.MaxPool2d(kernel_size=2, stride=2)
-        # )
+        self.bridge = nn.Sequential(
+            nn.Conv2d(embed_dims[4], embed_dims[4], kernel_size=3, padding=1, bias=False),
+            nn.BatchNorm2d(embed_dims[4]),
+            nn.ReLU(inplace=True),
+            nn.MaxPool2d(kernel_size=2, stride=2)
+            
+        )
         
         embed_dims = self.embed_dims[::-1]
         
         self.up_conv_layers = nn.ModuleList([])
         for i in range(self.n_levels):
-            if i == 0:
-                in_channels = embed_dims[i] + 2
-            else:
-                in_channels = embed_dims[i] * 2 + 2
+            in_channels = embed_dims[i] * 2 + 2
             out_channels = embed_dims[i+1]
 
             upconv = nn.Sequential(
-                DoubleConv_v3(in_channels, out_channels),
+                DoubleConv_v2(in_channels, out_channels),
                 SE_block(num_features=out_channels)
             )
             self.up_conv_layers.append(upconv)
@@ -124,9 +122,8 @@ class IAUNet(nn.Module):
         # instance branch.
         self.instance_head = HEADS.build(cfg.model.decoder.instance_head)
 
-        for modules in [self.up_conv_layers, 
-                        # self.bridge
-                        ]:
+
+        for modules in [self.up_conv_layers, self.bridge]:
             for l in modules.modules():
                 if isinstance(l, nn.Conv2d):
                     torch.nn.init.normal_(l.weight, std=0.01)
@@ -147,14 +144,9 @@ class IAUNet(nn.Module):
         return coord_feat
         
 
-    def forward(self, x):
-        max_shape = x.shape[-2:]
-        results = self._forward(x)
-        results = self.process_outputs(results, max_shape)
-        return results
-
-
-    def _forward(self, x):    
+    def forward(self, x, idx=None):
+        ori_shape = x.shape
+        
         # go down
         e1 = self.firstlayer(x)
         maxe1 = self.maxpool(e1)
@@ -165,19 +157,16 @@ class IAUNet(nn.Module):
 
         skips = [e1, e2, e3, e4, e5]
 
+        x = self.bridge(e5)
+
         # go up
         for i in range(self.n_levels):
-            if i != 0:
-                coord_features = self.compute_coordinates(x)
-                x = torch.cat([coord_features, x], dim=1)
-                
-                x = nn.UpsamplingBilinear2d(scale_factor=2)(x)
-                x = torch.cat([x, skips[-(i + 1)]], dim=1)
-                x = self.up_conv_layers[i](x)
-            else:
-                coord_features = self.compute_coordinates(skips[-1])
-                x = torch.cat([coord_features, skips[-1]], dim=1)
-                x = self.up_conv_layers[i](x)
+            coord_features = self.compute_coordinates(x)
+            x = torch.cat([coord_features, x], dim=1)
+            
+            x = nn.UpsamplingBilinear2d(scale_factor=2)(x)
+            x = torch.cat([x, skips[-(i + 1)]], dim=1)
+            x = self.up_conv_layers[i](x)
 
             
             if i != 0:
@@ -197,11 +186,14 @@ class IAUNet(nn.Module):
                 inst_feats = self.instance_branch[i](inst_feats)
             else:
                 inst_feats = self.instance_branch[i](x)
-
+                    
+        
         results = self.instance_head(inst_feats)
         mask_feats = self.projection(mask_feats)
         results["mask_feats"] = mask_feats
         results["inst_feats"] = inst_feats
+
+        results = self.process_outputs(results, ori_shape)
     
         return results
     
@@ -222,7 +214,7 @@ class IAUNet(nn.Module):
         inst_masks = inst_masks.view(B, N, H, W)
         bboxes = bboxes.sigmoid()
 
-        inst_masks = F.interpolate(inst_masks, size=ori_shape, 
+        inst_masks = F.interpolate(inst_masks, size=ori_shape[-2:], 
                                    mode="bilinear", align_corners=False)
 
         output = {

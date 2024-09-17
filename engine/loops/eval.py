@@ -54,6 +54,7 @@ class EvalLoop(BaseLoop):
         for evaluator_name in self.evaluators:
             print(f"Evaluating {evaluator_name} subset...")
             evaluator = self.evaluators[evaluator_name]
+            evaluator.model = self.model
             evaluator(self.dataloader)
             evaluator.evaluate(verbose=True)
         
@@ -82,7 +83,7 @@ class EvalLoop(BaseLoop):
                     idx = targets["coco_id"]
                     H, W = targets["ori_shape"]
                     out_file = join(self.eval_dir, 'visuals', f'{fname}.jpg')
-
+                    
                     save_coco_vis(img, gt_coco, pred_coco, idx, shape=[H, W], path=out_file)
 
 

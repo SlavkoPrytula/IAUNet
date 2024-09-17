@@ -37,94 +37,94 @@ class BaseDecoder(nn.Module, ABC):
 
         embed_dims = embed_dims[::-1]
 
-        self.up_conv_layers = nn.ModuleList([])
-        for i in range(self.n_levels):
-            in_channels = embed_dims[i] * 2 #+ 2
+        # self.up_conv_layers = nn.ModuleList([])
+        # for i in range(self.n_levels):
+        #     in_channels = embed_dims[i] * 2 #+ 2
 
-            if i != self.n_levels - 1:
-                out_channels = embed_dims[i+1]
-            else:
-                out_channels = embed_dims[i]
+        #     if i != self.n_levels - 1:
+        #         out_channels = embed_dims[i+1]
+        #     else:
+        #         out_channels = embed_dims[i]
 
-            upconv = DoubleConv_v1(in_channels, out_channels)
-            self.up_conv_layers.append(upconv)
+        #     upconv = DoubleConv_v1(in_channels, out_channels)
+        #     self.up_conv_layers.append(upconv)
 
-        embed_dims = embed_dims[1:] + [embed_dims[-1]]
+        # embed_dims = embed_dims[1:] + [embed_dims[-1]]
 
-        # mask branch.
-        mask_branch_layer = HEADS.get(cfg.mask_branch.type)
-        self.mask_branch = nn.ModuleList([])
-        if not self.last_layer_only:
-            for i in range(self.n_levels):
-                if i == 0:
-                    mask_branch = mask_branch_layer(
-                        embed_dims[i], 
-                        out_channels=self.mask_dim, 
-                        num_convs=self.num_convs
-                        )
-                else:
-                    mask_branch = mask_branch_layer(
-                        embed_dims[i] + self.mask_dim, 
-                        out_channels=self.mask_dim, 
-                        num_convs=self.num_convs
-                        )
-                self.mask_branch.append(mask_branch)
-        else:
-            mask_branch = mask_branch_layer(
-                embed_dims[-1],
-                out_channels=self.mask_dim, 
-                num_convs=self.num_convs
-                )
-            self.mask_branch.append(mask_branch)
+        # # mask branch.
+        # mask_branch_layer = HEADS.get(cfg.mask_branch.type)
+        # self.mask_branch = nn.ModuleList([])
+        # if not self.last_layer_only:
+        #     for i in range(self.n_levels):
+        #         if i == 0:
+        #             mask_branch = mask_branch_layer(
+        #                 embed_dims[i], 
+        #                 out_channels=self.mask_dim, 
+        #                 num_convs=self.num_convs
+        #                 )
+        #         else:
+        #             mask_branch = mask_branch_layer(
+        #                 embed_dims[i] + self.mask_dim, 
+        #                 out_channels=self.mask_dim, 
+        #                 num_convs=self.num_convs
+        #                 )
+        #         self.mask_branch.append(mask_branch)
+        # else:
+        #     mask_branch = mask_branch_layer(
+        #         embed_dims[-1],
+        #         out_channels=self.mask_dim, 
+        #         num_convs=self.num_convs
+        #         )
+        #     self.mask_branch.append(mask_branch)
 
-        self.projection = nn.Conv2d(self.mask_dim, self.kernel_dim, kernel_size=1)
+        # self.projection = nn.Conv2d(self.mask_dim, self.kernel_dim, kernel_size=1)
         
-        # instance branch.
-        instance_branch_layer = HEADS.get(cfg.instance_branch.type)
-        self.instance_branch = nn.ModuleList([])
-        if not self.last_layer_only:
-            for i in range(self.n_levels):
-                if i == 0:
-                    instance_branch = instance_branch_layer(
-                        in_channels=embed_dims[i] + 2, 
-                        out_channels=self.inst_dim, 
-                        num_convs=self.num_convs
-                        )
-                else:
-                    instance_branch = instance_branch_layer(
-                        in_channels=embed_dims[i] + self.inst_dim + 2, 
-                        out_channels=self.inst_dim, 
-                        num_convs=self.num_convs
-                        )
-                self.instance_branch.append(instance_branch)
-        else:
-            instance_branch = instance_branch_layer(
-                in_channels=embed_dims[-1] + 2, 
-                out_channels=self.inst_dim, 
-                num_convs=self.num_convs
-                )
-            self.instance_branch.append(instance_branch)
+        # # instance branch.
+        # instance_branch_layer = HEADS.get(cfg.instance_branch.type)
+        # self.instance_branch = nn.ModuleList([])
+        # if not self.last_layer_only:
+        #     for i in range(self.n_levels):
+        #         if i == 0:
+        #             instance_branch = instance_branch_layer(
+        #                 in_channels=embed_dims[i] + 2, 
+        #                 out_channels=self.inst_dim, 
+        #                 num_convs=self.num_convs
+        #                 )
+        #         else:
+        #             instance_branch = instance_branch_layer(
+        #                 in_channels=embed_dims[i] + self.inst_dim + 2, 
+        #                 out_channels=self.inst_dim, 
+        #                 num_convs=self.num_convs
+        #                 )
+        #         self.instance_branch.append(instance_branch)
+        # else:
+        #     instance_branch = instance_branch_layer(
+        #         in_channels=embed_dims[-1] + 2, 
+        #         out_channels=self.inst_dim, 
+        #         num_convs=self.num_convs
+        #         )
+        #     self.instance_branch.append(instance_branch)
 
-        # instance head.
-        self.instance_head = HEADS.build(cfg.instance_head)
+        # # instance head.
+        # self.instance_head = HEADS.build(cfg.instance_head)
 
 
-    def _init_weights(self):
-        for modules in [self.up_conv_layers]:
-            for m in modules.modules():
-                if isinstance(m, nn.Conv2d):
-                    init.kaiming_normal_(m.weight, mode='fan_out', nonlinearity='relu')
-                    if m.bias is not None:
-                        init.constant_(m.bias, 0)
-                elif isinstance(m, nn.BatchNorm2d):
-                    init.constant_(m.weight, 1)
-                    init.constant_(m.bias, 0)
-                elif isinstance(m, nn.Linear):
-                    init.normal_(m.weight, std=0.01)
-                    if m.bias is not None:
-                        init.constant_(m.bias, 0)
+    # def _init_weights(self):
+    #     for modules in [self.up_conv_layers]:
+    #         for m in modules.modules():
+    #             if isinstance(m, nn.Conv2d):
+    #                 init.kaiming_normal_(m.weight, mode='fan_out', nonlinearity='relu')
+    #                 if m.bias is not None:
+    #                     init.constant_(m.bias, 0)
+    #             elif isinstance(m, nn.BatchNorm2d):
+    #                 init.constant_(m.weight, 1)
+    #                 init.constant_(m.bias, 0)
+    #             elif isinstance(m, nn.Linear):
+    #                 init.normal_(m.weight, std=0.01)
+    #                 if m.bias is not None:
+    #                     init.constant_(m.bias, 0)
 
-        c2_msra_fill(self.projection)
+    #     c2_msra_fill(self.projection)
 
     @torch.no_grad()
     def compute_coordinates(self, x):
@@ -143,56 +143,4 @@ class BaseDecoder(nn.Module, ABC):
         ...
 
     def process_outputs(self, results, ori_shape):
-        logits = results["logits"]
-        scores = results["objectness_scores"]
-        inst_kernel = results["kernels"]["instance_kernel"]
-        bboxes = results["bboxes"]['instance_bboxes']
-        mask_feats = results["mask_feats"]
-        inst_feats = results["inst_feats"]
-        
-        # instance masks.
-        N = inst_kernel.shape[1]
-        B, C, H, W = mask_feats.shape
-
-        inst_masks = torch.bmm(inst_kernel, mask_feats.view(B, C, H * W))
-        inst_masks = inst_masks.view(B, N, H, W)
-        bboxes = bboxes.sigmoid()
-
-        inst_masks = F.interpolate(inst_masks, size=ori_shape[-2:], 
-                                   mode="bilinear", align_corners=False)
-
-        output = {
-            'pred_logits': logits,
-            'pred_scores': scores,
-            'pred_iams': results['iams'],
-            'pred_instance_masks': inst_masks,
-            'pred_bboxes': bboxes,
-            'pred_instance_feats': {
-                "mask_feats": mask_feats,
-                "inst_feats": inst_feats
-            }
-        }
-    
-        return output
-
-
-# 08/13 10:29:07 - iaunet - INFO - Avg. Batch Time: 0.0572s
-# 08/13 10:29:07 - iaunet - INFO - Avg. Forward Time: 1.9059s
-# 08/13 10:29:07 - iaunet - INFO - Avg. Loss Time: 0.2510s
-# 08/13 10:29:07 - iaunet - INFO - Avg. Backward Time: 0.3752s
-# 08/13 10:29:07 - iaunet - INFO - Avg. Total Time: 2.3383s
-# 08/13 10:29:07 - iaunet - INFO - Epoch Time: 605.0145s
-
-# 08/13 12:44:47 - iaunet - INFO - Avg. Batch Time: 0.0608s
-# 08/13 12:44:47 - iaunet - INFO - Avg. Forward Time: 1.9326s
-# 08/13 12:44:47 - iaunet - INFO - Avg. Loss Time: 0.1820s
-# 08/13 12:44:47 - iaunet - INFO - Avg. Backward Time: 0.2686s
-# 08/13 12:44:47 - iaunet - INFO - Avg. Total Time: 2.2620s
-# 08/13 12:44:47 - iaunet - INFO - Epoch Time: 621.5210s
-
-# 08/13 13:57:54 - iaunet - INFO - Avg. Batch Time: 0.1990s
-# 08/13 13:57:54 - iaunet - INFO - Avg. Forward Time: 3.5797s
-# 08/13 13:57:54 - iaunet - INFO - Avg. Loss Time: 0.4774s
-# 08/13 13:57:54 - iaunet - INFO - Avg. Backward Time: 0.5146s
-# 08/13 13:57:54 - iaunet - INFO - Avg. Total Time: 4.2932s
-# 08/13 13:57:54 - iaunet - INFO - Epoch Time: 545.6076s
+        ...

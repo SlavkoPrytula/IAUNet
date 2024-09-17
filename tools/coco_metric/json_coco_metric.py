@@ -12,6 +12,7 @@ from utils.coco.coco import COCO
 from utils.coco.cocoeval import COCOeval 
 
 from visualizations import save_coco_vis
+from utils.visualise import visualize
 
 
 def load_coco_json(json_file_path):
@@ -102,7 +103,7 @@ if __name__ == "__main__":
     # pred_json_path = "runs/[resnet_iaunet_multitask_ml]/[truncated_decoder-iadecoder_ml]/[ResNet]/[LiveCellCrop]/[softmax_iam]/[kernel_dim=256]-[multi_level=True]-[coord_conv=True]-[losses=['labels', 'masks']]/[InstanceHead-v2.2.1-dual-update]/[job=51978235]-[2024-08-31 21:43:39]/eval/results/coco.segm.json"
     
     gt_json_path = "/gpfs/space/projects/PerkinElmer/cytoplasm_segmentation/datasets/EVICAN2/coco/annotations/EVICAN2/processed/instances_eval2019_easy_EVICAN2_cell.json"
-    pred_json_path = "/gpfs/space/home/prytula/scripts/experimental_segmentation/yolo/ultralytics/runs/EVICAN2_Easy/sam/sam_l/['bboxes']/results/coco_eval.segm.json"
+    pred_json_path = "/gpfs/space/home/prytula/scripts/experimental_segmentation/yolo/ultralytics/runs/EVICAN2_Easy/yolo/yolov8m-seg/run2/results/coco_eval.segm.json"
     image_dir = "/gpfs/space/projects/PerkinElmer/cytoplasm_segmentation/datasets/EVICAN2/coco/images/EVICAN_eval2019"
 
 
@@ -115,7 +116,7 @@ if __name__ == "__main__":
     # idx = 101438
     image_ids = gt_coco.getImgIds()
     
-    for idx in range(1, 6):
+    for idx in range(2, 6):
         img_id = image_ids[idx]
         img_info = gt_coco.loadImgs(ids=[img_id])[0]
         img_name = img_info['file_name']
@@ -126,4 +127,5 @@ if __name__ == "__main__":
         img = img / img.max()
 
         H, W = img_info["height"], img_info["width"]
-        save_coco_vis(img, gt_coco, pred_coco, img_id, shape=[H, W], path=f"./tools/coco_metric/results/{base_name}.jpg")
+        save_coco_vis(img, gt_coco, pred_coco, img_id, shape=[H, W], 
+                      path=f"./tools/coco_metric/results/{base_name}.jpg")
