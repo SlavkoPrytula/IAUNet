@@ -1,0 +1,27 @@
+# @package _global_
+dataset:
+  name: Revvity_25
+  type: Revvity_25
+
+  data_root: /gpfs/space/projects/PerkinElmer/cytoplasm_segmentation/datasets/Revvity-25/v2
+
+  train_dataset:
+    images: ${dataset.data_root}/images
+    ann_file: ${dataset.data_root}/annotations/train.json
+    size: [512, 512]
+    batch_size: 8
+
+  valid_dataset:
+    images: ${dataset.data_root}/images
+    ann_file: ${dataset.data_root}/annotations/valid.json
+    size: [512, 512]
+    batch_size: 8
+
+  eval_dataset:
+    images: ${dataset.data_root}/images
+    ann_file: ${dataset.data_root}/annotations/valid.json
+    size: [512, 512]
+    batch_size: 8
+
+  mean: [133.488, 133.488, 133.488]
+  std: [26.903, 26.903, 26.903]

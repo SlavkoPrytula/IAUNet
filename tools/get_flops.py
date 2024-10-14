@@ -29,37 +29,42 @@ def get_flops(model, device="cuda:0"):
 def profile_model(cfg: cfg):
     # from omegaconf import OmegaConf
     # print(OmegaConf.to_yaml(cfg))
+    print(cfg.run.run_name)
 
-    # inst head.
-    # cfg.model.decoder.instance_head.type = "InstanceHead-v1.1"
-    # cfg.model.decoder.instance_head.type = "InstanceHead-v2.1-attn"
-    # cfg.model.decoder.instance_head.type = "InstanceHead-v2.2-two-way-attn"
-    cfg.model.decoder.instance_head.type = "InstanceHead-v2.2.1-dual-update"
-    cfg.model.decoder.instance_head.in_channels = 256
-    cfg.model.decoder.instance_head.kernel_dim = 256
-    cfg.model.decoder.instance_head.num_groups = 1
-    cfg.model.decoder.instance_head.num_masks = 100
-    # mask branch.
-    cfg.model.decoder.mask_branch.type = "MaskStackedConv" # MaskDoubleConv, MaskStackedConv
-    cfg.model.decoder.mask_branch.dim = 256
-    # inst branch.
-    cfg.model.decoder.instance_branch.type = "InstStackedConv" # InstDoubleConv, InstStackedConv
-    cfg.model.decoder.instance_branch.dim = 256
-    
-    # model.
-    # cfg.model.type = "resnet_iaunet_multitask_ml"
-    cfg.model.type = "iaunet"
-    cfg.model.decoder.type = "iadecoder_ml"
-    # cfg.model.encoder = dict(
-    #     type='ResNet',
-    #     depth=50,
-    #     num_stages=4,
-    #     out_indices=[1, 2, 3, 4],
-    #     pretrained=True,
-    # )
-    cfg.model.n_levels = 4
-    cfg.model.decoder.num_convs = 2
-    cfg.model.decoder.last_layer_only = False
+    print(cfg.logger.wandb.group)
+    raise
+
+    if False:
+        # inst head.
+        # cfg.model.decoder.instance_head.type = "InstanceHead-v1.1"
+        # cfg.model.decoder.instance_head.type = "InstanceHead-v2.1-attn"
+        # cfg.model.decoder.instance_head.type = "InstanceHead-v2.2-two-way-attn"
+        cfg.model.decoder.instance_head.type = "InstanceHead-v2.2.1-dual-update"
+        cfg.model.decoder.instance_head.in_channels = 256
+        cfg.model.decoder.instance_head.kernel_dim = 256
+        cfg.model.decoder.instance_head.num_groups = 1
+        cfg.model.decoder.instance_head.num_masks = 100
+        # mask branch.
+        cfg.model.decoder.mask_branch.type = "MaskStackedConv" # MaskDoubleConv, MaskStackedConv
+        cfg.model.decoder.mask_branch.dim = 256
+        # inst branch.
+        cfg.model.decoder.instance_branch.type = "InstStackedConv" # InstDoubleConv, InstStackedConv
+        cfg.model.decoder.instance_branch.dim = 256
+        
+        # model.
+        # cfg.model.type = "resnet_iaunet_multitask_ml"
+        cfg.model.type = "iaunet"
+        cfg.model.decoder.type = "iadecoder_ml"
+        # cfg.model.encoder = dict(
+        #     type='ResNet',
+        #     depth=50,
+        #     num_stages=4,
+        #     out_indices=[1, 2, 3, 4],
+        #     pretrained=True,
+        # )
+        cfg.model.n_levels = 4
+        cfg.model.decoder.num_convs = 2
+        cfg.model.decoder.last_layer_only = False
 
     model = get_model(cfg)
 

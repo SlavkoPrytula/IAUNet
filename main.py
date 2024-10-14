@@ -73,12 +73,13 @@ def run(rank: int = 0, world_size: int = 1, cfg: cfg = None):
         )
 
     # wandb.
-    # wandb.init(
-    #     project=cfg.logger.wandb.project, 
-    #     group=cfg.logger.wandb.group,
-    #     name=cfg.logger.wandb.name,
-    #     dir=cfg.run.save_dir
-    #     )
+    if cfg.logger.get('wandb'):
+        wandb.init(
+            project='IAUNet', 
+            group=cfg.logger.wandb.group,
+            name=f'job_id={cfg.job_id}',
+            dir=cfg.run.save_dir
+            )
 
     # ============================================================
     # ============================================================

@@ -1,7 +1,7 @@
 wandb:
-  project: str = "IAUNet"
-  group: str = ${dataset.name}
-  # name: str = ${JOB_ID}
+  project: "IAUNet"
+  group: ${dataset.name}
+  name: null
 
   # save_dir: "${paths.output_dir}"
   # offline: False

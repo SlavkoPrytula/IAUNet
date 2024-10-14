@@ -556,7 +556,27 @@ class SwinTransformer(nn.Module):
         model_cfg_name = self.get_model_cfg_name()
         if model_cfg_name:
             cfg = default_cfgs[model_cfg_name]
-            load_pretrained(self, cfg, strict=False)
+
+            from dataclasses import asdict
+            tag, pretrained_cfg = cfg.default_with_tag
+            pretrained_cfg_dict = asdict(pretrained_cfg)
+            pretrained_cfg_dict.pop('hf_hub_id', None)
+            pretrained_cfg_dict['source'] = 'timm'
+
+            if pretrained_cfg_dict.get('label_offset') is None:
+                pretrained_cfg_dict['label_offset'] = 0
+            
+            state_dict = torch.hub.load_state_dict_from_url(
+                pretrained_cfg_dict['url'], map_location='cpu', progress=True, check_hash=False
+            )
+
+            if 'model' in state_dict:
+                state_dict = state_dict['model']
+
+            self.load_state_dict(state_dict, strict=False)
+
+            # load_pretrained(self, pretrained_cfg_dict, strict=True)
+            
 
     def get_model_cfg_name(self):
         model_cfgs = {

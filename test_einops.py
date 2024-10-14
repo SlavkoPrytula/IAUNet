@@ -175,14 +175,16 @@
 
 
 
-import cv2
-import matplotlib.pyplot as plt
+# import cv2
+# import matplotlib.pyplot as plt
 
 
-data_root = '/gpfs/space/projects/PerkinElmer/cytoplasm_segmentation/datasets/NeurlPS22-CellSeg'
-img = cv2.imread(f'{data_root}/images/cell_00719.png', -1)
-mask = cv2.imread(f'{data_root}/labels/cell_00719_label.tiff', -1)
-print(img.shape, img.min(), img.max(), mask.max())
+# data_root = '/gpfs/space/projects/PerkinElmer/cytoplasm_segmentation/datasets/NeurlPS22-CellSeg'
+# img = cv2.imread(f'{data_root}/images/cell_00719.png', -1)
+# mask = cv2.imread(f'{data_root}/labels/cell_00719_label.tiff', -1)
+# print(img.shape, img.min(), img.max(), mask.max())
 
-plt.imshow(img)
-plt.savefig("./test.jpg")
+# plt.imshow(img)
+# plt.savefig("./test.jpg")
+
+

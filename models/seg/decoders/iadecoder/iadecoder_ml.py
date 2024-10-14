@@ -54,7 +54,9 @@ class IADecoder(IADecoder):
                 inst_feats = torch.cat([coord_features, inst_feats], dim=1)
                 inst_feats = self.instance_branch[i](inst_feats)
             else:
-                inst_feats = self.instance_branch[i](x)
+                # coord_features = self.compute_coordinates(x)
+                # inst_feats = torch.cat([coord_features, x], dim=1)
+                inst_feats = self.instance_branch[i](inst_feats)
 
 
             if i != 0:

@@ -74,7 +74,7 @@ class EvalLoop(BaseLoop):
                 gt_coco = evaluator.gt_coco
                 pred_coco = evaluator.pred_coco
 
-                n_samples = 6
+                n_samples = 2
                 for batch in islice(self.dataloader, n_samples):
                     targets = batch[0]
                     

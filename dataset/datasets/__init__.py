@@ -9,9 +9,10 @@ from .yeastnet import YeastNet
 from .hubmap import HuBMAP
 
 from .neurlps22_cellseg import NeurlPS22_CellSeg
+from .revvity_25 import Revvity_25
 
 
 __all__ = ['Brightfield_Dataset', 'OriginalPlusSyntheticBrightfield', 'Rectangle',
            'EVICAN2', 'LiveCell', 'LiveCell2Percent', 'LiveCell30Images', 
            'YeastNet', 'HuBMAP', 'BrightfieldCOCO',
-           'NeurlPS22_CellSeg']
+           'NeurlPS22_CellSeg', 'Revvity_25']

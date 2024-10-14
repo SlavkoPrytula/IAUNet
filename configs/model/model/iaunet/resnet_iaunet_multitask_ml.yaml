@@ -4,48 +4,41 @@ defaults:
  - _self_
 
 model:
+  model_name: resnet_iaunet_multitask_ml
   type: resnet_iaunet_multitask_ml
   in_channels: 3
   num_classes: 1
   n_levels: 4
 
   # model params.
-  # encoder: null
-
-  # encoder: 
-  #   type: SwinTransformer
-  #   embed_dim: 96
-  #   depths: [2, 2, 18, 2]
-  #   num_heads: [3, 6, 12, 24]
-  #   window_size: 7
-  #   mlp_ratio: 4
-  #   qkv_bias: True
-  #   drop_path_rate: 0.3
-  #   patch_norm: True
-  #   pretrained: True
-  #   out_indices: [0, 1, 2, 3]
+  encoder: 
+    type: ResNet
+    depth: 50
+    num_stages: 4
+    out_indices: [1, 2, 3, 4]
+    pretrained: true
     
   decoder: 
     type: iadecoder_ml
     num_convs: 2
-    coord_conv: True # depr
+    coord_conv: True
     multi_level: True # depr
     last_layer_only: False
 
     mask_branch:
-      type: MaskStackedConv # opt: MaskDoubleConv, MaskStackedConv
+      type: MaskStackedConv # MaskDoubleConv, MaskStackedConv
       dim: 256
 
     instance_branch:
-      type: InstStackedConv # opt: InstDoubleConv, InstStackedConv
+      type: InstStackedConv # InstDoubleConv, InstStackedConv
       dim: 256
 
     instance_head: 
       # type: InstanceHead-v1.1
       # type: InstanceHead-v2.0-attn
       # type: InstanceHead-v2.1-attn
-      # type: InstanceHead-v2.2-two-way-attn
-      type: InstanceHead-v2.2.1-dual-update
+      type: InstanceHead-v2.2-two-way-attn
+      # type: InstanceHead-v2.2.1-dual-update
       in_channels: 256
       num_classes: 1
       kernel_dim: 256
@@ -57,7 +50,7 @@ model:
   load_pretrained: false
   weights: ''
   # TODO: to callbacks
-  save_checkpoint: true
+  save_checkpoint: false
   save_model_files: true
   load_from_files: false
   model_files: ''

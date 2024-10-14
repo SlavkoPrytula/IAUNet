@@ -60,14 +60,14 @@ def train_transforms(cfg: cfg):
         A.HorizontalFlip(p=0.5),
         A.RandomRotate90(p=1),
 
-        A.ElasticTransform(
-            alpha=10,
-            sigma=10,
-            interpolation=1,
-            border_mode=cv2.BORDER_CONSTANT,
-            approximate=True,
-            p=1
-        ),
+        # A.ElasticTransform(
+        #     alpha=10,
+        #     sigma=10,
+        #     interpolation=1,
+        #     border_mode=cv2.BORDER_CONSTANT,
+        #     approximate=True,
+        #     p=1
+        # ),
     ], 
     # bbox_params=A.BboxParams(format='pascal_voc')
     )

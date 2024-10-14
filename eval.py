@@ -63,10 +63,11 @@ def run(cfg: _cfg):
     model.to(device)
 
 
-    from evaluation import OverlapIOUEvaluator, MMDetDataloaderEvaluator
+    from evaluation import OverlapIOUEvaluator, MMDetDataloaderEvaluator, AnalysisMMDetDataloaderEvaluator
     evaluators = {
         "eval": {
-            "coco": MMDetDataloaderEvaluator(cfg=cfg, model=model, dataset=eval_dataset), 
+            "coco": AnalysisMMDetDataloaderEvaluator(cfg=cfg, model=model, dataset=eval_dataset), 
+            # "coco": MMDetDataloaderEvaluator(cfg=cfg, model=model, dataset=eval_dataset), 
             # "overlap_iou": OverlapIOUEvaluator(cfg=cfg, model=model, dataset=eval_dataset)
         },
     }
@@ -111,7 +112,7 @@ if __name__ == '__main__':
     sys.path.append("./")
     args = parse_args()
 
-    experiment_path = Path("runs/[resnet_iaunet_multitask_ml]/[truncated_decoder-iadecoder_ml]/[ResNet]/[EVICAN2_Easy]/[softmax_iam]/[kernel_dim=256]-[multi_level=True]-[coord_conv=True]-[losses=['labels', 'masks']]/[InstanceHead-v2.2.1-dual-update]/[job=52029275]-[2024-09-10 15:02:31]")
+    experiment_path = Path("runs/benchmarks/[Revvity_25]/[iaunet-r50]/[iadecoder_ml]/[InstanceHead-v2.2.1-dual-update]/[job=52200406]-[2024-09-28 11:07:25]")
     if args.experiment_path:
         experiment_path = Path(args.experiment_path)
 
@@ -124,12 +125,14 @@ if __name__ == '__main__':
     # cfg.dataset = "brightfield_coco"
     # cfg.dataset = "brightfield_coco_v2.0"
     
-    cfg.dataset.name = "EVICAN2_Easy"
+    # cfg.dataset.name = "EVICAN2_Easy"
     # cfg.dataset.name = "EVICAN2_Medium"
     # cfg.dataset.name = "EVICAN2_Difficult"
 
     # cfg.dataset = "LiveCell"
     # cfg.dataset.name = "LiveCellCrop"
+
+    cfg.dataset.name = "Revvity_25"
     
     # cfg.dataset.name = "NeurlPS22_CellSeg"
     # cfg.dataset.name = "YeastNet"
@@ -139,9 +142,9 @@ if __name__ == '__main__':
         'model': {
             'evaluator': {
                 'type': "MMDetDataloaderEvaluator",
-                'mask_thr': 0.1,
+                'mask_thr': 0.5,
                 'score_thr': 0.1,
-                'nms_thr': 0.8,
+                'nms_thr': 0.5,
                 'metric': 'segm',
                 'classwise': False,
                 'outfile_prefix': "eval/results/coco",
@@ -162,16 +165,15 @@ if __name__ == '__main__':
         },
         'run': {
             'run_name': join(cfg.run.run_name.replace(old_dataset, cfg.dataset.name)),
-            # 'save_dir': join(cfg.run.runs_dir, "evals", cfg.run.experiment_name, 
-            #                  cfg.run.run_name, cfg.run.group_name, str(experiment_path).split("/")[-1]),
+            'save_dir': experiment_path,
         },
         'dataset': {
             'valid_dataset': {
                 'size': [512, 512],
-                'batch_size': 8
+                'batch_size': 16
             },
             'eval_dataset': {
-                'batch_size': 8,
+                'batch_size': 16,
             }
         }
     })

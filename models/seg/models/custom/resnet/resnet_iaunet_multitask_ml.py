@@ -74,7 +74,7 @@ class IAUNet(nn.Module):
 
             upconv = nn.Sequential(
                 DoubleConv_v2(in_channels, out_channels),
-                SE_block(num_features=out_channels)
+                # SE_block(num_features=out_channels)
             )
             self.up_conv_layers.append(upconv)
 
@@ -109,7 +109,7 @@ class IAUNet(nn.Module):
         for i in range(self.n_levels):
             if i == 0:
                 instance_branch = instance_branch_layer(
-                    in_channels=embed_dims[i], 
+                    in_channels=embed_dims[i] + 2, 
                     out_channels=self.inst_dim, 
                     num_convs=self.num_convs
                 )
@@ -169,11 +169,12 @@ class IAUNet(nn.Module):
 
         # go up
         for i in range(self.n_levels):
-            if i != 0:
+            if i != 0:        
+                x = nn.UpsamplingBilinear2d(scale_factor=2)(x)
+                
                 coord_features = self.compute_coordinates(x)
                 x = torch.cat([coord_features, x], dim=1)
-                
-                x = nn.UpsamplingBilinear2d(scale_factor=2)(x)
+
                 x = torch.cat([x, skips[-(i + 1)]], dim=1)
                 x = self.up_conv_layers[i](x)
             else:
@@ -198,7 +199,9 @@ class IAUNet(nn.Module):
                 inst_feats = torch.cat([coord_features, inst_feats], dim=1)
                 inst_feats = self.instance_branch[i](inst_feats)
             else:
-                inst_feats = self.instance_branch[i](x)
+                coord_features = self.compute_coordinates(x)
+                inst_feats = torch.cat([coord_features, x], dim=1)
+                inst_feats = self.instance_branch[i](inst_feats)
 
 
             if i != 0:
@@ -211,7 +214,7 @@ class IAUNet(nn.Module):
                 inst_embed = results["inst_feats"]['instance_feats']
 
             mask_feats = results['mask_pixel_feats']
-            inst_feats = results['inst_pixel_feats']
+            # inst_feats = results['inst_pixel_feats']
 
         
         mask_feats = self.projection(mask_feats)

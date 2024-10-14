@@ -20,7 +20,8 @@ def _visualize_masks(ax, masks, draw_border=False):
             
             for c in range(3):
                 mask[..., c][border] = 1  # Set border color to white
-
+        
+        mask[..., 3][border] = 1
         ax.imshow(mask)
 
 
@@ -119,7 +120,7 @@ def visualize_masks(img, masks, shape, alpha=1, draw_border=False, static_color=
         
         ax.axis('off')
         ax.set_xlim(0, shape[1])
-        ax.set_ylim(shape[0], 0)
+        ax.set_ylim(shape[0]-1, 0)
 
     if path:
         os.makedirs(os.path.dirname(path), exist_ok=True)
@@ -166,7 +167,7 @@ def save_coco_vis(img, gt_coco, pred_coco, idx, shape, path=None, show_img=False
     for a in ax:
         a.axis('off')
         a.set_xlim(0, shape[1])
-        a.set_ylim(shape[0], 0)
+        a.set_ylim(shape[0]-1, 0)
 
     if path:
         os.makedirs(os.path.dirname(path), exist_ok=True)

@@ -401,7 +401,7 @@ class InstanceHead(nn.Module):
         self.activation = activation
         self.scale_factor = 1
 
-        self.num_layers = 1
+        self.num_layers = 2
         hidden_dim = self.dim * self.num_groups
         
         # iam.
@@ -473,8 +473,8 @@ class InstanceHead(nn.Module):
 
         # Outputs
         self.fc = nn.Linear(hidden_dim, hidden_dim)
-        self.cls_score = nn.Linear(hidden_dim, self.num_classes)
-        self.inst_kernel = nn.Linear(hidden_dim, self.kernel_dim)
+        self.cls_score = MLP(hidden_dim, hidden_dim, self.num_classes, 3)
+        self.inst_kernel = MLP(hidden_dim, hidden_dim, self.kernel_dim, 3)
         self.objectness = nn.Linear(hidden_dim, 1)
         self.bbox_pred = nn.Linear(hidden_dim, 4)
         
@@ -487,10 +487,10 @@ class InstanceHead(nn.Module):
 
     def _init_weights(self):
         bias_value = -np.log((1 - self.prior_prob) / self.prior_prob)
-        init.normal_(self.cls_score.weight, std=0.01)
-        init.constant_(self.cls_score.bias, bias_value)
-        init.normal_(self.inst_kernel.weight, std=0.01)
-        init.constant_(self.inst_kernel.bias, 0.0)
+        # init.normal_(self.cls_score.weight, std=0.01)
+        # init.constant_(self.cls_score.bias, bias_value)
+        # init.normal_(self.inst_kernel.weight, std=0.01)
+        # init.constant_(self.inst_kernel.bias, 0.0)
 
         c2_xavier_fill(self.fc)
 
@@ -542,9 +542,9 @@ class InstanceHead(nn.Module):
         inst_features = torch.bmm(inst_iam_prob, features.view(B, C, -1).permute(0, 2, 1))
         
         inst_features = inst_features.transpose(0, 1)
-        pixel_features = features.flatten(2).permute(2, 0, 1)
+        pixel_features = mask_feats.flatten(2).permute(2, 0, 1)
 
-        pos = self.pe_layer(features, None)
+        pos = self.pe_layer(mask_feats, None)
         pos = pos.flatten(2).permute(2, 0, 1)
         query_embed = self.query_embed.weight.unsqueeze(1).repeat(1, B, 1)
 
@@ -590,11 +590,13 @@ class InstanceHead(nn.Module):
             'inst_feats': {
                 'instance_feats': inst_features
                 },
-            'pixel_feats': pixel_features
+            # 'inst_pixel_feats': pixel_features,
+            'mask_pixel_feats': pixel_features
         }
 
         return results
     
+
 
 
 
@@ -717,10 +719,9 @@ class InstanceHead(nn.Module):
         self.prev_query_embed = nn.Embedding(self.num_masks, hidden_dim)
 
         # Outputs
+        self.fc = nn.Linear(hidden_dim, hidden_dim)
         self.cls_score = nn.Linear(hidden_dim, self.num_classes)
         self.inst_kernel = nn.Linear(hidden_dim, self.kernel_dim)
-        # self.cls_score = MLP(hidden_dim, hidden_dim, self.num_classes, 3)
-        # self.inst_kernel = MLP(hidden_dim, hidden_dim, self.kernel_dim, 3)
         self.objectness = nn.Linear(hidden_dim, 1)
         self.bbox_pred = nn.Linear(hidden_dim, 4)
         
@@ -733,10 +734,11 @@ class InstanceHead(nn.Module):
 
     def _init_weights(self):
         bias_value = -np.log((1 - self.prior_prob) / self.prior_prob)
-        # init.normal_(self.cls_score.weight, std=0.01)
-        # init.constant_(self.cls_score.bias, bias_value)
-        # init.normal_(self.inst_kernel.weight, std=0.01)
-        # init.constant_(self.inst_kernel.bias, 0.0)
+        init.normal_(self.cls_score.weight, std=0.01)
+        init.constant_(self.cls_score.bias, bias_value)
+        init.normal_(self.inst_kernel.weight, std=0.01)
+        init.constant_(self.inst_kernel.bias, 0.0)
+        c2_xavier_fill(self.fc)
 
     
     def forward_one_layer(self, inst_features, inst_pixel_features, mask_pixel_features, query_embed, pos, i):
@@ -877,9 +879,11 @@ class InstanceHead(nn.Module):
         inst_features = self.decoder_norm(inst_features)
         inst_features = inst_features.transpose(0, 1)
 
+        inst_features = F.relu_(self.fc(inst_features))
+
         # predictions.
         pred_logits = self.cls_score(inst_features)
-        pred_inst_features = self.inst_kernel(inst_features)
+        pred_inst_kernel = self.inst_kernel(inst_features)
         pred_scores = self.objectness(inst_features)
         pred_bboxes = self.bbox_pred(inst_features)
 
@@ -891,7 +895,7 @@ class InstanceHead(nn.Module):
             'logits': pred_logits,
             'objectness_scores': pred_scores,
             'kernels': {
-                'instance_kernel': pred_inst_features,
+                'instance_kernel': pred_inst_kernel,
                 },
             'bboxes': {
                 'instance_bboxes': pred_bboxes

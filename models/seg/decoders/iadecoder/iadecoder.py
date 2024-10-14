@@ -71,13 +71,13 @@ class IADecoder(BaseDecoder):
 
         self.projection = nn.Conv2d(mask_dim, self.kernel_dim, kernel_size=1)
         
-        # instance features.
+        # instance branch.
         self.instance_branch = nn.ModuleList([])
         instance_branch_layer = HEADS.get(cfg.instance_branch.type)
         for i in range(self.n_levels):
             if i == 0:
                 instance_branch = instance_branch_layer(
-                    in_channels=embed_dims[i], 
+                    in_channels=embed_dims[i],# + 2, 
                     out_channels=self.inst_dim, 
                     num_convs=self.num_convs
                 )
@@ -89,7 +89,7 @@ class IADecoder(BaseDecoder):
                 )
             self.instance_branch.append(instance_branch)
 
-        # instance branch.
+        # instance head.
         self.instance_head = HEADS.build(cfg.instance_head)
 
         self._init_weights()
@@ -108,7 +108,7 @@ class IADecoder(BaseDecoder):
 
     def forward(self, skips, ori_shape):
         """
-        Default forward function:
+        Default decoder forward function:
         - _forward() -> dict()
         - process_outputs() -> dict()
 
@@ -151,7 +151,9 @@ class IADecoder(BaseDecoder):
                     inst_feats = torch.cat([coord_features, inst_feats], dim=1)
                     inst_feats = self.instance_branch[i](inst_feats)
                 else:
-                    inst_feats = self.instance_branch[i](x)
+                    coord_features = self.compute_coordinates(x)
+                    inst_feats = torch.cat([coord_features, x], dim=1)
+                    inst_feats = self.instance_branch[i](inst_feats)
             else:
                 if i == self.n_levels - 1:
                     mask_feats = self.mask_branch[0](x)

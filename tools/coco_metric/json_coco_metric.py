@@ -4,6 +4,7 @@
 from os.path import join
 import cv2
 import json
+import numpy as np
 
 import sys
 sys.path.append(".")
@@ -102,9 +103,14 @@ if __name__ == "__main__":
     # gt_json_path = "/gpfs/space/projects/PerkinElmer/cytoplasm_segmentation/datasets/LiveCell/crop_512x512/coco/annotations/livecell_coco_test.json"
     # pred_json_path = "runs/[resnet_iaunet_multitask_ml]/[truncated_decoder-iadecoder_ml]/[ResNet]/[LiveCellCrop]/[softmax_iam]/[kernel_dim=256]-[multi_level=True]-[coord_conv=True]-[losses=['labels', 'masks']]/[InstanceHead-v2.2.1-dual-update]/[job=51978235]-[2024-08-31 21:43:39]/eval/results/coco.segm.json"
     
-    gt_json_path = "/gpfs/space/projects/PerkinElmer/cytoplasm_segmentation/datasets/EVICAN2/coco/annotations/EVICAN2/processed/instances_eval2019_easy_EVICAN2_cell.json"
-    pred_json_path = "/gpfs/space/home/prytula/scripts/experimental_segmentation/yolo/ultralytics/runs/EVICAN2_Easy/yolo/yolov8m-seg/run2/results/coco_eval.segm.json"
-    image_dir = "/gpfs/space/projects/PerkinElmer/cytoplasm_segmentation/datasets/EVICAN2/coco/images/EVICAN_eval2019"
+    # gt_json_path = "/gpfs/space/projects/PerkinElmer/cytoplasm_segmentation/datasets/EVICAN2/coco/annotations/EVICAN2/processed/instances_eval2019_easy_EVICAN2_cell.json"
+    # pred_json_path = "/gpfs/space/home/prytula/scripts/experimental_segmentation/yolo/ultralytics/runs/EVICAN2_Easy/yolo/yolov8m-seg/run2/results/coco_eval.segm.json"
+    # image_dir = "/gpfs/space/projects/PerkinElmer/cytoplasm_segmentation/datasets/EVICAN2/coco/images/EVICAN_eval2019"
+
+    # NeurlPS22_CellSeg
+    gt_json_path = "/gpfs/space/projects/PerkinElmer/cytoplasm_segmentation/datasets/NeurlPS22-CellSeg/coco_new/annotations/test.json"
+    pred_json_path = '/gpfs/space/home/prytula/scripts/experimental_segmentation/yolo/ultralytics/runs/NeurlPS22_CellSeg/yolo/yolov9e-seg/run_15/results/coco_eval.segm.json'
+    image_dir = "/gpfs/space/projects/PerkinElmer/cytoplasm_segmentation/datasets/NeurlPS22-CellSeg/coco_new/images"
 
 
     gt_coco, pred_coco, _ = json_coco_evaluation(gt_json_path, pred_json_path)
@@ -123,9 +129,12 @@ if __name__ == "__main__":
         base_name = img_name.split(".")[0]
         img_path = join(image_dir, img_name)
 
-        img = cv2.imread(img_path, -1)[..., 0]
+        img = cv2.imread(img_path, -1)
         img = img / img.max()
+
+        if len(img.shape) == 3:
+            img = img[..., 0]
 
         H, W = img_info["height"], img_info["width"]
         save_coco_vis(img, gt_coco, pred_coco, img_id, shape=[H, W], 
-                      path=f"./tools/coco_metric/results/{base_name}.jpg")
+                      path=f"./tools/coco_metric/results/yolov9e-seg/{base_name}.jpg")

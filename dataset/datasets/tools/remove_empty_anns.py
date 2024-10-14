@@ -10,13 +10,14 @@ def remove_empty_annotations(coco_json_path, output_json_path):
     with open(coco_json_path, 'r') as f:
         coco_data = json.load(f)
 
-    valid_annotations = []
-    skips = 0
-    for ann in coco_data['annotations']:
-        if ann['segmentation'] and any(seg for seg in ann['segmentation']):
-            valid_annotations.append(ann)
-        else:
-            skips += 1
+    print(len(coco_data['images']))
+    # valid_annotations = []
+    # skips = 0
+    # for ann in coco_data['annotations']:
+    #     if ann['segmentation'] and any(seg for seg in ann['segmentation']):
+    #         valid_annotations.append(ann)
+    #     else:
+    #         skips += 1
     raise
     
     valid_image_ids = set(ann['image_id'] for ann in valid_annotations)
@@ -34,7 +35,7 @@ def remove_empty_annotations(coco_json_path, output_json_path):
 
 if __name__ == "__main__":
     data_root = "/gpfs/space/projects/PerkinElmer/cytoplasm_segmentation/datasets/NeurlPS22-CellSeg/coco"
-    coco_json_path = join(data_root, "annotations/test.json")
+    coco_json_path = join(data_root, "annotations/valid.json")
 
     output_json_path = join(
         dirname(coco_json_path), 
