@@ -221,6 +221,7 @@ def build_loader(
     collate_fn: Optional[Callable[[List[Any]], Any]] = None,
     sampler: Optional[Sampler] = None,
     seed: Optional[int] = None,
+    shuffle: bool = False,
     distributed: bool = False,
 ) -> DataLoader:
     """
@@ -242,12 +243,9 @@ def build_loader(
     """
     if distributed:
         sampler = DistributedSampler(dataset, shuffle=True)
+        shuffle = False
     else:
-        sampler = None
-
-    # init_fn = None
-    # if seed is not None:
-    #     init_fn = lambda worker_id: worker_init_fn(worker_id, num_workers, rank, seed)
+        shuffle = shuffle if sampler is None else False
 
     return DataLoader(
         dataset,
@@ -255,7 +253,6 @@ def build_loader(
         sampler=sampler,
         num_workers=num_workers,
         collate_fn=collate_fn,
-        shuffle=False,
+        shuffle=shuffle,
         pin_memory=True,
-        # worker_init_fn=init_fn
     )

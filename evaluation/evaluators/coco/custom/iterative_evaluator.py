@@ -3,7 +3,7 @@ from os.path import join
 from configs import cfg
 from tqdm import tqdm
 
-from ..mmdet_dataloader_evaluator import MMDetDataloaderEvaluator
+from ..mmdet_dataloader_evaluator import MMDetDataloaderEvaluator, remove_padding
 
 from utils.utils import nested_tensor_from_tensor_list
 from utils.opt.mask_nms import mask_nms
@@ -19,7 +19,7 @@ from utils.common.decorators import timeit_evaluator, memory_evaluator
 class IterativeEvaluator(MMDetDataloaderEvaluator):
     def __init__(self, cfg: cfg, model=None, dataset=None, **kwargs):
         super().__init__(cfg, model, dataset, **kwargs)
-        self.max_iters = cfg.model.evaluator.max_iters if cfg.model.evaluator.max_iters is not None else len(dataset)
+        self.max_iters = cfg.model.evaluator.get('max_iters', len(dataset))
         # remove gt annotations to use only one gt anns per iteration (gt by id).
         self.reset()
 
@@ -37,7 +37,7 @@ class IterativeEvaluator(MMDetDataloaderEvaluator):
 
             target = batch[0]
             ignore = ["img_id", "img_path", "ori_shape", "file_name", "coco_id"]
-            target = {k: v.to(cfg.device) if k not in ignore else v 
+            target = {k: v.to(self.device) if k not in ignore else v 
                     for k, v in target.items()}
             images.append(target["image"])
             targets.append(target)
@@ -58,7 +58,7 @@ class IterativeEvaluator(MMDetDataloaderEvaluator):
             print()
             self.process(pred, target)
             self.evaluate()
-            self.visualize(target)
+            # self.visualize(target)
             self.reset()
             print()
             print()
@@ -79,14 +79,14 @@ class IterativeEvaluator(MMDetDataloaderEvaluator):
 
     def reset(self):
         # simple mmdet coco api reset.
-        self.coco_metric._coco_api = None
-        self.coco_metric.cat_ids = None
-        self.coco_metric.img_ids = None
+        self.metric._coco_api = None
+        self.metric.cat_ids = None
+        self.metric.img_ids = None
 
     
     def process(self, pred: dict, target: dict):
         scores = pred['pred_logits'].softmax(-1)
-        masks_pred = pred['pred_masks'].sigmoid()
+        masks_pred = pred['pred_instance_masks'].sigmoid()
         iou_scores = pred['pred_scores'].sigmoid()
         bboxes_pred = pred['pred_bboxes']
         
@@ -144,6 +144,16 @@ class IterativeEvaluator(MMDetDataloaderEvaluator):
         bboxes_pred = bboxes_pred[keep]
 
 
+        # postprocessing - currently done here, should be moved to model.
+        ori_shape = pred["ori_shape"]
+        if masks_pred.shape[0]:
+            masks_pred = remove_padding(
+                masks_pred, 
+                ori_shape,
+                rescale=True
+            )
+
+
         masks_pred = masks_pred > self.mask_threshold
         # ================================================
 
@@ -161,13 +171,13 @@ class IterativeEvaluator(MMDetDataloaderEvaluator):
 
         # add gt anns.
         results["instances"] = {
-            "masks": target["masks"],
+            "masks": target["instance_masks"],
             "bbox_labels": target["labels"],
             "bboxes":  target["bboxes"] if "bboxes" in target else torch.zeros(len(scores), 4)
         }
 
         data_samples = [results]
-        self.coco_metric.process({}, data_samples)
+        self.metric.process({}, data_samples)
         
 
     

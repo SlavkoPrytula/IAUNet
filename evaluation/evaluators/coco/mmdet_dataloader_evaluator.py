@@ -2,6 +2,7 @@ import torch
 from os.path import join
 from configs import cfg
 from tqdm import tqdm
+import torch.nn.functional as F
 
 from .coco_evaluator import COCOEvaluator
 from utils.utils import nested_tensor_from_tensor_list
@@ -10,6 +11,27 @@ from utils.registry import EVALUATORS, DATASETS
 from evaluation.mmdet import CocoMetric
 
 from utils.common.decorators import timeit_evaluator, memory_evaluator
+
+
+def remove_padding(mask, ori_shape, rescale=False):
+        mask_h, mask_w = mask.shape[-2:]
+        ori_h, ori_w = ori_shape
+        
+        scale = min(mask_h / ori_h, mask_w / ori_w)
+        
+        new_h = int(ori_h * scale)
+        new_w = int(ori_w * scale)
+        
+        pad_top = (mask_h - new_h) // 2
+        pad_left = (mask_w - new_w) // 2
+        
+        mask = mask[:, pad_top:new_h + pad_top, pad_left:new_w + pad_left]
+
+        if rescale:
+            mask = F.interpolate(mask.float().unsqueeze(0), size=ori_shape, 
+                                mode="bilinear", align_corners=False).squeeze(0)
+        
+        return mask
 
 
 @timeit_evaluator
@@ -22,22 +44,22 @@ class MMDetDataloaderEvaluator(COCOEvaluator):
 
         self.dataset = dataset
         outfile_prefix = cfg.model.evaluator.outfile_prefix
-        coco_api = cfg.model.evaluator.get("coco_api", None)
+        # coco_api = cfg.model.evaluator.get("coco_api", None)
         self.num_classes = cfg.model.decoder.instance_head.num_classes
 
         print(f"Doing evaluation on dataset.ann_file: {dataset.ann_file}")
 
-        self.coco_metric = CocoMetric(
+        self.metric = CocoMetric(
             ann_file=dataset.ann_file,
             metric=cfg.model.evaluator.metric,
             classwise=cfg.model.evaluator.classwise,
             outfile_prefix=join(cfg.run.save_dir, outfile_prefix) if (outfile_prefix and cfg.run.get("save_dir")) else None,
-            coco_api=coco_api if coco_api else 'COCOeval'
+            # coco_api=coco_api if coco_api else 'COCOeval'
             )
 
-        categories = self.coco_metric._coco_api.loadCats(self.coco_metric._coco_api.getCatIds())
+        categories = self.metric._coco_api.loadCats(self.metric._coco_api.getCatIds())
         class_names = [category['name'] for category in categories]
-        self.coco_metric.dataset_meta = dict(classes=class_names)
+        self.metric.dataset_meta = dict(classes=class_names)
 
         self.nms_threshold = cfg.model.evaluator.nms_thr
 
@@ -72,7 +94,7 @@ class MMDetDataloaderEvaluator(COCOEvaluator):
             preds["ori_shape"] = [targets[i]["ori_shape"] for i in range(len(targets))]
 
             self.process(preds)
-
+    
 
     def process(self, preds: dict):
         scores_batch = preds['pred_logits'].softmax(-1)
@@ -115,7 +137,7 @@ class MMDetDataloaderEvaluator(COCOEvaluator):
             # ========== NMS ==========
             # pre_nms sort.
             sort_inds = torch.argsort(scores, descending=True)
-            masks_pred = masks_pred[sort_inds, :, :]
+            masks_pred = masks_pred[sort_inds]
             scores = scores[sort_inds]
             labels = labels[sort_inds]
             iou_scores = iou_scores[sort_inds]
@@ -126,11 +148,20 @@ class MMDetDataloaderEvaluator(COCOEvaluator):
             sum_masks = seg_masks.sum((1, 2)).float()
             
             keep = mask_nms(labels, seg_masks, sum_masks, scores, nms_thr=self.nms_threshold)
-            masks_pred = masks_pred[keep, :, :]
+            masks_pred = masks_pred[keep]
             scores = scores[keep]
             labels = labels[keep]
             iou_scores = iou_scores[keep]
             bboxes_pred = bboxes_pred[keep]
+
+            # postprocessing - currently done here, should be moved to model.
+            ori_shape = preds["ori_shape"][batch_idx]
+            if masks_pred.shape[0]:
+                masks_pred = remove_padding(
+                    masks_pred, 
+                    ori_shape,
+                    rescale=True
+                )
 
             masks_pred = masks_pred > self.mask_threshold
             # ================================================
@@ -147,7 +178,7 @@ class MMDetDataloaderEvaluator(COCOEvaluator):
             }
 
             data_samples = [results]
-            self.coco_metric.process({}, data_samples)
+            self.metric.process({}, data_samples)
         
 
     def evaluate(self, verbose=False):
@@ -162,12 +193,12 @@ class MMDetDataloaderEvaluator(COCOEvaluator):
 
         # Compute metrics
         size = len(self.dataset)
-        eval_results = self.coco_metric.evaluate(size)
+        eval_results = self.metric.evaluate(size)
 
         # Update self.stats based on the mapping
         for key, value in eval_results.items():
             if key in key_mapping:
                 self.stats[key_mapping[key]] = value
 
-        self.gt_coco = self.coco_metric._coco_api
-        self.pred_coco = self.coco_metric.coco_dt
+        self.gt_coco = self.metric._coco_api
+        self.pred_coco = self.metric.coco_dt

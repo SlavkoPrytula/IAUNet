@@ -8,7 +8,7 @@ from fvcore.nn.weight_init import c2_msra_fill, c2_xavier_fill
 import sys
 sys.path.append('.')
 
-from .iam import (IAM, AttentionIAM)
+from .iam import (IAM)
 
 from configs import cfg
 from utils.registry import HEADS

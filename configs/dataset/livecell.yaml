@@ -3,22 +3,25 @@ dataset:
   name: LiveCell
   type: LiveCell
 
-  data_root: /gpfs/space/projects/PerkinElmer/cytoplasm_segmentation/datasets/LiveCell/crop_512x512/coco
+  data_root: /gpfs/space/projects/PerkinElmer/cytoplasm_segmentation/datasets/LiveCell/coco
 
   train_dataset:
     images: ${dataset.data_root}/images/livecell_train_val_images
     ann_file: ${dataset.data_root}/annotations/livecell_coco_train.json
     size: [512, 512]
-    batch_size: 20
+    batch_size: 16
+
+  valid_dataset:
+    images: ${dataset.data_root}/images/livecell_train_val_images
+    ann_file: ${dataset.data_root}/annotations/livecell_coco_val.json
+    size: [512, 512]
+    batch_size: 16
 
   eval_dataset:
     images: ${dataset.data_root}/images/livecell_test_images
     ann_file: ${dataset.data_root}/annotations/livecell_coco_test.json
     size: [512, 512]
-    batch_size: 20
+    batch_size: 16
 
-  valid_dataset:
-    images: ${dataset.data_root}/images/livecell_test_images
-    ann_file: ${dataset.data_root}/annotations/livecell_coco_test.json
-    size: [512, 512]
-    batch_size: 20
+  mean: [128, 128, 128]
+  std: [11.578, 11.578, 11.578]

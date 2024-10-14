@@ -1,6 +1,15 @@
 runs_dir: 'runs'
-experiment_name: ${experiment_name:${model.type}}
-run_name: '[${model.decoder.type}]/[${model.encoder.type}]/[${dataset.name}]/[${model.decoder.instance_head.activation}_iam]/[kernel_dim=${model.decoder.instance_head.kernel_dim}]-[multi_level=${model.decoder.multi_level}]-[coord_conv=${model.decoder.coord_conv}]-[losses=${model.criterion.losses}]'
+
+# experiment_name: experiments/${experiment_name:${model.type}}
+# run_name: '[${model.decoder.type}]/[${model.model_name}]/[${model.encoder.type}]/[${dataset.name}]/[${model.decoder.instance_head.activation}_iam]/[kernel_dim=${model.decoder.instance_head.kernel_dim}]-[multi_level=${model.decoder.multi_level}]-[coord_conv=${model.decoder.coord_conv}]-[losses=${model.criterion.losses}]'
+
+# experiment_name: experiments
+# run_name: '[${dataset.name}]/[${model.decoder.type}]/[${model.model_name}]'
+
+experiment_name: benchmarks
+run_name: '[${dataset.name}]/[${model.model_name}]/[${model.decoder.type}]'
+
 group_name: '[${model.decoder.instance_head.type}]'
 
 save_dir: '${run.runs_dir}/${run.experiment_name}/${run.run_name}/${run.group_name}'
+

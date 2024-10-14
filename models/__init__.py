@@ -5,16 +5,16 @@ import uuid
 import modulefinder
 
 from types import ModuleType
-from typing import Type, cast
-from typing_extensions import Protocol
+from typing import Type
 
 import sys
 sys.path.append("./")
+
 import torch
 from models.seg import *
 from utils.files import _copy_folder
 from configs import cfg, MODEL_FILES, CONFIG_FILES, UTILS_FILES
-from utils.registry import MODELS
+from utils.registry import MODELS, DECODERS, HEADS
 
 
 def import_from_file(file_path, clear_cache=False) -> Type[ModuleType]:
@@ -76,7 +76,8 @@ def load_weights(model, weights_path):
             print(f"WARNING: Skipping loading weights for parameter '{k}' due to size mismatch.")
             print(f"Expected size: {current_model_dict[k].size()}, but got size: {v.size()}")
         else:
-            print(f"WARNING: Skipping loading weights for parameter '{k}' as it was not found in the current model.")
+            if 'total_params' not in k and 'total_ops' not in k:
+                print(f"WARNING: Skipping loading weights for parameter '{k}' as it was not found in the current model.")
     
     # Warn about weights in the current model but not present in the pretrained weights.
     for k in current_model_dict.keys():
@@ -86,6 +87,7 @@ def load_weights(model, weights_path):
     model.load_state_dict(current_model_dict, strict=False)
 
     print("- Weights loaded!")
+    print()
     
     return model
 
@@ -98,22 +100,39 @@ def get_model_from_path(cfg: cfg):
     print("Loading model from path...")
     print(f"Found model files: "
             f"\n- {cfg.model.model_files}")
+    print()
 
     # import the module to register the model from model_files
     module = import_from_file(model_file, clear_cache=True)
     model = MODELS.get(cfg.model.type)(cfg=cfg)
-    
+
     return model
 
 
-def save_model_files(model_cfg, save_dir):    
-    # save config files
-    # config_dst = save_dir / "config_files"
-    # _copy_folder(
-    #     src=join(CONFIG_FILES, "base.py"),
-    #     dst=config_dst,
-    #     base_src_dir=CONFIG_FILES
-    # )
+
+# def get_model_from_path(cfg: cfg):
+#     # runs/.../iaunet.py
+#     dependencies = {
+#         'model': f"{cfg.model.model_files}/__init__.py",
+#         'decoders': f"{cfg.model.model_files}/decoders/__init__.py",
+#         'instance_head': f"{cfg.model.model_files}/heads/instance_head/__init__.py",
+#         'mask_head': f"{cfg.model.model_files}/heads/mask_head/__init__.py",
+#     }
+
+#     print("Loading model from path...")
+#     print(f"Found model files: "
+#             f"\n- {cfg.model.model_files}")
+    
+#     for k in dependencies:
+#         # assert isfile(model_file), FileNotFoundError(f"Model file not found: {model_file}")
+#         # import the module to register the model from model_files
+#         module = import_from_file(dependencies[k], clear_cache=True)
+
+#     model = MODELS.get(cfg.model.type)(cfg=cfg)
+#     return model
+
+
+def save_model_files(model_cfg, save_dir):
 
     # save augmentation files
     aug_dst = save_dir / "utils"
@@ -127,7 +146,7 @@ def save_model_files(model_cfg, save_dir):
     model_dst = save_dir / "model_files"
     for src in ["__init__.py", "matcher.py", "loss.py", 
                 "heads", "models/__init__.py", "nn/blocks", 
-                "encoders/__init__.py"]:
+                "encoders/__init__.py", "decoders/__init__.py"]:
         _copy_folder(
             src=join(MODEL_FILES, src),
             dst=model_dst,
@@ -144,6 +163,14 @@ def save_model_files(model_cfg, save_dir):
     
     # save encoder files.
     model_file = MODELS.get_path(model_cfg.encoder.type)
+    _copy_folder(
+        src=model_file,
+        dst=model_dst,
+        base_src_dir=MODEL_FILES
+        )
+
+    # save decoder files.
+    model_file = DECODERS.get_path(model_cfg.decoder.type)
     _copy_folder(
         src=model_file,
         dst=model_dst,

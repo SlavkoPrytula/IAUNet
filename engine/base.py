@@ -14,6 +14,7 @@ class BaseTrainer:
             scheduler, 
             train_dataloader, 
             valid_dataloader, 
+            eval_dataloader,
             evaluators, 
             callbacks, 
             logger, 
@@ -28,6 +29,7 @@ class BaseTrainer:
         self.scheduler = scheduler
         self.train_dataloader = train_dataloader
         self.valid_dataloader = valid_dataloader
+        self.eval_dataloader = eval_dataloader
         self.evaluators = evaluators
         self.callbacks = callbacks
         self.logger = logger
@@ -38,10 +40,12 @@ class BaseTrainer:
 
         self.train_loop = None
         self.valid_loop = None
+        self.eval_loop = None
 
         self.max_epochs = cfg.trainer.max_epochs + 1
-        self.best_loss = np.inf
+        self.best_metric = -np.inf
         self.loss = None
+        self.loss_dict = None
         self.output = None
         self.current_epoch = None
 
@@ -49,7 +53,9 @@ class BaseTrainer:
 
         print(f"Initializing Trainer at RANK: {int(os.getenv('RANK', 0))}.")
         print(f"Running with {self.strategy} strategy.")
+        print()
 
+        self._setup_evaluators()
 
     def _get_device(self):
         rank = self.rank
@@ -60,7 +66,15 @@ class BaseTrainer:
             device = torch.device('cpu')
             self.logger.info("Using CPU\n")
         return device
+    
+    def _setup_evaluators(self):
+        for stage in self.evaluators:
+            for evaluator in self.evaluators[stage]:
+                self.evaluators[stage][evaluator].device = self.device
 
 
     def train(self):
+        ...
+
+    def test(self):
         ...

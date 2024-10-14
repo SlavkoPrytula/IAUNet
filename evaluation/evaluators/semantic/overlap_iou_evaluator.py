@@ -10,7 +10,7 @@ from ..base_evaluator import BaseEvaluator
 from utils.registry import EVALUATORS
 from utils.common.decorators import timeit_evaluator, memory_evaluator
 
-from ...metrics.iou import IOUMetric
+from evaluation.metrics import IOUMetric
 
 
 @timeit_evaluator
@@ -25,7 +25,7 @@ class OverlapIOUEvaluator(BaseEvaluator):
 
         self.dataset = dataset
         self.num_classes = cfg.model.decoder.instance_head.num_classes
-        self.iou_metric = IOUMetric()
+        self.metric = IOUMetric()
         self.stats = {"mean_IoU": 0}
 
 
@@ -130,12 +130,12 @@ class OverlapIOUEvaluator(BaseEvaluator):
                 "gt_masks": masks_overlap_gt,
             }
 
-            self.iou_metric.process({}, [results])
+            self.metric.process({}, [results])
     
 
     def evaluate(self, verbose=False):
         size = len(self.dataset)
-        eval_results = self.iou_metric.evaluate(size)
+        eval_results = self.metric.evaluate(size)
 
         if verbose:
             print(f"mean overlaps iou: {eval_results['mean_IoU']:.4f}")

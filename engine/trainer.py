@@ -6,7 +6,7 @@ from tools.get_flops import get_flops
 from configs import cfg
 
 from .base import BaseTrainer
-from .loops import TrainLoop, ValidLoop
+from .loops import TrainLoop, ValidLoop, EvalLoop
 
 
 class Trainer(BaseTrainer):
@@ -19,6 +19,7 @@ class Trainer(BaseTrainer):
             scheduler, 
             train_dataloader, 
             valid_dataloader, 
+            eval_dataloader,
             evaluators, 
             callbacks, 
             logger, 
@@ -34,6 +35,7 @@ class Trainer(BaseTrainer):
             scheduler, 
             train_dataloader, 
             valid_dataloader, 
+            eval_dataloader,
             evaluators, 
             callbacks, 
             logger, 
@@ -77,6 +79,18 @@ class Trainer(BaseTrainer):
         )
         self.valid_loop.trainer = self
 
+        self.eval_loop = EvalLoop(
+            cfg=self.cfg,
+            model=self.model,
+            criterion=self.criterion,
+            dataloader=self.eval_dataloader,
+            device=self.device,
+            logger=self.logger,
+            evaluators=self.evaluators,
+            callbacks=self.callbacks,
+        )
+        self.eval_loop.trainer = self
+
 
     def train(self):
         start = time.time()
@@ -84,20 +98,29 @@ class Trainer(BaseTrainer):
         for epoch in range(self.max_epochs):
             self.logger.info(f'Epoch {epoch}/{self.max_epochs}')
             self.current_epoch = epoch
-
             results_train = self.train_loop.run()
             
             if epoch % self.check_val_every_n_epoch == 0:
                 results_valid = self.valid_loop.run()
+                # results_eval = self.eval_loop.run()
                 self._update_results(results_train, results_valid)
-
-            # saving last checkpoint.
-            self.save_checkpoint(self.cfg.run.save_dir / 'checkpoints/last.pth')
 
         end = time.time()
         time_elapsed = end - start
         self.logger.info('Training complete in {:.0f}h {:.0f}m {:.0f}s'.format(
             time_elapsed // 3600, (time_elapsed % 3600) // 60, (time_elapsed % 3600) % 60))
+        
+
+    def test(self):
+        model = self.get_model('best')
+        model.to(self.device)
+
+        if self.strategy == 'ddp':
+            model = DDP(model, device_ids=[self.rank])
+
+        self.logger.info("Evaluating the best model...")
+        self.eval_loop.model = model
+        self.eval_loop.run()
 
 
     def _update_results(self, train_results, valid_results):
@@ -105,14 +128,19 @@ class Trainer(BaseTrainer):
         results.update(valid_results)
         results.update(train_results)
 
-        val_loss = results["loss_valid"]
-        if val_loss <= self.best_loss:
-            self.logger.info(f"Valid Loss Improved ({self.best_loss:.4f} ---> {val_loss:.4f})")
-            self.best_loss = val_loss
+        metric = 'mAP@0.5:0.95'
+        # metric = 'loss_valid'
+        val_metric = results[metric]
+        if val_metric >= self.best_metric:
+            self.logger.info(f"{metric} improved ({self.best_metric:.4f} ---> {val_metric:.4f})")
+            self.best_metric = val_metric
             
             # saving best model.
             self.save_checkpoint(self.cfg.run.save_dir / 'checkpoints/best.pth')
             print()
+
+        # saving last checkpoint.
+        self.save_checkpoint(self.cfg.run.save_dir / 'checkpoints/last.pth')
 
         metrics = ['epoch'] + list(results.keys())
         vals = [self.current_epoch] + list(results.values())
@@ -134,3 +162,19 @@ class Trainer(BaseTrainer):
             torch.save(self.model.module.state_dict(), filepath)
         else:
             torch.save(self.model.state_dict(), filepath)
+
+    def get_model(self, model_type='best'):
+        from models import load_weights
+
+        if model_type == 'best':
+            checkpoint_path = self.cfg.run.save_dir / 'checkpoints/best.pth'
+        elif model_type == 'last':
+            checkpoint_path = self.cfg.run.save_dir / 'checkpoints/last.pth'
+        else:
+            raise ValueError(f"Unknown model type '{model_type}'")
+
+        print(f'Loading "{model_type}" weights from {checkpoint_path}...')
+        model = self.model.__class__(self.cfg)
+        model = load_weights(model, checkpoint_path)
+        
+        return model

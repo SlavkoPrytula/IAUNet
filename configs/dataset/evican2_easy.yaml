@@ -1,0 +1,30 @@
+# @package _global_
+dataset:
+  name: EVICAN2_Easy
+  type: EVICAN2
+
+  data_root: /gpfs/space/projects/PerkinElmer/cytoplasm_segmentation/datasets/EVICAN2/coco
+
+  train_dataset:
+    images: ${dataset.data_root}/images/EVICAN_train2019
+    ann_file: ${dataset.data_root}/annotations/EVICAN2/processed/instances_train2019_EVICAN2_cell.json
+    size: [512, 512]
+    batch_size: 16
+
+  valid_dataset:
+    images: ${dataset.data_root}/images/EVICAN_val2019
+    ann_file: ${dataset.data_root}/annotations/EVICAN2/processed/instances_val2019_EVICAN2_cell.json
+    size: [512, 512]
+    batch_size: 16
+
+  eval_dataset:
+    images: ${dataset.data_root}/images/EVICAN_eval2019
+    ann_file: ${dataset.data_root}/annotations/EVICAN2/processed/instances_eval2019_easy_EVICAN2_cell.json
+    size: [512, 512]
+    batch_size: 16
+
+  mean: [114.83, 114.83, 114.83]
+  std: [15.455, 15.455, 15.455]
+
+  # mean: [124, 124, 124]
+  # std: [12, 12, 12]

@@ -4,7 +4,7 @@ from torch.nn import functional as F
 import sys
 sys.path.append("./")
 
-from models.seg.decoders.iadecoder import IADecoder as BaseDecoder
+from models.seg.decoders.iadecoder.iadecoder import IADecoder as BaseDecoder
 from configs.structure import Decoder
 from utils.registry import DECODERS
 
@@ -16,18 +16,20 @@ class IADecoder(BaseDecoder):
         self._init_weights()
 
     def forward(self, skips, ori_shape):
-        results, mask_feats = super()._forward(skips, ori_shape)
-        results = self.process_outputs(results, mask_feats, ori_shape)
+        results = super()._forward(skips, ori_shape)
+        results = self.process_outputs(results, ori_shape)
 
         return results
 
-    def process_outputs(self, results, mask_feats, ori_shape):
+    def process_outputs(self, results, ori_shape):
         logits = results["logits"]
         scores = results["objectness_scores"]
         inst_kernel = results["kernels"]["instance_kernel"]
         overlap_kernel = results["kernels"]["overlap_kernel"]
         visible_kernel = results["kernels"]["visible_kernel"]
         bboxes = results["bboxes"]['instance_bboxes']
+        mask_feats = results["mask_feats"]
+        inst_feats = results["inst_feats"]
 
         # instance masks.
         N = inst_kernel.shape[1]
@@ -59,6 +61,10 @@ class IADecoder(BaseDecoder):
             'pred_overlap_masks': overlap_masks,
             'pred_visible_masks': visible_masks,
             'pred_bboxes': bboxes,
+            'pred_instance_feats': {
+                "mask_feats": mask_feats,
+                "inst_feats": inst_feats
+            }
         }
 
         return output

@@ -37,8 +37,6 @@ class TrainLoop(BaseLoop):
         self.scheduler = scheduler
         self.scaler = amp.GradScaler()
 
-        self.total_steps = len(self.dataloader)
-
 
     def run(self):
         self.model.train()

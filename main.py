@@ -73,12 +73,13 @@ def run(rank: int = 0, world_size: int = 1, cfg: cfg = None):
         )
 
     # wandb.
-    # wandb.init(
-    #     project=cfg.logger.wandb.project, 
-    #     group=cfg.logger.wandb.group,
-    #     name=cfg.logger.wandb.name,
-    #     dir=cfg.run.save_dir
-    #     )
+    if cfg.logger.get('wandb'):
+        wandb.init(
+            project='IAUNet', 
+            group=cfg.logger.wandb.group,
+            name=f'job_id={cfg.job_id}',
+            dir=cfg.run.save_dir
+            )
 
     # ============================================================
     # ============================================================
@@ -96,29 +97,32 @@ def run(rank: int = 0, world_size: int = 1, cfg: cfg = None):
                             dataset_type="valid",
                             transform=valid_transforms(cfg)
                             )
-    # eval_dataset = dataset(cfg, 
-    #                         dataset_type="eval",
-    #                         transform=valid_transforms(cfg)
-    #                         )
+    eval_dataset = dataset(cfg, 
+                            dataset_type="eval",
+                            transform=valid_transforms(cfg)
+                            )
 
     train_dataloader = build_loader(train_dataset, 
                                     batch_size=cfg.dataset.train_dataset.batch_size, 
                                     num_workers=8, #cfg.trainer.num_workers, 
                                     collate_fn=trivial_batch_collator, 
                                     seed=cfg.seed, 
+                                    shuffle=True,
                                     distributed=distributed)
     valid_dataloader = build_loader(valid_dataset, 
                                     batch_size=cfg.dataset.valid_dataset.batch_size, 
                                     num_workers=8, #cfg.trainer.num_workers, 
                                     collate_fn=trivial_batch_collator, 
                                     seed=cfg.seed, 
+                                    shuffle=False,
                                     distributed=distributed)
-    # eval_dataloader = build_loader(eval_dataset, 
-    #                                 batch_size=cfg.dataset.eval_dataset.batch_size, 
-    #                                 num_workers=8, #cfg.trainer.num_workers, 
-    #                                 collate_fn=trivial_batch_collator, 
-    #                                 seed=cfg.seed, 
-    #                                 distributed=distributed)
+    eval_dataloader = build_loader(eval_dataset, 
+                                    batch_size=cfg.dataset.eval_dataset.batch_size, 
+                                    num_workers=8, #cfg.trainer.num_workers, 
+                                    collate_fn=trivial_batch_collator, 
+                                    seed=cfg.seed, 
+                                    shuffle=False,
+                                    distributed=distributed)
     
     # - build and prepare model
     model = build_model(cfg)
@@ -138,10 +142,17 @@ def run(rank: int = 0, world_size: int = 1, cfg: cfg = None):
     # the evaluation should have information about the dataset
     # evaluator = EVALUATORS.get(cfg.model.evaluator.type)(cfg=cfg.model.evaluator)
     # potentially with this you can add multiple datasets.
-    from evaluation import OverlapIOUEvaluator
+    # to fix: EVALUATORS.get(cfg.model.evaluator.type)(cfg=cfg, model=model, dataset=valid_dataset),
+    from evaluation import OverlapIOUEvaluator, MMDetDataloaderEvaluator
     evaluators = {
-        "valid_coco": EVALUATORS.get(cfg.model.evaluator.type)(cfg=cfg, model=model, dataset=valid_dataset),
-        "overlap_iou": OverlapIOUEvaluator(cfg=cfg, model=model, dataset=valid_dataset)
+        "valid": {
+            "coco": MMDetDataloaderEvaluator(cfg=cfg, model=model, dataset=valid_dataset), 
+            # "overlap_iou": OverlapIOUEvaluator(cfg=cfg, model=model, dataset=valid_dataset)
+        },
+        "eval": {
+            "coco": MMDetDataloaderEvaluator(cfg=cfg, model=model, dataset=eval_dataset), 
+            # "overlap_iou": OverlapIOUEvaluator(cfg=cfg, model=model, dataset=eval_dataset)
+        },
     }
 
     # setup callbacks.
@@ -153,6 +164,7 @@ def run(rank: int = 0, world_size: int = 1, cfg: cfg = None):
                       criterion=criterion, 
                       train_dataloader=train_dataloader, 
                       valid_dataloader=valid_dataloader,
+                      eval_dataloader=eval_dataloader,
                       optimizer=optimizer, 
                       scheduler=scheduler,
                       evaluators=evaluators,
@@ -166,7 +178,8 @@ def run(rank: int = 0, world_size: int = 1, cfg: cfg = None):
 
     if cfg.test:
         # TODO: run testing on model
-        UserWarning("Testing not implemented! Check main.py")
+        # UserWarning("Testing not implemented! Check main.py")
+        trainer.test()
 
     wandb.finish()
 

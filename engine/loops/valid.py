@@ -35,8 +35,8 @@ class ValidLoop(BaseLoop):
             callbacks,
             evaluators
         )
-        self.evaluators = evaluators
-        self.total_steps = len(self.dataloader)
+        self.evaluators = evaluators.get('valid')
+
 
     @torch.no_grad()
     def run(self):
@@ -100,6 +100,7 @@ class ValidLoop(BaseLoop):
         for evaluator_name in self.evaluators:
             print(f"Evaluating {evaluator_name} subset...")
             evaluator = self.evaluators[evaluator_name]
+            evaluator.model = self.model
             evaluator.evaluate(verbose=True)
             stats = evaluator.stats
             results.update(stats)  
@@ -124,7 +125,7 @@ class ValidLoop(BaseLoop):
                     H, W = targets["ori_shape"]
                     
                     save_coco_vis(img, gt_coco, pred_coco, idx, shape=[H, W], 
-                                path=f'{self.cfg.run.save_dir}/train_visuals/epoch_{self.epoch}/results/pred_[{evaluator_name}]_[{fname}].jpg')
+                                  path=f'{self.cfg.run.save_dir}/train_visuals/epoch_{self.epoch}/results/pred_[{evaluator_name}]_[{fname}].jpg')
                         
 
         # logging results.

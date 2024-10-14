@@ -1,0 +1,3 @@
+instance_mask_feats_visualizer:
+  type: FeaturesVisualizer
+  inst_type: instance

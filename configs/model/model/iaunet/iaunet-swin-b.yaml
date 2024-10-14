@@ -1,0 +1,75 @@
+# @package _global_
+defaults:
+ - model/default
+ - _self_
+
+model:
+  model_name: iaunet-swin-b
+  type: iaunet
+  in_channels: 3
+  num_classes: 1
+  n_levels: 4
+
+  # model params.
+  encoder: 
+    type: SwinTransformer
+    embed_dim: 128
+    depths: [2, 2, 18, 2]
+    num_heads: [4, 8, 16, 32]
+    window_size: 7
+    mlp_ratio: 4
+    qkv_bias: True
+    drop_path_rate: 0.5
+    patch_norm: True
+    pretrained: True
+    out_indices: [0, 1, 2, 3]
+
+    
+  decoder: 
+    type: iadecoder_ml
+    num_convs: 2
+    coord_conv: True # depr
+    multi_level: True # depr
+    last_layer_only: False
+
+    mask_branch:
+      type: MaskStackedConv # opt: MaskDoubleConv, MaskStackedConv
+      dim: 256
+
+    instance_branch:
+      type: InstStackedConv # opt: InstDoubleConv, InstStackedConv
+      dim: 256
+
+    instance_head: 
+      # type: InstanceHead-v1.1
+      # type: InstanceHead-v2.0-attn
+      # type: InstanceHead-v2.1-attn
+      # type: InstanceHead-v2.2-two-way-attn
+      type: InstanceHead-v2.2.1-dual-update
+      in_channels: 256
+      num_classes: 1
+      kernel_dim: 256
+      num_masks: 100
+      num_groups: 1
+      activation: softmax
+
+  # model loading and saving.
+  load_pretrained: false
+  weights: ''
+  # TODO: to callbacks
+  save_checkpoint: true
+  save_model_files: true
+  load_from_files: false
+  model_files: ''
+
+  # model training params.
+  optimizer:
+    type: AdamW
+    lr: 0.0001
+    weight_decay: 0.05
+
+  scheduler:
+    type: CosineAnnealingLR
+    eta_min: 1.0e-06
+    T_max: 16000
+    verbose: false
