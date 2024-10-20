@@ -9,10 +9,8 @@ tools/analysis/outputs
 
 *.jpg
 *.png
-test.py
+# test.py
 todo.md
-
-test.py
 pyrightconfig.json
 
 # Byte-compiled / optimized / DLL files
