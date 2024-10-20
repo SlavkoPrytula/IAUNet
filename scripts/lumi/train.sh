@@ -13,6 +13,9 @@
 
 
 singularity exec /project/project_465001327/lumi_setup.sif \
-            python main.py job_id=$SLURM_JOB_ID \
+            python main.py \
+            model=model/iaunet/iaunet-r50 \
+            model.decoder.instance_head.type=InstanceHead-v1.1 \
+            model.decoder.type=iadecoder \
             dataset=revvity_25 \
-            trainer=gpu
+            job_id=$SLURM_JOB_ID
