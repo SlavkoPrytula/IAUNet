@@ -7,6 +7,7 @@ sys.path.append("./")
 from models.seg.decoders.iadecoder.iadecoder import IADecoder
 from configs.structure import Decoder
 from utils.registry import HEADS, DECODERS
+from omegaconf import OmegaConf
 
 
 @DECODERS.register(name='iadecoder_ml')
@@ -17,7 +18,11 @@ class IADecoder(IADecoder):
         # instance head.
         self.instance_head = nn.ModuleList([])
         for i in range(self.n_levels):
-            instance_head = HEADS.build(cfg.instance_head)
+            
+            instance_head = OmegaConf.to_container(cfg.instance_head, resolve=True)
+            instance_head['in_res'] = (16 * (2 ** i), 16 * (2 ** i))
+
+            instance_head = HEADS.build(instance_head)
             self.instance_head.append(instance_head)
 
         self._init_weights()
@@ -54,8 +59,8 @@ class IADecoder(IADecoder):
                 inst_feats = torch.cat([coord_features, inst_feats], dim=1)
                 inst_feats = self.instance_branch[i](inst_feats)
             else:
-                # coord_features = self.compute_coordinates(x)
-                # inst_feats = torch.cat([coord_features, x], dim=1)
+                coord_features = self.compute_coordinates(x)
+                inst_feats = torch.cat([coord_features, x], dim=1)
                 inst_feats = self.instance_branch[i](inst_feats)
 
 
@@ -68,11 +73,13 @@ class IADecoder(IADecoder):
 
             mask_feats = results['mask_pixel_feats']
             inst_feats = results['inst_pixel_feats']
+            # attn_mask = results['attn_mask']
 
     
         mask_feats = self.projection(mask_feats)
         results["mask_feats"] = mask_feats
         results["inst_feats"] = inst_feats
+        # results["attn_mask"] = attn_mask
     
         return results
     

@@ -4,23 +4,24 @@ defaults:
  - _self_
 
 model:
-  model_name: iaunet-r50
+  model_name: iaunet-unet-m
   type: iaunet
   in_channels: 3
   num_classes: 1
-  n_levels: 4
+  n_levels: 5
 
   # model params.
   encoder: 
-    type: ResNet
-    depth: 50
-    num_stages: 4
-    out_indices: [1, 2, 3, 4]
-    pretrained: true
+    type: UNet
+    num_stages: 5
+    out_indices: [0, 1, 2, 3, 4]
+    pyramid_pooling: False
+    pp_embed_dim: 128
+    embed_dims: [64, 128, 256, 512, 1024]
+    depths: [1, 1, 1, 2, 1]
 
     
   decoder: 
-    # type: iadecoder
     type: iadecoder_ml
     num_convs: 2
     coord_conv: True # depr

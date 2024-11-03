@@ -70,7 +70,7 @@ class ValidLoop(BaseLoop):
             output = self.model(images.tensors)
             output["img_id"] = [targets[i]["img_id"] for i in range(len(targets))]
             output["ori_shape"] = [targets[i]["ori_shape"] for i in range(len(targets))]
-            output["instance_masks"] = [targets[i]["instance_masks"] for i in range(len(targets))]
+            # output["instance_masks"] = [targets[i]["instance_masks"] for i in range(len(targets))]
 
             # evaluator.
             for evaluator_name in self.evaluators:

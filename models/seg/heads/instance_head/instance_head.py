@@ -58,6 +58,50 @@ class InstanceBranch(nn.Module):
     def forward(self, features):
         features = self.inst_convs(features)
         return features
+    
+
+@HEADS.register(name="LightInstStackedConv")
+class InstanceBranch(nn.Module):
+    def __init__(self, in_channels, out_channels=256, num_convs=4):
+        super(InstanceBranch, self).__init__()
+        self.c_in = in_channels
+        self.c_out = out_channels
+        hidden = out_channels
+        
+        self.depthwise_conv1 = nn.Conv2d(in_channels, in_channels, kernel_size=3, padding=1, groups=in_channels)
+        self.pointwise_conv1 = nn.Conv2d(in_channels, hidden, kernel_size=1)
+        self.norm_relu1 = nn.Sequential(
+            nn.BatchNorm2d(hidden),
+            nn.ReLU(inplace=True),
+        )
+        
+        self.depthwise_conv2 = nn.Conv2d(hidden, hidden, kernel_size=3, padding=1, groups=hidden)
+        self.pointwise_conv2 = nn.Conv2d(hidden, out_channels, kernel_size=1)
+        self.norm_relu2 = nn.Sequential(
+            nn.BatchNorm2d(out_channels),
+            nn.ReLU(inplace=True),
+        )
+        
+        if in_channels != out_channels:
+            self.projection = nn.Conv2d(in_channels, out_channels, kernel_size=1, stride=1)
+        else:
+            self.projection = nn.Identity()
+
+    def forward(self, x):
+        out = self.depthwise_conv1(x)
+        out = self.pointwise_conv1(out)
+        out = self.norm_relu1(out)
+
+        out = self.depthwise_conv2(out)
+        out = self.pointwise_conv2(out)
+        out = self.norm_relu2(out)
+        
+        out = out + self.projection(x)
+        
+        return out
+    
+
+
 
 
 # InstanceHead-v1.1

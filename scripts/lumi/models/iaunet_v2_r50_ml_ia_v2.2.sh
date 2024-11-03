@@ -2,9 +2,9 @@
 #SBATCH --partition=small-g
 #SBATCH --nodes=1
 #SBATCH --gpus-per-task=1
-#SBATCH --cpus-per-task=4
+#SBATCH --cpus-per-task=7
 #SBATCH --mem=40G
-#SBATCH --time=24:00:00
+#SBATCH --time=64:00:00
 
 #SBATCH --job-name=iaunet
 #SBATCH --output=./outputs/train/job_%j.log
@@ -15,7 +15,7 @@
 singularity exec /project/project_465001327/lumi_setup.sif \
             python main.py \
             model=model/iaunet/iaunet-r50 \
-            model.decoder.instance_head.type=InstanceHead-v2.2.3-dual-update \
-            model.decoder.type=iadecoder_ml_fpn \
-            dataset=livecell_crop \
+            model.decoder.instance_head.type=InstanceHead-v2.2-two-way-attn \
+            model.decoder.type=iadecoder_ml_v2 \
+            dataset=revvity_25 \
             job_id=$SLURM_JOB_ID

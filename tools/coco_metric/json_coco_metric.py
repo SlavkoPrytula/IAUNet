@@ -1,6 +1,3 @@
-# from pycocotools.coco import COCO
-# from pycocotools.cocoeval import COCOeval
-
 from os.path import join
 import cv2
 import json
@@ -9,8 +6,14 @@ import numpy as np
 import sys
 sys.path.append(".")
 
-from utils.coco.coco import COCO 
-from utils.coco.cocoeval import COCOeval 
+# from pycocotools.coco import COCO
+# from pycocotools.cocoeval import COCOeval
+
+# from utils.coco.coco import COCO 
+# from utils.coco.cocoeval import COCOeval 
+
+from utils.coco.api_wrappers import COCO 
+from utils.coco.api_wrappers import COCOeval 
 
 from visualizations import save_coco_vis
 from utils.visualise import visualize
@@ -68,7 +71,8 @@ def json_coco_evaluation(gt_json_path, pred_json_path, return_stats=False):
 
     coco_pred = coco_gt.loadRes(predictions)
     
-    coco_eval = COCOeval(coco_gt, coco_pred, 'segm')
+    # coco_eval = COCOeval(coco_gt, coco_pred, 'segm')
+    coco_eval = COCOeval(coco_gt, coco_pred, 'boundary')
     coco_eval.evaluate()
     coco_eval.accumulate()
     coco_eval.summarize()
@@ -108,9 +112,9 @@ if __name__ == "__main__":
     # image_dir = "/gpfs/space/projects/PerkinElmer/cytoplasm_segmentation/datasets/EVICAN2/coco/images/EVICAN_eval2019"
 
     # NeurlPS22_CellSeg
-    gt_json_path = "/gpfs/space/projects/PerkinElmer/cytoplasm_segmentation/datasets/NeurlPS22-CellSeg/coco_new/annotations/test.json"
-    pred_json_path = '/gpfs/space/home/prytula/scripts/experimental_segmentation/yolo/ultralytics/runs/NeurlPS22_CellSeg/yolo/yolov9e-seg/run_15/results/coco_eval.segm.json'
-    image_dir = "/gpfs/space/projects/PerkinElmer/cytoplasm_segmentation/datasets/NeurlPS22-CellSeg/coco_new/images"
+    gt_json_path = "/project/project_465001327/datasets/Revvity-25/annotations/valid.json"
+    pred_json_path = 'runs/benchmarks/[Revvity_25]/[iaunet-r50]/[iadecoder_ml]/[InstanceHead-v2.2.2-dual-update]/[job=8299977]-[2024-10-29 22:39:47]/results/coco.segm.json'
+    image_dir = "/project/project_465001327/datasets/Revvity-25/images"
 
 
     gt_coco, pred_coco, _ = json_coco_evaluation(gt_json_path, pred_json_path)
@@ -122,19 +126,19 @@ if __name__ == "__main__":
     # idx = 101438
     image_ids = gt_coco.getImgIds()
     
-    for idx in range(2, 6):
-        img_id = image_ids[idx]
-        img_info = gt_coco.loadImgs(ids=[img_id])[0]
-        img_name = img_info['file_name']
-        base_name = img_name.split(".")[0]
-        img_path = join(image_dir, img_name)
+    # for idx in range(2, 6):
+    #     img_id = image_ids[idx]
+    #     img_info = gt_coco.loadImgs(ids=[img_id])[0]
+    #     img_name = img_info['file_name']
+    #     base_name = img_name.split(".")[0]
+    #     img_path = join(image_dir, img_name)
 
-        img = cv2.imread(img_path, -1)
-        img = img / img.max()
+    #     img = cv2.imread(img_path, -1)
+    #     img = img / img.max()
 
-        if len(img.shape) == 3:
-            img = img[..., 0]
+    #     if len(img.shape) == 3:
+    #         img = img[..., 0]
 
-        H, W = img_info["height"], img_info["width"]
-        save_coco_vis(img, gt_coco, pred_coco, img_id, shape=[H, W], 
-                      path=f"./tools/coco_metric/results/yolov9e-seg/{base_name}.jpg")
+    #     H, W = img_info["height"], img_info["width"]
+    #     save_coco_vis(img, gt_coco, pred_coco, img_id, shape=[H, W], 
+    #                   path=f"./tools/coco_metric/results/yolov9e-seg/{base_name}.jpg")

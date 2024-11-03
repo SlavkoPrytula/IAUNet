@@ -95,7 +95,7 @@ class InstanceVisualizer(BaseVisualizer):
         # Aux Pred Masks.
         if "aux_outputs" in output:
             for i, aux_outputs in enumerate(output['aux_outputs']):
-                self._plot_preds(aux_outputs, save_path=f"{save_path}/aux_outputs")
+                self._plot_preds(aux_outputs, save_path=f"{save_path}/aux_outputs/layer_{i}")
 
 
 

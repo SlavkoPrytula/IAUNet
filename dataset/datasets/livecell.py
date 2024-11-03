@@ -50,7 +50,7 @@ def main(cfg: cfg):
 
     dataset = LiveCell(cfg, dataset_type="train", 
                     #   normalization=normalize,
-                      transform=valid_transforms(cfg)
+                      transform=train_transforms(cfg)
                       )
     
     print(len(dataset))

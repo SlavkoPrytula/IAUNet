@@ -4,13 +4,13 @@ defaults:
   - _self_
   - dataset: revvity_25
 
-  # - model: model/iaunet/iaunet-r50
+  - model: model/iaunet/iaunet-r50
   # - model: model/iaunet/iaunet-r101
-  - model: model/iaunet/resnet_iaunet_multitask_ml
+  # - model: model/iaunet/resnet_iaunet_multitask_ml
   # - model/encoder: resnet/resnet_50
   # - model/encoder: swin/swin_b
 
-  - logger: log #group_logger
+  - logger: log # log, wandb
   - trainer: gpu
   - run: default
   - hydra: default

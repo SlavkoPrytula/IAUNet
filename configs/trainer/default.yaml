@@ -1,4 +1,4 @@
-max_epochs: 1600
+max_epochs: 1000
 
 accelerator: cpu
 devices: 1

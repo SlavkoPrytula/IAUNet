@@ -46,6 +46,7 @@ class MMDetDataloaderEvaluator(COCOEvaluator):
         outfile_prefix = cfg.model.evaluator.outfile_prefix
         # coco_api = cfg.model.evaluator.get("coco_api", None)
         self.num_classes = cfg.model.decoder.instance_head.num_classes
+        self.metric = cfg.model.evaluator.metric
 
         print(f"Doing evaluation on dataset.ann_file: {dataset.ann_file}")
 

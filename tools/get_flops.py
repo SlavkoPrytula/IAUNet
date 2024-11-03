@@ -27,19 +27,15 @@ def get_flops(model, device="cuda:0"):
 
 @hydra.main(version_base="1.3", config_path="../configs", config_name="train")
 def profile_model(cfg: cfg):
-    # from omegaconf import OmegaConf
-    # print(OmegaConf.to_yaml(cfg))
-    print(cfg.run.run_name)
 
-    print(cfg.logger.wandb.group)
-    raise
-
-    if False:
+    if True:
         # inst head.
         # cfg.model.decoder.instance_head.type = "InstanceHead-v1.1"
         # cfg.model.decoder.instance_head.type = "InstanceHead-v2.1-attn"
         # cfg.model.decoder.instance_head.type = "InstanceHead-v2.2-two-way-attn"
-        cfg.model.decoder.instance_head.type = "InstanceHead-v2.2.1-dual-update"
+        cfg.model.decoder.instance_head.type = "InstanceHead-v2.2.3-dual-update"
+        # cfg.model.decoder.instance_head.type = "InstanceHead-multihead-v2.4-dual-update"
+        # cfg.model.decoder.instance_head.type = "InstanceHead-v3.0-multi-query"
         cfg.model.decoder.instance_head.in_channels = 256
         cfg.model.decoder.instance_head.kernel_dim = 256
         cfg.model.decoder.instance_head.num_groups = 1
@@ -54,7 +50,7 @@ def profile_model(cfg: cfg):
         # model.
         # cfg.model.type = "resnet_iaunet_multitask_ml"
         cfg.model.type = "iaunet"
-        cfg.model.decoder.type = "iadecoder_ml"
+        cfg.model.decoder.type = "iadecoder_ml_fpn"
         # cfg.model.encoder = dict(
         #     type='ResNet',
         #     depth=50,
@@ -62,6 +58,7 @@ def profile_model(cfg: cfg):
         #     out_indices=[1, 2, 3, 4],
         #     pretrained=True,
         # )
+
         cfg.model.n_levels = 4
         cfg.model.decoder.num_convs = 2
         cfg.model.decoder.last_layer_only = False
@@ -76,3 +73,16 @@ def profile_model(cfg: cfg):
 
 if __name__ == "__main__":
     profile_model()
+
+
+
+        # cfg.model.encoder = dict(
+        #     type='UNet',
+        #     num_stages=5,
+        #     out_indices=(0, 1, 2, 3, 4),
+        #     pyramid_pooling=False,
+        #     pp_embed_dim=128,
+        #     embed_dims=[64, 128, 256, 512, 1024],
+        #     # embed_dims=[32, 64, 128, 256, 512],
+        #     depths=[1, 1, 1, 2, 1]
+        # )

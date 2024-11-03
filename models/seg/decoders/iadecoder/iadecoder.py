@@ -13,6 +13,7 @@ from models.seg.nn.blocks import (DoubleConv, DoubleConv_v1, DoubleConv_v2,
 from models.seg.decoders.base import BaseDecoder
 from configs.structure import Decoder
 from utils.registry import DECODERS, HEADS
+from omegaconf import OmegaConf
 
 
 @DECODERS.register(name='iadecoder')
@@ -32,6 +33,7 @@ class IADecoder(BaseDecoder):
         self.skips = True
 
         embed_dims = self.embed_dims[::-1]
+        embed_dims = embed_dims + [embed_dims[-1]]
         
         self.up_conv_layers = nn.ModuleList([])
         for i in range(self.n_levels):
@@ -77,7 +79,7 @@ class IADecoder(BaseDecoder):
         for i in range(self.n_levels):
             if i == 0:
                 instance_branch = instance_branch_layer(
-                    in_channels=embed_dims[i],# + 2, 
+                    in_channels=embed_dims[i] + 2, 
                     out_channels=self.inst_dim, 
                     num_convs=self.num_convs
                 )
@@ -89,8 +91,11 @@ class IADecoder(BaseDecoder):
                 )
             self.instance_branch.append(instance_branch)
 
+        instance_head = OmegaConf.to_container(cfg.instance_head, resolve=True)
+        instance_head['in_res'] = (128, 128)
+
         # instance head.
-        self.instance_head = HEADS.build(cfg.instance_head)
+        self.instance_head = HEADS.build(instance_head)
 
         self._init_weights()
 
@@ -178,6 +183,7 @@ class IADecoder(BaseDecoder):
         bboxes = results["bboxes"]['instance_bboxes']
         mask_feats = results["mask_feats"]
         inst_feats = results["inst_feats"]
+        # attn_mask = results.get('attn_mask')
         
         # instance masks.
         N = inst_kernel.shape[1]
@@ -186,6 +192,10 @@ class IADecoder(BaseDecoder):
         inst_masks = torch.bmm(inst_kernel, mask_feats.view(B, C, H * W))
         inst_masks = inst_masks.view(B, N, H, W)
         bboxes = bboxes.sigmoid()
+
+        # nhead = attn_mask.shape[0] // B
+        # h = w = int(attn_mask.shape[2] ** 0.5)
+        # attn_mask = attn_mask.view(B, nhead, N, h, w)
 
         inst_masks = F.interpolate(inst_masks, size=ori_shape, 
                                    mode="bilinear", align_corners=False)
@@ -198,7 +208,8 @@ class IADecoder(BaseDecoder):
             'pred_bboxes': bboxes,
             'pred_instance_feats': {
                 "mask_feats": mask_feats,
-                "inst_feats": inst_feats
+                "inst_feats": inst_feats,
+                # "attn_mask": attn_mask
             }
         }
     

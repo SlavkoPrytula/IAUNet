@@ -502,6 +502,3 @@ if __name__ == "__main__":
     # create zero (N, 1) tensor and fill with 1's in pos_inds
     labels = torch.zeros_like(src_logits)
     labels[pos_inds, target_classes[pos_inds]] = 1
-
-
-

@@ -13,6 +13,8 @@ from models.seg.nn.blocks import (DoubleConv, DoubleConv_v1, DoubleConv_v2,
 from models.seg.decoders.iadecoder.iadecoder import IADecoder
 from configs.structure import Decoder
 from utils.registry import DECODERS, HEADS
+from omegaconf import OmegaConf
+
 
 
 @DECODERS.register(name='iadecoder_ml_fpn')
@@ -32,12 +34,12 @@ class IADecoder(IADecoder):
         self.skips = True
 
         embed_dims = self.embed_dims[::-1]
-        # out_dims = [256, 256, 256, 256]
+        fpn_dim = 256
 
         self.skip_conv_layers = nn.ModuleList([])
         for i in range(self.n_levels):
             skip_in_channels = embed_dims[i]
-            skip_out_channels = 256
+            skip_out_channels = fpn_dim
 
             skip_conv = nn.Conv2d(skip_in_channels, skip_out_channels, kernel_size=1)
             self.skip_conv_layers.append(skip_conv)
@@ -46,14 +48,14 @@ class IADecoder(IADecoder):
         self.up_conv_layers = nn.ModuleList([])
         for i in range(self.n_levels):
             if i == 0:
-                in_channels = 256 + 2
+                in_channels = fpn_dim + 2
             else:
-                in_channels = 256 + 256 + 2
-            out_channels = 256
+                in_channels = fpn_dim * 2 + 2
+            out_channels = fpn_dim
 
             upconv = nn.Sequential(
-                DoubleConv_v1(in_channels, out_channels),
-                SE_block(num_features=out_channels)
+                DoubleConv_v2(in_channels, out_channels),
+                SE_block(num_features=out_channels) 
             )
             self.up_conv_layers.append(upconv)
 
@@ -67,13 +69,13 @@ class IADecoder(IADecoder):
         for i in range(self.n_levels):
             if i == 0:
                 mask_branch = mask_branch_layer(
-                    in_channels=256, 
+                    in_channels=fpn_dim, 
                     out_channels=self.mask_dim, 
                     num_convs=self.num_convs
                 )
             else:
                 mask_branch = mask_branch_layer(
-                    in_channels=256 + self.mask_dim, 
+                    in_channels=fpn_dim , 
                     out_channels=self.mask_dim, 
                     num_convs=self.num_convs
                 )
@@ -87,13 +89,13 @@ class IADecoder(IADecoder):
         for i in range(self.n_levels):
             if i == 0:
                 instance_branch = instance_branch_layer(
-                    in_channels=256, 
+                    in_channels=fpn_dim + 2, 
                     out_channels=self.inst_dim, 
                     num_convs=self.num_convs
                 )
             else:
                 instance_branch = instance_branch_layer(
-                    in_channels=256 + self.inst_dim + 2, 
+                    in_channels=fpn_dim + 2, 
                     out_channels=self.inst_dim, 
                     num_convs=self.num_convs
                 )
@@ -102,21 +104,15 @@ class IADecoder(IADecoder):
         # instance head.
         self.instance_head = nn.ModuleList([])
         for i in range(self.n_levels):
-            instance_head = HEADS.build(cfg.instance_head)
+
+            instance_head = OmegaConf.to_container(cfg.instance_head, resolve=True)
+            instance_head['in_res'] = (16 * (2 ** i), 16 * (2 ** i))
+
+            instance_head = HEADS.build(instance_head)
             self.instance_head.append(instance_head)
 
         self._init_weights()
-
-
-    def _init_weights(self):
-        for modules in [self.up_conv_layers]:
-            for l in modules.modules():
-                if isinstance(l, nn.Conv2d):
-                    torch.nn.init.normal_(l.weight, std=0.01)
-                    if l.bias is not None:
-                        nn.init.constant_(l.bias, 0)
-        c2_msra_fill(self.projection)
-
+        
 
     def _forward(self, skips):
         for i in range(self.n_levels):
@@ -142,7 +138,8 @@ class IADecoder(IADecoder):
             
             if i != 0:
                 mask_feats = nn.UpsamplingBilinear2d(scale_factor=2)(mask_feats)
-                mask_feats = torch.cat([x, mask_feats], dim=1)
+                # mask_feats = torch.cat([x, mask_feats], dim=1)
+                mask_feats = mask_feats + x
                 mask_feats = self.mask_branch[i](mask_feats)   
             else:
                 mask_feats = self.mask_branch[i](x)
@@ -150,13 +147,16 @@ class IADecoder(IADecoder):
 
             if i != 0:
                 inst_feats = nn.UpsamplingBilinear2d(scale_factor=2)(inst_feats)
-                inst_feats = torch.cat([x, inst_feats], dim=1)
+                # inst_feats = torch.cat([x, inst_feats], dim=1)
+                inst_feats = inst_feats + x
 
                 coord_features = self.compute_coordinates(inst_feats)
                 inst_feats = torch.cat([coord_features, inst_feats], dim=1)
                 inst_feats = self.instance_branch[i](inst_feats)
             else:
-                inst_feats = self.instance_branch[i](x)
+                coord_features = self.compute_coordinates(x)
+                inst_feats = torch.cat([coord_features, x], dim=1)
+                inst_feats = self.instance_branch[i](inst_feats)
 
 
             if i != 0:
@@ -175,4 +175,5 @@ class IADecoder(IADecoder):
         results["inst_feats"] = inst_feats
     
         return results
+    
     

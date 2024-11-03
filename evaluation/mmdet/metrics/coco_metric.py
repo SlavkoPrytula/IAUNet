@@ -1342,3 +1342,14 @@ def dump(data, filename):
 #     print(f"dumping to: {filename}")
 #     with open(filename, 'w') as file:
 #         json.dump(data, file, indent=4)
+
+
+
+# boundary mAP for mmsegm evaluation.
+# iou_type = 'bbox' if metric == 'proposal' else metric
+# _metric = 'segm' if metric == 'boundary' else metric
+# if _metric not in result_files:
+#     raise KeyError(f'{_metric} is not in results')
+# try:
+#     predictions = load(result_files[_metric])
+#     if iou_type == 'segm' or iou_type == 'boundary':

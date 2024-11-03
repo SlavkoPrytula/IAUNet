@@ -14,14 +14,14 @@ def _visualize_masks(ax, masks, draw_border=False):
     for mask in masks:
         if draw_border:
             binary_mask = mask[..., 3] > 0
-            dilation = binary_dilation(binary_mask, iterations=2)
+            dilation = binary_dilation(binary_mask, iterations=10)
             erosion = binary_erosion(binary_mask, iterations=2)
             border = dilation & ~erosion
             
             for c in range(3):
                 mask[..., c][border] = 1  # Set border color to white
         
-        mask[..., 3][border] = 1
+        # mask[..., 3][border] = 1
         ax.imshow(mask)
 
 

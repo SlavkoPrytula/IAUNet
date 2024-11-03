@@ -203,13 +203,8 @@ class DoubleConvModule(nn.Module):
         )
         
         self.layers = nn.ModuleList([])
-        for i in range(depth):
+        for i in range(depth-1):
             self.layers.append(
-                # Residual(nn.Sequential(
-                #     nn.Conv2d(c_out, c_out, kernel_size=kernel_size, stride=stride, padding=padding),
-                #     nn.BatchNorm2d(c_out),
-                #     nn.ReLU(inplace=True),
-                # ))
                 nn.Sequential(
                     nn.Conv2d(c_out, c_out, kernel_size=kernel_size, stride=stride, padding=padding),
                     nn.BatchNorm2d(c_out),
@@ -219,10 +214,10 @@ class DoubleConvModule(nn.Module):
 
     def forward(self, x):
         x = self.projection(x)
-        # residual = x
+
         for layer in self.layers:
             x = layer(x)
-        # x = x + residual
+
         return x
 
 

@@ -44,9 +44,10 @@ class IADecoder(BaseDecoder):
             if i != 0:
                 mask_feats = nn.UpsamplingBilinear2d(scale_factor=2)(mask_feats)
                 mask_feats = torch.cat([x, mask_feats], dim=1)
-                mask_feats = self.mask_branch[i](mask_feats)
+                mask_feats = self.mask_branch[i](mask_feats)   
             else:
                 mask_feats = self.mask_branch[i](x)
+
 
             if i != 0:
                 inst_feats = nn.UpsamplingBilinear2d(scale_factor=2)(inst_feats)
@@ -60,19 +61,21 @@ class IADecoder(BaseDecoder):
                 inst_feats = torch.cat([coord_features, x], dim=1)
                 inst_feats = self.instance_branch[i](inst_feats)
 
+
             if i != 0:
                 results = self.instance_head[i](inst_feats, mask_feats, inst_embed)
-                inst_embed = results["kernels"]['instance_kernel']
+                inst_embed = results["inst_feats"]['instance_feats']
             else:
                 results = self.instance_head[i](inst_feats, mask_feats)
-                inst_embed = results["kernels"]['instance_kernel']
+                inst_embed = results["inst_feats"]['instance_feats']
 
-            mask_feats = results['pixel_feats']
+            mask_feats = results['mask_pixel_feats']
+            inst_feats = results['inst_pixel_feats']
 
-        # out layer.
+    
         mask_feats = self.projection(mask_feats)
-
         results["mask_feats"] = mask_feats
         results["inst_feats"] = inst_feats
-
+    
         return results
+    

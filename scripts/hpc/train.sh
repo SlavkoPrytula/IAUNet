@@ -17,3 +17,4 @@ python main.py job_id=$SLURM_JOB_ID \
                dataset=neurlps22_cellseg \
                trainer=gpu
 # srun --partition=gpu --gres=gpu:tesla:1 --time=60 --exclude=falcon3 --pty /bin/bash
+# srun --partition=small-g --time=60 -A project_465001327 --pty singularity exec --bind /project/project_465001327 --bind /scratch/project_465001327 --bind /usr --bind /etc --bind /run/munge --bind /opt/cray/ --bind /etc/passwd --bind /etc/group --bind /run/netconfig/resolv.conf --bind /var /project/project_465001327/lumi_setup.sif /bin/bash

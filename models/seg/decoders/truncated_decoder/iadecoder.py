@@ -20,6 +20,7 @@ class IADecoder(BaseDecoder):
     def __init__(self, cfg: Decoder, embed_dims: list = [], n_levels: int = 4):
         super().__init__(cfg, embed_dims, n_levels)
         
+        print(embed_dims)
         self.bridge = nn.Sequential(
             DoubleConv_v1(embed_dims[-1], embed_dims[-2]),
         )

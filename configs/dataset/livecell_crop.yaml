@@ -3,7 +3,7 @@ dataset:
   name: LiveCellCrop
   type: LiveCellCrop
 
-  data_root: /project/project_465001327/datasets/LiveCell/crop_512x512
+  data_root: /project/project_465001327/datasets/LiveCell/crop_512x512/coco
   # data_root: /gpfs/space/projects/PerkinElmer/cytoplasm_segmentation/datasets/LiveCell/crop_512x512/coco
 
   train_dataset:

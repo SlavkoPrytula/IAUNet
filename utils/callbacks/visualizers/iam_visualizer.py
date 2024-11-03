@@ -112,7 +112,7 @@ class IAMVisualizer(BaseVisualizer):
         # Aux Pred Masks.
         if "aux_outputs" in output:
             for i, aux_outputs in enumerate(output['aux_outputs']):
-                self._plot_preds(aux_outputs, save_path=f"{save_path}/aux_outputs")
+                self._plot_preds(aux_outputs, save_path=f"{save_path}/aux_outputs/layer_{i}")
 
 
     # ==============
@@ -120,7 +120,7 @@ class IAMVisualizer(BaseVisualizer):
     # ==============
     def _plot_iam_heads(self, cfg, masks, iams, save_path, mode=''): 
         N, H, W = iams.shape
-        groups = N // cfg.model.decoder.instance_head.num_masks
+        groups = cfg.model.decoder.instance_head.num_groups
 
         fig, axs = plt.subplots(self.nrows, groups+1, figsize=((groups+1)*2, 30))
         for i in range(self.nrows):
@@ -178,8 +178,14 @@ class IAMVisualizer(BaseVisualizer):
         # -----------
         # sort.
         idx = np.argsort(-scores[:, 0])
-        iams = iams[0][idx]
         masks = masks[0][idx]
+
+        B, heads_n, H, W = iams.shape
+        heads = cfg.model.decoder.instance_head.num_groups
+        N = heads_n // heads
+        iams = iams.view(B, heads, N, H, W)
+        iams = iams[0][:, idx]
+        iams = iams.view(-1, H, W)
         
         self.plot_logits_iam_heads(cfg, masks, iams, save_path)
         self.plot_softmax_iam_heads(cfg, masks, iams, save_path)
