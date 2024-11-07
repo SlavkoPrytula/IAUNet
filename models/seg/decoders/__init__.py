@@ -1,7 +1,7 @@
 from .iadecoder.iadecoder import IADecoder
 from .iadecoder.iadecoder_ml import IADecoder
 from .iadecoder.iadecoder_ml_fpn import IADecoder
-from .iadecoder.iadecoder_ml_light import IADecoder
+from .iadecoder.iadecoder_ml_fpn_add_skip import IADecoder
 # from .iadecoder.iadecoder_overlaps import IADecoder
 # from .iadecoder.iadecoder_green import IADecoder
 

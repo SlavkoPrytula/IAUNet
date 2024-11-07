@@ -3,8 +3,8 @@ dataset:
   name: EVICAN2_Easy
   type: EVICAN2
 
-  data_root: /project/project_465001327/datasets/EVICAN2
-  # data_root: /gpfs/space/projects/PerkinElmer/cytoplasm_segmentation/datasets/EVICAN2/coco
+  # data_root: /project/project_465001327/datasets/EVICAN2
+  data_root: /gpfs/space/projects/PerkinElmer/cytoplasm_segmentation/datasets/EVICAN2/coco
 
   train_dataset:
     images: ${dataset.data_root}/images/EVICAN_train2019

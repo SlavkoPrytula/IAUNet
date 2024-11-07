@@ -167,7 +167,6 @@ class IADecoder(BaseDecoder):
                     inst_feats = self.instance_branch[0](inst_feats)
         
 
-
         results = self.instance_head(inst_feats)
         mask_feats = self.projection(mask_feats)
         results["mask_feats"] = mask_feats
@@ -184,6 +183,9 @@ class IADecoder(BaseDecoder):
         mask_feats = results["mask_feats"]
         inst_feats = results["inst_feats"]
         # attn_mask = results.get('attn_mask')
+        inst_pixel_attn = results.get('inst_pixel_attn')
+        mask_pixel_attn = results.get('mask_pixel_attn')
+        query_sa_attn = results.get('query_sa_attn')
         
         # instance masks.
         N = inst_kernel.shape[1]
@@ -210,6 +212,11 @@ class IADecoder(BaseDecoder):
                 "mask_feats": mask_feats,
                 "inst_feats": inst_feats,
                 # "attn_mask": attn_mask
+            }, 
+            'attn': {
+                "inst_pixel_attn": inst_pixel_attn,
+                "mask_pixel_attn": mask_pixel_attn, 
+                "query_sa_attn": query_sa_attn
             }
         }
     

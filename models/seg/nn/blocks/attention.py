@@ -104,19 +104,47 @@ class CrossAttentionLayer(nn.Module):
     def with_pos_embed(self, tensor, pos):
         return tensor if pos is None else tensor + pos
 
+    # def forward_post(self, tgt, memory,
+    #                  memory_mask = None,
+    #                  memory_key_padding_mask = None,
+    #                  pos = None,
+    #                  query_pos = None):
+    #     tgt2 = self.multihead_attn(query=self.with_pos_embed(tgt, query_pos),
+    #                                key=self.with_pos_embed(memory, pos),
+    #                                value=memory, attn_mask=memory_mask,
+    #                                key_padding_mask=memory_key_padding_mask)[0]
+    #     tgt = tgt + self.dropout(tgt2)
+    #     tgt = self.norm(tgt)
+        
+    #     return tgt
+
+    # def forward_pre(self, tgt, memory,
+    #                 memory_mask = None,
+    #                 memory_key_padding_mask = None,
+    #                 pos = None,
+    #                 query_pos = None):
+    #     tgt2 = self.norm(tgt)
+    #     tgt2 = self.multihead_attn(query=self.with_pos_embed(tgt2, query_pos),
+    #                                key=self.with_pos_embed(memory, pos),
+    #                                value=memory, attn_mask=memory_mask,
+    #                                key_padding_mask=memory_key_padding_mask)[0]
+    #     tgt = tgt + self.dropout(tgt2)
+
+    #     return tgt
+
     def forward_post(self, tgt, memory,
                      memory_mask = None,
                      memory_key_padding_mask = None,
                      pos = None,
                      query_pos = None):
-        tgt2 = self.multihead_attn(query=self.with_pos_embed(tgt, query_pos),
+        tgt2, attn = self.multihead_attn(query=self.with_pos_embed(tgt, query_pos),
                                    key=self.with_pos_embed(memory, pos),
                                    value=memory, attn_mask=memory_mask,
-                                   key_padding_mask=memory_key_padding_mask)[0]
+                                   key_padding_mask=memory_key_padding_mask)
         tgt = tgt + self.dropout(tgt2)
         tgt = self.norm(tgt)
         
-        return tgt
+        return tgt, attn
 
     def forward_pre(self, tgt, memory,
                     memory_mask = None,
@@ -124,13 +152,13 @@ class CrossAttentionLayer(nn.Module):
                     pos = None,
                     query_pos = None):
         tgt2 = self.norm(tgt)
-        tgt2 = self.multihead_attn(query=self.with_pos_embed(tgt2, query_pos),
+        tgt2, attn = self.multihead_attn(query=self.with_pos_embed(tgt2, query_pos),
                                    key=self.with_pos_embed(memory, pos),
                                    value=memory, attn_mask=memory_mask,
-                                   key_padding_mask=memory_key_padding_mask)[0]
+                                   key_padding_mask=memory_key_padding_mask)
         tgt = tgt + self.dropout(tgt2)
 
-        return tgt
+        return tgt, attn
 
     def forward(self, tgt, memory,
                 memory_mask = None,
@@ -166,29 +194,54 @@ class SelfAttentionLayer(nn.Module):
     def with_pos_embed(self, tensor, pos):
         return tensor if pos is None else tensor + pos
 
+    # def forward_post(self, tgt,
+    #                  tgt_mask = None,
+    #                  tgt_key_padding_mask = None,
+    #                  query_pos = None):
+    #     q = k = self.with_pos_embed(tgt, query_pos)
+    #     tgt2 = self.self_attn(q, k, value=tgt, attn_mask=tgt_mask,
+    #                           key_padding_mask=tgt_key_padding_mask)[0]
+    #     tgt = tgt + self.dropout(tgt2)
+    #     tgt = self.norm(tgt)
+
+    #     return tgt
+
+    # def forward_pre(self, tgt,
+    #                 tgt_mask = None,
+    #                 tgt_key_padding_mask = None,
+    #                 query_pos = None):
+    #     tgt2 = self.norm(tgt)
+    #     q = k = self.with_pos_embed(tgt2, query_pos)
+    #     tgt2 = self.self_attn(q, k, value=tgt2, attn_mask=tgt_mask,
+    #                           key_padding_mask=tgt_key_padding_mask)[0]
+    #     tgt = tgt + self.dropout(tgt2)
+        
+    #     return tgt
+
+
     def forward_post(self, tgt,
                      tgt_mask = None,
                      tgt_key_padding_mask = None,
                      query_pos = None):
         q = k = self.with_pos_embed(tgt, query_pos)
-        tgt2 = self.self_attn(q, k, value=tgt, attn_mask=tgt_mask,
-                              key_padding_mask=tgt_key_padding_mask)[0]
+        tgt2, attn = self.self_attn(q, k, value=tgt, attn_mask=tgt_mask,
+                              key_padding_mask=tgt_key_padding_mask)
         tgt = tgt + self.dropout(tgt2)
         tgt = self.norm(tgt)
 
-        return tgt
+        return tgt, attn
 
     def forward_pre(self, tgt,
                     tgt_mask = None,
                     tgt_key_padding_mask = None,
                     query_pos = None):
-        tgt2 = self.norm(tgt)
+        tgt2, attn = self.norm(tgt)
         q = k = self.with_pos_embed(tgt2, query_pos)
         tgt2 = self.self_attn(q, k, value=tgt2, attn_mask=tgt_mask,
-                              key_padding_mask=tgt_key_padding_mask)[0]
+                              key_padding_mask=tgt_key_padding_mask)
         tgt = tgt + self.dropout(tgt2)
         
-        return tgt
+        return tgt, attn
 
     def forward(self, tgt,
                 tgt_mask = None,

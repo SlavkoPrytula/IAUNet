@@ -552,7 +552,8 @@ class InstanceHead(nn.Module):
                  dim_feedforward: int = 2048,
                  nhead: int = 8, 
                  normalize_before: bool = False,
-                 dropout: float = 0.0):
+                 dropout: float = 0.0, 
+                 in_res = None):
         super().__init__()
         self.dim = in_channels
         self.num_convs = num_convs
@@ -563,7 +564,7 @@ class InstanceHead(nn.Module):
         self.activation = activation
         self.scale_factor = 1
 
-        self.num_layers = 1
+        self.num_layers = num_layers
         hidden_dim = self.dim * self.num_groups
         
         # iam.
@@ -1351,7 +1352,7 @@ class InstanceHead(nn.Module):
         self.activation = activation
         self.scale_factor = 1
 
-        self.num_layers = 1
+        self.num_layers = num_layers
         hidden_dim = self.dim * self.num_groups
         
         # iam.
@@ -1411,9 +1412,9 @@ class InstanceHead(nn.Module):
             SwinAttentionLayer(
                 dim=hidden_dim,
                 input_resolution=in_res,
-                num_heads=4, 
-                window_size=8,
-                shift_size=0,
+                num_heads=nhead, 
+                window_size=7,
+                shift_size=7//2,
             )
             for _ in range(self.num_layers)
         ])
@@ -1495,17 +1496,17 @@ class InstanceHead(nn.Module):
         # [inst_pixel_features, mask_pixel_features] -> inst_features
         # --------------
         # inst feats ca.
-        # inst_pixel_features = self.transformer_inst_feats_cross_attention_layers[i](
-        #     inst_pixel_features, inst_features, 
-        #     memory_mask=None, 
-        #     memory_key_padding_mask=None, 
-        #     pos=query_embed, query_pos=pos
-        #     )
+        inst_pixel_features = self.transformer_inst_feats_cross_attention_layers[i](
+            inst_pixel_features, inst_features, 
+            memory_mask=None, 
+            memory_key_padding_mask=None, 
+            pos=query_embed, query_pos=pos
+            )
 
-        # # inst_pixel_features = self.transformer_inst_feats_self_attention_layers[i](inst_pixel_features)
+        inst_pixel_features = self.transformer_inst_feats_self_attention_layers[i](inst_pixel_features)
         
-        # # inst feats ffn.
-        # inst_pixel_features = self.transformer_inst_feats_ffn_layers[i](inst_pixel_features)
+        # inst feats ffn.
+        inst_pixel_features = self.transformer_inst_feats_ffn_layers[i](inst_pixel_features)
 
 
         # --------------
@@ -1526,7 +1527,7 @@ class InstanceHead(nn.Module):
         # --------------
         # inst embed ca.
         inst_features = self.transformer_instance_cross_attention_layers[i](
-            inst_features, mask_pixel_features,
+            inst_features, inst_pixel_features,
             memory_mask=None, 
             memory_key_padding_mask=None, 
             pos=pos, query_pos=query_embed

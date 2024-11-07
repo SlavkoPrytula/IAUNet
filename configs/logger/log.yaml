@@ -1,4 +1,4 @@
 log:
-  name: ${model.type}
+  name: ${model.decoder.type}
   log_files: []
   level: INFO

@@ -51,6 +51,7 @@ model:
       kernel_dim: 256
       num_masks: 100
       num_groups: 1
+      num_layers: 1
       activation: softmax
 
   # model loading and saving.

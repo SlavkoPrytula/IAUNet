@@ -10,7 +10,7 @@ defaults:
   # - model/encoder: resnet/resnet_50
   # - model/encoder: swin/swin_b
 
-  - logger: log # log, wandb
+  - logger: group_logger # log, wandb
   - trainer: gpu
   - run: default
   - hydra: default

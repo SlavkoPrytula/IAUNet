@@ -33,13 +33,15 @@ def profile_model(cfg: cfg):
         # cfg.model.decoder.instance_head.type = "InstanceHead-v1.1"
         # cfg.model.decoder.instance_head.type = "InstanceHead-v2.1-attn"
         # cfg.model.decoder.instance_head.type = "InstanceHead-v2.2-two-way-attn"
-        cfg.model.decoder.instance_head.type = "InstanceHead-v2.2.3-dual-update"
-        # cfg.model.decoder.instance_head.type = "InstanceHead-multihead-v2.4-dual-update"
+        # cfg.model.decoder.instance_head.type = "InstanceHead-v2.2.1-dual-update"
+        # cfg.model.decoder.instance_head.type = "InstanceHead-v2.2.3-dual-update"
+        cfg.model.decoder.instance_head.type = "InstanceHead-v2.2.a-removed-inst-feats"
         # cfg.model.decoder.instance_head.type = "InstanceHead-v3.0-multi-query"
         cfg.model.decoder.instance_head.in_channels = 256
         cfg.model.decoder.instance_head.kernel_dim = 256
         cfg.model.decoder.instance_head.num_groups = 1
         cfg.model.decoder.instance_head.num_masks = 100
+        # cfg.model.decoder.instance_head.num_layers = 1
         # mask branch.
         cfg.model.decoder.mask_branch.type = "MaskStackedConv" # MaskDoubleConv, MaskStackedConv
         cfg.model.decoder.mask_branch.dim = 256

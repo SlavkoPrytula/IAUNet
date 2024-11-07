@@ -3,8 +3,8 @@ dataset:
   name: NeurlPS22_CellSeg
   type: NeurlPS22_CellSeg
 
-  data_root: /project/project_465001327/datasets/NeurlPS22-CellSeg
-  # data_root: /gpfs/space/projects/PerkinElmer/cytoplasm_segmentation/datasets/NeurlPS22-CellSeg/coco_new
+  # data_root: /project/project_465001327/datasets/NeurlPS22-CellSeg
+  data_root: /gpfs/space/projects/PerkinElmer/cytoplasm_segmentation/datasets/NeurlPS22-CellSeg/coco_new
 
   train_dataset:
     images: ${dataset.data_root}/images

@@ -76,6 +76,42 @@ def save_image_and_masks(image, masks, iams, img_id, shape, alpha=0.5, draw_bord
 
 
 
+# def save_attn(attn, img_id, step, shape, alpha=0.5, draw_border=True, dpi=300):
+#     # attn: (N, H, W), N=200 - num_queries, H, W - height, width
+#     if step < 2:
+#         return
+    
+#     output_dir = f'./temp/image_{img_id}/attn'
+#     os.makedirs(output_dir, exist_ok=True)
+
+#     N = attn.shape[0]
+#     for i in tqdm(range(N)):
+#         attn_path = os.path.join(output_dir, f'query_attn_{i}.png')
+        
+#         plt.imsave(attn_path, attn[i])
+
+#     if step > 5:
+#         raise
+
+
+# for self-attention
+def save_attn(attn, img_id, step, shape, alpha=0.5, draw_border=True, dpi=300):
+    # attn: (N, H, W), N=200 - num_queries, H, W - height, width
+    if step < 2:
+        return
+    
+    output_dir = f'./temp/image_{img_id}/sa-attn'
+    os.makedirs(output_dir, exist_ok=True)
+
+    attn_path = os.path.join(output_dir, f'query_attn.png')
+    plt.imsave(attn_path, attn)
+
+    if step > 5:
+        raise
+
+
+
+
 from visualizations.coco_vis import getNPMasks, _visualize_masks
 
 def visualize_single_mask_on_image(img, mask, shape, img_id, mask_idx, path, 
@@ -194,20 +230,23 @@ class AnalysisMMDetDataloaderEvaluator(COCOEvaluator):
             preds["ori_shape"] = [targets[i]["ori_shape"] for i in range(len(targets))]
             preds["img_path"] = [targets[i]["img_path"] for i in range(len(targets))]
 
-            self.process(preds)
+            self.process(preds, step)
     
 
-    def process(self, preds: dict):
+    def process(self, preds: dict, step=None):
         scores_batch = preds['pred_logits'].softmax(-1)
         masks_pred_batch = preds['pred_instance_masks'].sigmoid()
         iou_scores_batch = preds['pred_scores'].sigmoid()
         bboxes_pred_batch = preds['pred_bboxes']
         
         iams_batch = preds['pred_iams']['instance_iams']
+        # attn_batch = preds['attn']['mask_pixel_attn']
+        # attn_batch = preds['attn']['inst_pixel_attn']
+        attn_batch = preds['attn']['query_sa_attn']
         images_batch = preds['images']
 
-        for batch_idx, (scores, masks_pred, iou_scores, bboxes_pred, iams_pred, image) in enumerate(zip(
-            scores_batch, masks_pred_batch, iou_scores_batch, bboxes_pred_batch, iams_batch, images_batch)):
+        for batch_idx, (scores, masks_pred, iou_scores, bboxes_pred, iams_pred, attn, image) in enumerate(zip(
+            scores_batch, masks_pred_batch, iou_scores_batch, bboxes_pred_batch, iams_batch, attn_batch, images_batch)):
             scores = scores[:, :-1]
             iou_scores = iou_scores.flatten(0, 1)
 
@@ -220,6 +259,7 @@ class AnalysisMMDetDataloaderEvaluator(COCOEvaluator):
             iou_scores = iou_scores[topk_indices]
             bboxes_pred = bboxes_pred[topk_indices]
             iams_pred = iams_pred[topk_indices]
+            # attn = attn[topk_indices]
 
             # maskness scores.
             seg_masks = masks_pred > self.mask_threshold
@@ -238,6 +278,7 @@ class AnalysisMMDetDataloaderEvaluator(COCOEvaluator):
             iou_scores = iou_scores[keep]
             bboxes_pred = bboxes_pred[keep]
             iams_pred = iams_pred[keep]
+            # attn = attn[keep]
 
             # ========== NMS ==========
             # pre_nms sort.
@@ -248,6 +289,7 @@ class AnalysisMMDetDataloaderEvaluator(COCOEvaluator):
             iou_scores = iou_scores[sort_inds]
             bboxes_pred = bboxes_pred[sort_inds]
             iams_pred = iams_pred[sort_inds]
+            # attn = attn[sort_inds]
 
             # nms.
             seg_masks = masks_pred > self.mask_threshold
@@ -260,6 +302,7 @@ class AnalysisMMDetDataloaderEvaluator(COCOEvaluator):
             iou_scores = iou_scores[keep]
             bboxes_pred = bboxes_pred[keep]
             iams_pred = iams_pred[keep]
+            # attn = attn[keep]
 
             # postprocessing - currently done here, should be moved to model.
             ori_shape = preds["ori_shape"][batch_idx]
@@ -279,6 +322,11 @@ class AnalysisMMDetDataloaderEvaluator(COCOEvaluator):
                     ori_shape,
                     rescale=True
                 )
+                # attn = remove_padding(
+                #     attn, 
+                #     ori_shape,
+                #     rescale=False
+                # )
 
             masks_pred = masks_pred > self.mask_threshold
             # ================================================
@@ -287,11 +335,18 @@ class AnalysisMMDetDataloaderEvaluator(COCOEvaluator):
             image = image.cpu().numpy()[0, ...]
             masks = masks_pred.cpu().numpy()
             iams = iams_pred.cpu().numpy()
+            attn = attn.cpu().numpy()
 
-            save_image_and_masks(image, masks, iams, 
-                                 img_id=preds["img_id"][batch_idx], 
-                                 shape=ori_shape, 
-                                 dpi=300)
+            # save_image_and_masks(image, masks, iams, 
+            #                      img_id=preds["img_id"][batch_idx], 
+            #                      shape=ori_shape, 
+            #                      dpi=300)
+
+            save_attn(attn, 
+                      img_id=preds["img_id"][batch_idx], 
+                      step=step,
+                      shape=ori_shape, 
+                      dpi=100)
 
             # ================================================
             

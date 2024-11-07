@@ -112,7 +112,7 @@ if __name__ == '__main__':
     sys.path.append("./")
     args = parse_args()
 
-    experiment_path = Path("runs/benchmarks/[Revvity_25]/[iaunet-r50]/[iadecoder_ml]/[InstanceHead-v2.2.1-dual-update]/[job=52200406]-[2024-09-28 11:07:25]")
+    experiment_path = Path("runs/ablations/[LiveCellCrop]/[iaunet-r50]/[iadecoder_ml]/[InstanceHead-v2.2.1-dual-update]/[job=52560796]-[2024-11-06 12:18:01]")
     if args.experiment_path:
         experiment_path = Path(args.experiment_path)
 
@@ -130,9 +130,9 @@ if __name__ == '__main__':
     # cfg.dataset.name = "EVICAN2_Difficult"
 
     # cfg.dataset = "LiveCell"
-    # cfg.dataset.name = "LiveCellCrop"
+    cfg.dataset.name = "LiveCellCrop"
 
-    cfg.dataset.name = "Revvity_25"
+    # cfg.dataset.name = "Revvity_25"
     
     # cfg.dataset.name = "NeurlPS22_CellSeg"
     # cfg.dataset.name = "YeastNet"
@@ -170,10 +170,10 @@ if __name__ == '__main__':
         'dataset': {
             'valid_dataset': {
                 'size': [512, 512],
-                'batch_size': 16
+                'batch_size': 1
             },
             'eval_dataset': {
-                'batch_size': 16,
+                'batch_size': 1,
             }
         }
     })
@@ -183,7 +183,7 @@ if __name__ == '__main__':
         "trainer": {
             "accelerator": "gpu",
             "devices": 1,
-            "num_workers": 8,
+            "num_workers": 1,
             "strategy": None,
         }
     })
