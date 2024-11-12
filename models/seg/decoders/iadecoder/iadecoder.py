@@ -182,6 +182,7 @@ class IADecoder(BaseDecoder):
         bboxes = results["bboxes"]['instance_bboxes']
         mask_feats = results["mask_feats"]
         inst_feats = results["inst_feats"]
+        iams = results.get('iams')
         # attn_mask = results.get('attn_mask')
         inst_pixel_attn = results.get('inst_pixel_attn')
         mask_pixel_attn = results.get('mask_pixel_attn')
@@ -205,7 +206,7 @@ class IADecoder(BaseDecoder):
         output = {
             'pred_logits': logits,
             'pred_scores': scores,
-            'pred_iams': results['iams'],
+            'pred_iams': iams,
             'pred_instance_masks': inst_masks,
             'pred_bboxes': bboxes,
             'pred_instance_feats': {

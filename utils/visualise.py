@@ -8,6 +8,8 @@ import matplotlib.patches as patches
 def visualize(figsize=(30, 30), show_title=True, path='./', cmap='viridis', **images):
     n = len(images)
     plt.figure(figsize=figsize)
+    plt.subplots_adjust(wspace=0, hspace=0, left=0, right=1, bottom=0, top=1)
+
     for i, (name, image) in enumerate(images.items()):
         plt.subplot(1, n, i + 1)
         plt.xticks([])
@@ -16,9 +18,12 @@ def visualize(figsize=(30, 30), show_title=True, path='./', cmap='viridis', **im
             plt.title(' '.join(name.split('_')).title().lower())
         plt.imshow(image, cmap=cmap)
     # plt.show()
+
     plt.tight_layout()
     os.makedirs(os.path.dirname(path), exist_ok=True)
-    plt.savefig(path)
+    plt.savefig(path, bbox_inches='tight', pad_inches=0)
+    
+    # plt.savefig(path)
     plt.close()
 
 

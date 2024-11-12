@@ -1,0 +1,4 @@
+query_sa_visualizer:
+  type: AttentionVisualizer
+  inst_type: instance
+  ncols: 5

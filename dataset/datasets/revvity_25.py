@@ -29,7 +29,7 @@ def main(cfg: cfg):
     
     print(len(dataset))
     
-    targets = dataset[0]
+    targets = dataset[27]
     time_e = time.time()
     print(f'loaded in {time_e - time_s}(s)')
 
@@ -40,23 +40,27 @@ def main(cfg: cfg):
     print(targets["image"].shape, targets["instance_masks"].shape)
     print(f'std: {targets["image"].std()}, mean: {targets["image"].mean()}')
 
-    # visualize(
-    #     images=targets["image"][0, ...], 
-    #     path='./test_image.jpg', 
-    #     cmap='gray'
-    # )
+    visualize(
+        images=targets["image"][0, ...], 
+        path='./test_image.jpg', 
+        cmap='gray',
+        show_title=False
+    )
 
-    # H, W = targets["image"].shape[-2:] #targets["ori_shape"]
-    # visualize_masks(
-    #     img=targets["image"][0, ...],
-    #     masks=targets["instance_masks"],
-    #     shape=[H, W],
-    #     alpha=0.65,
-    #     draw_border=True, 
-    #     static_color=False,
-    #     path='./test_mask.jpg',
-    #     show_img=True
-    # )
+    H, W = targets["image"].shape[-2:] #targets["ori_shape"]
+    # H, W = targets["ori_shape"]
+    visualize_masks(
+        figsize=[30, 30],
+        img=targets["image"][0, ...],
+        masks=targets["instance_masks"],
+        shape=[H, W],
+        alpha=0.65,
+        draw_border=True, 
+        static_color=False,
+        path='./test_mask.jpg',
+        dpi=100
+        # show_img=True
+    )
 
     # visualize_grid_v2(
     #     masks=targets["instance_masks"].numpy(), 

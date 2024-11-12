@@ -65,6 +65,8 @@ class IAMVisualizer(BaseVisualizer):
         """
         Pred IAMs Visuals
         """
+        if output['pred_iams'] is None:
+            return
         if not f'{self.inst_type}_iams' in output['pred_iams']:
             return 
         
@@ -167,6 +169,8 @@ class IAMVisualizer(BaseVisualizer):
 
 
     def plot_iam_heads(self, cfg, output, save_path):
+        if output['pred_iams'] is None:
+            return
         if not f'{self.inst_type}_iams' in output['pred_iams']:
             return 
         

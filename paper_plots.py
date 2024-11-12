@@ -77,7 +77,10 @@ import sys
 sys.path.append('./')
 
 # from utils.coco.coco import COCO
-from pycocotools.coco import COCO
+# from pycocotools.coco import COCO
+# from pycocotools.cocoeval import COCOeval
+from utils.coco.boundary_iou.coco_instance_api.coco import COCO
+from utils.coco.boundary_iou.coco_instance_api.cocoeval import COCOeval
 from visualizations.coco_vis import visualize_coco_anns
 
 
@@ -94,6 +97,54 @@ def get_coco(gt_json_path, pred_json_paths):
     return gt_coco, pred_cocos
 
 
+def compute_metrics(gt_coco, pred_coco, image_id):
+    """Compute COCO metrics for a single image."""
+
+    gt_anns = gt_coco.imgToAnns[image_id]
+    gt_json = {
+        "images": [gt_coco.loadImgs(image_id)[0]], 
+        "annotations": gt_anns, 
+        "categories": gt_coco.dataset["categories"]
+        }
+    temp_gt_coco = COCO()
+    temp_gt_coco.dataset = gt_json
+    temp_gt_coco.createIndex()
+
+    pred_anns = pred_coco.imgToAnns[image_id]
+    pred_json = {
+        "images": [gt_coco.loadImgs(image_id)[0]], 
+        "annotations": pred_anns, 
+        "categories": gt_coco.dataset["categories"]
+        }
+    temp_pred_coco = COCO()
+    temp_pred_coco.dataset = pred_json
+    temp_pred_coco.createIndex()
+
+    # eval.
+    coco_eval = COCOeval(temp_gt_coco, temp_pred_coco, iouType="boundary")
+    coco_eval.params.imgIds = [image_id]
+    coco_eval.evaluate()
+    coco_eval.accumulate()
+    coco_eval.summarize()
+
+    # coco_eval_boundary = COCOeval(temp_gt_coco, temp_pred_coco, iouType="boundary")
+    # coco_eval_boundary.params.imgIds = [image_id]
+    # coco_eval_boundary.evaluate()
+    # coco_eval_boundary.accumulate()
+    # coco_eval_boundary.summarize()
+
+    stats = {
+        "mAP@0.5:0.95": coco_eval.stats[0],
+        "mAP@0.5": coco_eval.stats[1],
+        "mAP@0.75": coco_eval.stats[2],
+        "mAP(s)@0.5": coco_eval.stats[3],
+        "mAP(m)@0.5": coco_eval.stats[4],
+        "mAP(l)@0.5": coco_eval.stats[5],
+    }
+    return stats
+
+
+
 def save_multi_model_vis(imgs, gt_coco, pred_cocos, image_ids, shape, model_names, path=None):
     """
     Save a visualization showing the ground truth and predictions from multiple models for multiple images.
@@ -106,17 +157,37 @@ def save_multi_model_vis(imgs, gt_coco, pred_cocos, image_ids, shape, model_name
     fig, ax = plt.subplots(num_images, num_models, figsize=[5 * num_models, 5 * num_images])
     fig.subplots_adjust(wspace=0.05, hspace=0.01, left=0, right=1, bottom=0, top=1)  # Small space between columns
 
+    # flatten ax if only one row or one column.
+    if num_images == 1:
+        ax = np.atleast_2d(ax).reshape(1, -1)
+    elif num_models == 1:
+        ax = np.atleast_2d(ax).reshape(-1, 1)
+
     for i, (img, img_id) in tqdm(enumerate(zip(imgs, image_ids)), total=len(image_ids)):
         img = torch.tensor(img, dtype=torch.float32)
-        img = F.interpolate(img.unsqueeze(0).unsqueeze(0), size=shape, mode="bilinear", align_corners=False).squeeze(0).squeeze(0)
+        img = F.interpolate(img.unsqueeze(0).unsqueeze(0), size=shape, 
+                            mode="bilinear", align_corners=False).squeeze(0).squeeze(0)
         img = img.cpu().numpy()
 
         for j, (pred_coco, model_name) in enumerate(zip(pred_cocos, model_names)):
             ax[i, j].imshow(img, cmap='gray')
-            visualize_coco_anns(pred_coco, img_id, ax[i, j], shape=shape, alpha=0.65, draw_border=True, static_color=False)
+            visualize_coco_anns(pred_coco, img_id, ax[i, j], shape=shape, 
+                                alpha=0.65, draw_border=True, static_color=False)
+
+            metrics = compute_metrics(gt_coco, pred_coco, img_id)
+            ax[i, j].text(0.05, 0.95, rf"$\text{{mAP}}_{{b}} = {metrics['mAP@0.5']*100:.1f}$",
+                          color='white', ha='left', va='top', transform=ax[i, j].transAxes,
+                          fontsize=24, weight='bold',
+                          bbox=dict(
+                                facecolor='#2b2b2b', alpha=0.8,
+                                edgecolor='white', linewidth=2,
+                                boxstyle='round,pad=0.25'
+                            ))
+
 
         ax[i, -1].imshow(img, cmap='gray')
-        visualize_coco_anns(gt_coco, img_id, ax[i, -1], shape=shape, alpha=0.65, draw_border=True, static_color=False)
+        visualize_coco_anns(gt_coco, img_id, ax[i, -1], shape=shape, 
+                            alpha=0.65, draw_border=True, static_color=False)
 
         for a in ax[i, :]:
             a.axis('off')
@@ -142,7 +213,12 @@ def visualize_multiple_models(gt_json_path, pred_json_paths, image_dir, num_imag
     """
     gt_coco, pred_cocos = get_coco(gt_json_path, pred_json_paths)
     image_ids = gt_coco.getImgIds()[:num_images]
-    image_ids = [image_ids[0], image_ids[3], image_ids[4]]
+    # image_ids = [image_ids[0], image_ids[3], image_ids[4]]
+    image_ids = image_ids[5:]
+
+    # metrics_per_image = compute_metrics(gt_coco, pred_cocos[0], image_ids[0])
+    # print(metrics_per_image)
+    # raise
 
     os.makedirs(save_dir, exist_ok=True)
 
@@ -183,11 +259,11 @@ pred_json_paths = [
     "/gpfs/space/projects/PerkinElmer/cytoplasm_segmentation/mmdet_results/EXPERIMENTS/LiveCell/mask-rcnn_r50_fpn_1x_coco/job=52020558/results/coco_valid.segm.json",
     "/gpfs/space/projects/PerkinElmer/cytoplasm_segmentation/mmdet_results/EXPERIMENTS/LiveCell/PointRend_r50_caffe_fpn_ms_1x_coco/job=52020557/results/coco_valid.segm.json",
     "/gpfs/space/projects/PerkinElmer/cytoplasm_segmentation/mmdet_results/EXPERIMENTS/LiveCell/mask2former_r50_8xb2-lsj-50e_coco/job=52020562/results/coco_valid.segm.json",
-    "runs/benchmarks/[LiveCellCrop]/[iaunet-r50]/[iadecoder_ml]/[InstanceHead-v2.2.1-dual-update]/[job=52108472]-[2024-09-20 10:29:07]/eval/results/coco.segm.json",
+    "runs/ablations/[LiveCellCrop]/[iaunet-r50]/[iadecoder_ml_fpn]/[InstanceHead-v2.2.1-dual-update]/[job=52560797]-[2024-11-06 12:18:01]/eval/results/coco.segm.json",
 ]
 image_dir = "/gpfs/space/projects/PerkinElmer/cytoplasm_segmentation/datasets/LiveCell/crop_512x512/coco/images/livecell_test_images"
 
 
 visualize_multiple_models(gt_json_path, pred_json_paths, image_dir, 
-                          num_images=5, save_dir='./iclr')
+                          num_images=6, save_dir='./cvpr')
 

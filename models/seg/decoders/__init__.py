@@ -12,3 +12,6 @@ from .iadecoder.iadecoder_ml_fpn_add_skip import IADecoder
 # from .iadecoder_v2.iadecoder import IADecoder
 # from .iadecoder_v2.iadecoder_ml import IADecoder
 # from .iadecoder_v2.iadecoder_ml_v2_1 import IADecoder
+
+from .iadecoder.ablations.iadecoder_ml_fpn_no_inst_branch import IADecoder
+from .iadecoder.ablations.iadecoder_ml_fpn_no_mask_branch import IADecoder

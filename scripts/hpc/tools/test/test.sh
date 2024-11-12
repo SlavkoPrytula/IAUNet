@@ -8,6 +8,14 @@
 #SBATCH --output=./outputs/eval/eval_job_%j.out
 #SBATCH -A revvity
 
+if [ -z "$1" ]; then
+  echo "Usage: sbatch eval.sh <experiment_path>"
+  exit 1
+fi
+
+EXPERIMENT_PATH=$1
+
+echo "Running evaluation for experiment path: $EXPERIMENT_PATH"
 nvidia-smi
 
-python eval.py --experiment_path
+python eval.py "$EXPERIMENT_PATH"

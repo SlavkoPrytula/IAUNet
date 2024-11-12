@@ -66,8 +66,8 @@ def run(cfg: _cfg):
     from evaluation import OverlapIOUEvaluator, MMDetDataloaderEvaluator, AnalysisMMDetDataloaderEvaluator
     evaluators = {
         "eval": {
-            "coco": AnalysisMMDetDataloaderEvaluator(cfg=cfg, model=model, dataset=eval_dataset), 
-            # "coco": MMDetDataloaderEvaluator(cfg=cfg, model=model, dataset=eval_dataset), 
+            # "coco": AnalysisMMDetDataloaderEvaluator(cfg=cfg, model=model, dataset=eval_dataset), 
+            "coco": MMDetDataloaderEvaluator(cfg=cfg, model=model, dataset=eval_dataset), 
             # "overlap_iou": OverlapIOUEvaluator(cfg=cfg, model=model, dataset=eval_dataset)
         },
     }
@@ -112,7 +112,38 @@ if __name__ == '__main__':
     sys.path.append("./")
     args = parse_args()
 
-    experiment_path = Path("runs/ablations/[LiveCellCrop]/[iaunet-r50]/[iadecoder_ml]/[InstanceHead-v2.2.1-dual-update]/[job=52560796]-[2024-11-06 12:18:01]")
+    # pixel decoder.
+    # --------------
+    # [iadecoder_ml]
+    # experiment_path = Path("runs/ablations/[LiveCellCrop]/[iaunet-r50]/[iadecoder_ml]/[InstanceHead-v2.2.1-dual-update]/[job=52560796]-[2024-11-06 12:18:01]")
+    # [iadecoder_ml_fpn]
+    # experiment_path = Path("runs/ablations/[LiveCellCrop]/[iaunet-r50]/[iadecoder_ml_fpn]/[InstanceHead-v2.2.1-dual-update]/[job=52560797]-[2024-11-06 12:18:01]")
+    # [iadecoder_ml_fpn_add_skip]
+    # experiment_path = Path("runs/ablations/[LiveCellCrop]/[iaunet-r50]/[iadecoder_ml_fpn_add_skip]/[InstanceHead-v2.2.1-dual-update]/[job=52560798]-[2024-11-06 12:18:01]")
+
+    # [iadecoder_ml_fpn_no_mask_branch]
+    # experiment_path = Path("runs/ablations/[LiveCellCrop]/[iaunet-r50]/[iadecoder_ml_fpn_no_mask_branch]/[InstanceHead-v2.2.1-dual-update]/[job=52577561]-[2024-11-10 01:10:08]")
+    # [iadecoder_ml_fpn_no_inst_branch]
+    # experiment_path = Path("runs/ablations/[LiveCellCrop]/[iaunet-r50]/[iadecoder_ml_fpn_no_inst_branch]/[InstanceHead-v2.2.1-dual-update]/[job=52577560]-[2024-11-10 01:11:42]")
+
+
+    # transformer decoder.
+    # --------------
+    # [removed-mask-feats]
+    # experiment_path = Path("runs/ablations/[LiveCellCrop]/[iaunet-r50]/[iadecoder_ml_fpn]/[InstanceHead-v2.2.a-removed-mask-feats]/[job=52560800]-[2024-11-06 12:17:46]")
+    # [removed-inst-feats]
+    # experiment_path = Path("runs/ablations/[LiveCellCrop]/[iaunet-r50]/[iadecoder_ml_fpn]/[InstanceHead-v2.2.a-removed-inst-feats]/[job=52560799]-[2024-11-06 12:18:01]")
+    
+    # [no-guided-query]
+    # experiment_path = Path("runs/ablations/[LiveCellCrop]/[iaunet-r50]/[iadecoder_ml_fpn]/[InstanceHead-v2.2.a-no-guided-query]/[job=52577565]-[2024-11-10 01:31:45]")
+    # [no-support-query]
+    # experiment_path = Path("runs/ablations/[LiveCellCrop]/[iaunet-r50]/[iadecoder_ml_fpn]/[InstanceHead-v2.2.a-no-support-query]/[job=52577562]-[2024-11-10 01:10:08]")
+
+    # [swin]
+    # experiment_path = Path("runs/ablations/[LiveCellCrop]/[iaunet-r50]/[iadecoder_ml_fpn]/[InstanceHead-v2.2.3-dual-update]/[job=52577564]-[2024-11-10 01:10:08]")
+
+
+
     if args.experiment_path:
         experiment_path = Path(args.experiment_path)
 
@@ -143,8 +174,8 @@ if __name__ == '__main__':
             'evaluator': {
                 'type': "MMDetDataloaderEvaluator",
                 'mask_thr': 0.5,
-                'score_thr': 0.1,
-                'nms_thr': 0.5,
+                'score_thr': 0.01,
+                'nms_thr': 0.8,
                 'metric': 'segm',
                 'classwise': False,
                 'outfile_prefix': "eval/results/coco",
@@ -170,10 +201,10 @@ if __name__ == '__main__':
         'dataset': {
             'valid_dataset': {
                 'size': [512, 512],
-                'batch_size': 1
+                'batch_size': 4
             },
             'eval_dataset': {
-                'batch_size': 1,
+                'batch_size': 4,
             }
         }
     })
@@ -183,7 +214,7 @@ if __name__ == '__main__':
         "trainer": {
             "accelerator": "gpu",
             "devices": 1,
-            "num_workers": 1,
+            "num_workers": 4,
             "strategy": None,
         }
     })

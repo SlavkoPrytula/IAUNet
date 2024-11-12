@@ -111,17 +111,19 @@ if __name__ == "__main__":
     # pred_json_path = "/gpfs/space/home/prytula/scripts/experimental_segmentation/yolo/ultralytics/runs/EVICAN2_Easy/yolo/yolov8m-seg/run2/results/coco_eval.segm.json"
     # image_dir = "/gpfs/space/projects/PerkinElmer/cytoplasm_segmentation/datasets/EVICAN2/coco/images/EVICAN_eval2019"
 
-    # NeurlPS22_CellSeg
-    gt_json_path = "/project/project_465001327/datasets/Revvity-25/annotations/valid.json"
-    pred_json_path = 'runs/benchmarks/[Revvity_25]/[iaunet-r50]/[iadecoder_ml]/[InstanceHead-v2.2.2-dual-update]/[job=8299977]-[2024-10-29 22:39:47]/results/coco.segm.json'
-    image_dir = "/project/project_465001327/datasets/Revvity-25/images"
+    
+    gt_json_path = "/gpfs/space/projects/PerkinElmer/cytoplasm_segmentation/datasets/LiveCell/crop_512x512/coco/annotations/livecell_coco_test.json"
+    pred_json_path = 'runs/ablations/[LiveCellCrop]/[iaunet-r50]/[iadecoder_ml]/[InstanceHead-v2.2.1-dual-update]/[job=52560796]-[2024-11-06 12:18:01]/eval/results/coco.segm.json'
+    image_dir = "/gpfs/space/projects/PerkinElmer/cytoplasm_segmentation/datasets/LiveCell/crop_512x512/coco/images/livecell_test_images"
+    
+    # Revvity-25
+    # gt_json_path = "/project/project_465001327/datasets/Revvity-25/annotations/valid.json"
+    # pred_json_path = 'runs/benchmarks/[Revvity_25]/[iaunet-r50]/[iadecoder_ml]/[InstanceHead-v2.2.2-dual-update]/[job=8299977]-[2024-10-29 22:39:47]/results/coco.segm.json'
+    # image_dir = "/project/project_465001327/datasets/Revvity-25/images"
 
 
     gt_coco, pred_coco, _ = json_coco_evaluation(gt_json_path, pred_json_path)
 
-
-    # plot results
-    # image_dir = "/gpfs/space/projects/PerkinElmer/cytoplasm_segmentation/datasets/LiveCell/crop_512x512/coco/images/livecell_test_images"
 
     # idx = 101438
     image_ids = gt_coco.getImgIds()

@@ -191,8 +191,6 @@ class InstanceHead_Base(nn.Module):
             memory_key_padding_mask=None, 
             pos=query_embed, query_pos=pos
             )
-
-        inst_pixel_features = self.transformer_inst_feats_self_attention_layers[i](inst_pixel_features)
         
         # inst feats ffn.
         inst_pixel_features = self.transformer_inst_feats_ffn_layers[i](inst_pixel_features)
@@ -206,8 +204,6 @@ class InstanceHead_Base(nn.Module):
             memory_key_padding_mask=None,
             pos=query_embed, query_pos=pos
         )
-
-        mask_pixel_features = self.transformer_mask_feats_self_attention_layers[i](mask_pixel_features)
 
         # mask feats ffn.
         mask_pixel_features = self.transformer_mask_feats_ffn_layers[i](mask_pixel_features)
@@ -223,7 +219,7 @@ class InstanceHead_Base(nn.Module):
             )
         
         # inst embed sa.
-        inst_features = self.transformer_instance_self_attention_layers[i](
+        inst_features, query_sa_attn = self.transformer_instance_self_attention_layers[i](
             inst_features, tgt_mask=None, 
             tgt_key_padding_mask=None, 
             query_pos=query_embed
@@ -233,7 +229,9 @@ class InstanceHead_Base(nn.Module):
         inst_features = self.transformer_instance_ffn_layers[i](inst_features)
         
 
-        return inst_features, inst_pixel_features, mask_pixel_features
+        return inst_features, inst_pixel_features, mask_pixel_features, \
+                inst_pixel_attn, mask_pixel_attn, query_sa_attn
+    
     
 
     def forward(self, features, mask_feats, prev_inst_features=None):
@@ -265,7 +263,7 @@ class InstanceHead_Base(nn.Module):
             query_embed = torch.cat([query_embed, prev_query_embed], dim=0)
 
         for i in range(self.num_layers):    
-            inst_features, inst_pixel_features, mask_pixel_features, mask_pixel_attn = self.forward_one_layer(
+            inst_features, inst_pixel_features, mask_pixel_features, inst_pixel_attn, mask_pixel_attn, query_sa_attn = self.forward_one_layer(
                 inst_features, inst_pixel_features, mask_pixel_features, query_embed, pos, i
             )
 
@@ -285,7 +283,11 @@ class InstanceHead_Base(nn.Module):
         inst_pixel_features = inst_pixel_features.permute(1, 2, 0).view(B, C, H, W)
         mask_pixel_features = mask_pixel_features.permute(1, 2, 0).view(B, C, H, W)
 
-        mask_pixel_attn = mask_pixel_attn.permute(0, 2, 1).view(B, -1, H, W)
+        if inst_pixel_attn is not None:
+            inst_pixel_attn = inst_pixel_attn.permute(0, 2, 1).view(B, -1, H, W)
+        if mask_pixel_attn is not None:
+            mask_pixel_attn = mask_pixel_attn.permute(0, 2, 1).view(B, -1, H, W)
+        query_sa_attn = query_sa_attn.permute(0, 2, 1)
 
         results = {
             'logits': pred_logits,
@@ -296,18 +298,16 @@ class InstanceHead_Base(nn.Module):
             'bboxes': {
                 'instance_bboxes': pred_bboxes
                 },
-            'iams': {
-                'instance_iams': inst_iam,
-                },
             'inst_feats': {
                 'instance_feats': inst_features
                 },
             'inst_pixel_feats': inst_pixel_features,
             'mask_pixel_feats': mask_pixel_features,
-            'mask_pixel_attn': mask_pixel_attn
-            
+            'inst_pixel_attn': inst_pixel_attn,
+            'mask_pixel_attn': mask_pixel_attn, 
+            'query_sa_attn': query_sa_attn
         }
-
+        
         return results
     
 
@@ -371,7 +371,7 @@ class InstanceHead(InstanceHead_Base):
             )
         
         # inst embed sa.
-        inst_features = self.transformer_instance_self_attention_layers[i](
+        inst_features, query_sa_attn = self.transformer_instance_self_attention_layers[i](
             inst_features, tgt_mask=None, 
             tgt_key_padding_mask=None, 
             query_pos=query_embed
@@ -381,7 +381,8 @@ class InstanceHead(InstanceHead_Base):
         inst_features = self.transformer_instance_ffn_layers[i](inst_features)
         
 
-        return inst_features, inst_pixel_features, mask_pixel_features, mask_pixel_attn
+        return inst_features, inst_pixel_features, mask_pixel_features, \
+            None, mask_pixel_attn, query_sa_attn
     
 
 
@@ -423,7 +424,7 @@ class InstanceHead(InstanceHead_Base):
         # [inst_pixel_features] -> inst_features
         # --------------
         # inst feats ca.
-        inst_pixel_features = self.transformer_inst_feats_cross_attention_layers[i](
+        inst_pixel_features, inst_pixel_attn = self.transformer_inst_feats_cross_attention_layers[i](
             inst_pixel_features, inst_features, 
             memory_mask=None, 
             memory_key_padding_mask=None, 
@@ -436,7 +437,7 @@ class InstanceHead(InstanceHead_Base):
 
         # --------------
         # inst embed ca.
-        inst_features = self.transformer_instance_cross_attention_layers[i](
+        inst_features, _ = self.transformer_instance_cross_attention_layers[i](
             inst_features, inst_pixel_features,
             memory_mask=None, 
             memory_key_padding_mask=None, 
@@ -444,7 +445,7 @@ class InstanceHead(InstanceHead_Base):
             )
         
         # inst embed sa.
-        inst_features = self.transformer_instance_self_attention_layers[i](
+        inst_features, query_sa_attn = self.transformer_instance_self_attention_layers[i](
             inst_features, tgt_mask=None, 
             tgt_key_padding_mask=None, 
             query_pos=query_embed
@@ -454,13 +455,14 @@ class InstanceHead(InstanceHead_Base):
         inst_features = self.transformer_instance_ffn_layers[i](inst_features)
         
 
-        return inst_features, inst_pixel_features, mask_pixel_features
+        return inst_features, inst_pixel_features, mask_pixel_features, \
+            inst_pixel_attn, None, query_sa_attn
     
 
 
 
-@HEADS.register(name="InstanceHead-v2.2.a-removed-prev-query")
-class InstanceHead_Base(InstanceHead_Base):
+@HEADS.register(name="InstanceHead-v2.2.a-no-support-query")
+class InstanceHead(InstanceHead_Base):
     def __init__(self, 
                  in_channels: int = 256, 
                  num_convs: int = 4, 
@@ -489,59 +491,8 @@ class InstanceHead_Base(InstanceHead_Base):
                          dropout,
                          in_res)
         
-        print("InstanceHead-v2.2.a-removed-prev-query")
+        print("InstanceHead-v2.2.a-no-support-query")
 
-    
-    def forward_one_layer(self, inst_features, inst_pixel_features, mask_pixel_features, query_embed, pos, i):
-        # [inst_pixel_features, mask_pixel_features] -> inst_features
-        # --------------
-        # inst feats ca.
-        inst_pixel_features = self.transformer_inst_feats_cross_attention_layers[i](
-            inst_pixel_features, inst_features, 
-            memory_mask=None, 
-            memory_key_padding_mask=None, 
-            pos=query_embed, query_pos=pos
-            )
-        
-        # inst feats ffn.
-        inst_pixel_features = self.transformer_inst_feats_ffn_layers[i](inst_pixel_features)
-
-
-        # --------------
-        # mask feats ca.
-        mask_pixel_features = self.transformer_mask_feats_cross_attention_layers[i](
-            mask_pixel_features, inst_features,
-            memory_mask=None,
-            memory_key_padding_mask=None,
-            pos=query_embed, query_pos=pos
-        )
-
-        # mask feats ffn.
-        mask_pixel_features = self.transformer_mask_feats_ffn_layers[i](mask_pixel_features)
-
-
-        # --------------
-        # inst embed ca.
-        inst_features = self.transformer_instance_cross_attention_layers[i](
-            inst_features, None, # TODO: check if we need to use inst or mask feats # inst_pixel_features,
-            memory_mask=None, 
-            memory_key_padding_mask=None, 
-            pos=pos, query_pos=query_embed
-            )
-        
-        # inst embed sa.
-        inst_features = self.transformer_instance_self_attention_layers[i](
-            inst_features, tgt_mask=None, 
-            tgt_key_padding_mask=None, 
-            query_pos=query_embed
-            )
-        
-        # inst embed ffn.
-        inst_features = self.transformer_instance_ffn_layers[i](inst_features)
-        
-
-        return inst_features, inst_pixel_features, mask_pixel_features
-    
 
     def forward(self, features, mask_feats, prev_inst_features=None):
         inst_iam = self.inst_iam(features)
@@ -565,7 +516,7 @@ class InstanceHead_Base(InstanceHead_Base):
         query_embed = self.query_embed.weight.unsqueeze(1).repeat(1, B, 1)
 
         for i in range(self.num_layers):    
-            inst_features, inst_pixel_features, mask_pixel_features = self.forward_one_layer(
+            inst_features, inst_pixel_features, mask_pixel_features, inst_pixel_attn, mask_pixel_attn, query_sa_attn = self.forward_one_layer(
                 inst_features, inst_pixel_features, mask_pixel_features, query_embed, pos, i
             )
 
@@ -584,6 +535,10 @@ class InstanceHead_Base(InstanceHead_Base):
         inst_pixel_features = inst_pixel_features.permute(1, 2, 0).view(B, C, H, W)
         mask_pixel_features = mask_pixel_features.permute(1, 2, 0).view(B, C, H, W)
 
+        inst_pixel_attn = inst_pixel_attn.permute(0, 2, 1).view(B, -1, H, W)
+        mask_pixel_attn = mask_pixel_attn.permute(0, 2, 1).view(B, -1, H, W)
+        query_sa_attn = query_sa_attn.permute(0, 2, 1)
+
         results = {
             'logits': pred_logits,
             'objectness_scores': pred_scores,
@@ -600,8 +555,104 @@ class InstanceHead_Base(InstanceHead_Base):
                 'instance_feats': inst_features
                 },
             'inst_pixel_feats': inst_pixel_features,
-            'mask_pixel_feats': mask_pixel_features
+            'mask_pixel_feats': mask_pixel_features,
+            'inst_pixel_attn': inst_pixel_attn,
+            'mask_pixel_attn': mask_pixel_attn, 
+            'query_sa_attn': query_sa_attn
         }
 
         return results
     
+
+
+
+@HEADS.register(name="InstanceHead-v2.2.a-no-guided-query")
+class InstanceHead(InstanceHead_Base):
+    def __init__(self, 
+                 in_channels: int = 256, 
+                 num_convs: int = 4, 
+                 num_classes: int = 80, 
+                 kernel_dim: int = 256, 
+                 num_masks: int = 100, 
+                 num_groups: int = 1,
+                 activation: str = "softmax", 
+                 num_layers: int = 1,
+                 dim_feedforward: int = 2048,
+                 nhead: int = 8, 
+                 normalize_before: bool = False,
+                 dropout: float = 0.0, 
+                 in_res=None):
+        super().__init__(in_channels,
+                         num_convs,
+                         num_classes,
+                         kernel_dim,
+                         num_masks,
+                         num_groups,
+                         activation,
+                         num_layers,
+                         dim_feedforward,
+                         nhead,
+                         normalize_before,
+                         dropout,
+                         in_res)
+        
+        print("InstanceHead-v2.2.a-no-guided-query")
+        
+        self.inst_features = nn.Parameter(torch.randn(num_masks, kernel_dim))
+        
+
+    def forward(self, features, mask_feats, prev_inst_features=None):
+        B = features.size(0)
+        inst_features = self.inst_features.unsqueeze(1).repeat(1, B, 1)  # (N, B, D)
+        
+        inst_pixel_features = features.flatten(2).permute(2, 0, 1)
+        mask_pixel_features = mask_feats.flatten(2).permute(2, 0, 1)
+
+        pos = self.pe_layer(features, None)
+        pos = pos.flatten(2).permute(2, 0, 1)
+        query_embed = self.query_embed.weight.unsqueeze(1).repeat(1, B, 1)
+
+        for i in range(self.num_layers):    
+            inst_features, inst_pixel_features, mask_pixel_features, inst_pixel_attn, mask_pixel_attn, query_sa_attn = self.forward_one_layer(
+                inst_features, inst_pixel_features, mask_pixel_features, query_embed, pos, i
+            )
+
+        inst_features = self.decoder_norm(inst_features)
+        inst_features = inst_features.transpose(0, 1)
+
+        inst_features = F.relu_(self.fc(inst_features))
+
+        # predictions.
+        pred_logits = self.cls_score(inst_features)
+        pred_inst_kernel = self.inst_kernel(inst_features)
+        pred_scores = self.objectness(inst_features)
+        pred_bboxes = self.bbox_pred(inst_features)
+
+        # (L, B, C) -> (B, C, L) -> (B, C, H, W)
+        inst_pixel_features = inst_pixel_features.permute(1, 2, 0).view(B, -1, features.shape[2], features.shape[3])
+        mask_pixel_features = mask_pixel_features.permute(1, 2, 0).view(B, -1, features.shape[2], features.shape[3])
+
+        inst_pixel_attn = inst_pixel_attn.permute(0, 2, 1).view(B, -1, features.shape[2], features.shape[3])
+        mask_pixel_attn = mask_pixel_attn.permute(0, 2, 1).view(B, -1, features.shape[2], features.shape[3])
+        query_sa_attn = query_sa_attn.permute(0, 2, 1)
+
+        results = {
+            'logits': pred_logits,
+            'objectness_scores': pred_scores,
+            'kernels': {
+                'instance_kernel': pred_inst_kernel,
+                },
+            'bboxes': {
+                'instance_bboxes': pred_bboxes
+                },
+            'inst_feats': {
+                'instance_feats': inst_features
+                },
+            'inst_pixel_feats': inst_pixel_features,
+            'mask_pixel_feats': mask_pixel_features,
+            'inst_pixel_attn': inst_pixel_attn,
+            'mask_pixel_attn': mask_pixel_attn, 
+            'query_sa_attn': query_sa_attn
+        }
+
+        return results

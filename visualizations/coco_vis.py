@@ -87,7 +87,7 @@ def visualize_coco_anns(coco_api, idx, ax, shape, alpha=1, draw_border=False, st
     _visualize_masks(ax, masks, draw_border)
 
 
-def visualize_masks(img, masks, shape, alpha=1, draw_border=False, static_color=False, path=None, show_img=False):
+def visualize_masks(img, masks, shape, alpha=1, draw_border=False, static_color=False, path=None, show_img=False, figsize=[20, 10], dpi=100):
     img = F.interpolate(img.unsqueeze(0).unsqueeze(0), size=shape, 
                         mode="bilinear", align_corners=False).squeeze(0).squeeze(0)
 
@@ -95,7 +95,7 @@ def visualize_masks(img, masks, shape, alpha=1, draw_border=False, static_color=
                         mode="bilinear", align_corners=False).squeeze(0)
     
     if show_img:
-        fig, ax = plt.subplots(1, 2, figsize=[20, 10])
+        fig, ax = plt.subplots(1, 2, figsize=figsize, dpi=dpi)
         fig.subplots_adjust(wspace=0, hspace=0, left=0, right=1, bottom=0, top=1)
 
         ax[0].imshow(img, cmap='gray')
@@ -106,11 +106,11 @@ def visualize_masks(img, masks, shape, alpha=1, draw_border=False, static_color=
         
         for a in ax:
             a.axis('off')
-            a.set_xlim(0, shape[1])
+            a.set_xlim(0, shape[1]-1)
             a.set_ylim(shape[0], 0)
         
     else:
-        fig, ax = plt.subplots(1, 1, figsize=[20, 10])
+        fig, ax = plt.subplots(1, 1, figsize=figsize, dpi=dpi)
         fig.subplots_adjust(wspace=0, hspace=0, left=0, right=1, bottom=0, top=1)
 
         ax.imshow(img, cmap='gray')
@@ -119,12 +119,12 @@ def visualize_masks(img, masks, shape, alpha=1, draw_border=False, static_color=
         _visualize_masks(ax, masks, draw_border)
         
         ax.axis('off')
-        ax.set_xlim(0, shape[1])
+        ax.set_xlim(0, shape[1]-1)
         ax.set_ylim(shape[0]-1, 0)
 
     if path:
         os.makedirs(os.path.dirname(path), exist_ok=True)
-        fig.savefig(path, bbox_inches='tight', pad_inches=0)
+        fig.savefig(path, bbox_inches='tight', pad_inches=0, dpi=dpi)
         
     plt.close(fig)
 
