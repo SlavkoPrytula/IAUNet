@@ -22,8 +22,8 @@ criterion:
 evaluator:
   type: MMDetDataloaderEvaluator
   mask_thr: 0.5
-  score_thr: 0.1
-  nms_thr: 0.5
+  score_thr: 0.01
+  nms_thr: 0.8
   metric: segm
   classwise: true
   outfile_prefix: results/coco

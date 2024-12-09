@@ -6,8 +6,8 @@ runs_dir: 'runs'
 # experiment_name: experiments
 # run_name: '[${dataset.name}]/[${model.decoder.type}]/[${model.model_name}]'
 
-# experiment_name: benchmarks
-experiment_name: ablations
+experiment_name: benchmarks
+# experiment_name: ablations
 run_name: '[${dataset.name}]/[${model.model_name}]/[${model.decoder.type}]'
 
 group_name: '[${model.decoder.instance_head.type}]'

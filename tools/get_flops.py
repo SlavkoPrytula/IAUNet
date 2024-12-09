@@ -33,10 +33,10 @@ def profile_model(cfg: cfg):
         # cfg.model.decoder.instance_head.type = "InstanceHead-v1.1"
         # cfg.model.decoder.instance_head.type = "InstanceHead-v2.1-attn"
         # cfg.model.decoder.instance_head.type = "InstanceHead-v2.2-two-way-attn"
-        cfg.model.decoder.instance_head.type = "InstanceHead-v2.2.1-dual-update"
+        # cfg.model.decoder.instance_head.type = "InstanceHead-v2.2.1-dual-update"
         # cfg.model.decoder.instance_head.type = "InstanceHead-v2.2.3-dual-update"
         # cfg.model.decoder.instance_head.type = "InstanceHead-v2.2.a-no-guided-query"
-        # cfg.model.decoder.instance_head.type = "InstanceHead-v3.0-multi-query"
+        cfg.model.decoder.instance_head.type = "InstanceHead-v3.t-testing"
         cfg.model.decoder.instance_head.in_channels = 256
         cfg.model.decoder.instance_head.kernel_dim = 256
         cfg.model.decoder.instance_head.num_groups = 1
@@ -52,7 +52,7 @@ def profile_model(cfg: cfg):
         # model.
         # cfg.model.type = "resnet_iaunet_multitask_ml"
         cfg.model.type = "iaunet"
-        cfg.model.decoder.type = "iadecoder_ml_fpn_no_mask_branch"
+        cfg.model.decoder.type = "iadecoder_ml_fpn"
         # cfg.model.encoder = dict(
         #     type='ResNet',
         #     depth=50,
@@ -61,7 +61,7 @@ def profile_model(cfg: cfg):
         #     pretrained=True,
         # )
 
-        cfg.model.n_levels = 4
+        cfg.model.n_levels = 3
         cfg.model.decoder.num_convs = 2
         cfg.model.decoder.last_layer_only = False
 

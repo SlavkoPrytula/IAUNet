@@ -140,7 +140,7 @@ if __name__ == '__main__':
     # experiment_path = Path("runs/ablations/[LiveCellCrop]/[iaunet-r50]/[iadecoder_ml_fpn]/[InstanceHead-v2.2.a-no-support-query]/[job=52577562]-[2024-11-10 01:10:08]")
 
     # [swin]
-    # experiment_path = Path("runs/ablations/[LiveCellCrop]/[iaunet-r50]/[iadecoder_ml_fpn]/[InstanceHead-v2.2.3-dual-update]/[job=52577564]-[2024-11-10 01:10:08]")
+    experiment_path = Path("runs/benchmarks/[Revvity_25]/[iaunet-swin-s]/[iadecoder_ml_fpn]/[InstanceHead-v3.t-testing]/[job=8434993]-[2024-11-13 01:25:25]")
 
 
 
@@ -157,11 +157,11 @@ if __name__ == '__main__':
     # cfg.dataset = "brightfield_coco_v2.0"
     
     # cfg.dataset.name = "EVICAN2_Easy"
-    # cfg.dataset.name = "EVICAN2_Medium"
+    cfg.dataset.name = "EVICAN2_Medium"
     # cfg.dataset.name = "EVICAN2_Difficult"
 
     # cfg.dataset = "LiveCell"
-    cfg.dataset.name = "LiveCellCrop"
+    # cfg.dataset.name = "LiveCellCrop"
 
     # cfg.dataset.name = "Revvity_25"
     
@@ -174,7 +174,7 @@ if __name__ == '__main__':
             'evaluator': {
                 'type': "MMDetDataloaderEvaluator",
                 'mask_thr': 0.5,
-                'score_thr': 0.01,
+                'score_thr': 0.0,
                 'nms_thr': 0.8,
                 'metric': 'segm',
                 'classwise': False,

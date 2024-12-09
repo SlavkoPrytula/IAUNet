@@ -18,7 +18,10 @@ import matplotlib.pyplot as plt
 
 
 
-def save_image_and_masks(image, masks, iams, img_id, shape, alpha=0.5, draw_border=True, dpi=300):
+def save_image_and_masks(image, masks, iams, img_id, step, shape, alpha=0.5, draw_border=True, dpi=300):
+    if step < 5:
+        return
+    
     if img_id == 1:
         return
     
@@ -54,60 +57,60 @@ def save_image_and_masks(image, masks, iams, img_id, shape, alpha=0.5, draw_bord
         if isinstance(iams, np.ndarray):
             iams = torch.tensor(iams, dtype=torch.float32)
 
-        downsampled_shape = [shape[0] // 16, shape[1] // 16]
-        iams = F.interpolate(iams.unsqueeze(0).unsqueeze(0), size=downsampled_shape, 
-                        mode="bilinear", align_corners=False).squeeze(0).squeeze(0)
+        # downsampled_shape = [shape[0] // 16, shape[1] // 16]
+        # iams = F.interpolate(iams.unsqueeze(0), size=downsampled_shape, 
+        #                 mode="bilinear", align_corners=False).squeeze(0)
         
         N, H, W = iams.shape
         _iams = iams.clone()
         _iams = F.softmax(_iams.view(N, -1), dim=-1)
         vis_preds_iams = _iams.view(N, H, W)
-        plt.imsave(iam_path_softmax, vis_preds_iams[i], cmap='inferno')
+        plt.imsave(iam_path_softmax, vis_preds_iams[i], cmap='jet')
 
 
         vis_preds_iams = iams.clone().sigmoid()
-        plt.imsave(iam_path_sigmoid, vis_preds_iams[i], cmap='inferno')
+        plt.imsave(iam_path_sigmoid, vis_preds_iams[i], cmap='jet')
 
-        # if i == 1:
-        #     raise
+        if i == 10:
+            raise
 
     if img_id >= 5:
         raise
 
 
 
-# def save_attn(attn, img_id, step, shape, alpha=0.5, draw_border=True, dpi=300):
-#     # attn: (N, H, W), N=200 - num_queries, H, W - height, width
-#     if step < 2:
-#         return
-    
-#     output_dir = f'./temp/image_{img_id}/attn'
-#     os.makedirs(output_dir, exist_ok=True)
-
-#     N = attn.shape[0]
-#     for i in tqdm(range(N)):
-#         attn_path = os.path.join(output_dir, f'query_attn_{i}.png')
-        
-#         plt.imsave(attn_path, attn[i])
-
-#     if step > 5:
-#         raise
-
-
-# for self-attention
 def save_attn(attn, img_id, step, shape, alpha=0.5, draw_border=True, dpi=300):
     # attn: (N, H, W), N=200 - num_queries, H, W - height, width
     if step < 2:
         return
     
-    output_dir = f'./temp/image_{img_id}/sa-attn'
+    output_dir = f'./temp/image_{img_id}/attn'
     os.makedirs(output_dir, exist_ok=True)
 
-    attn_path = os.path.join(output_dir, f'query_attn.png')
-    plt.imsave(attn_path, attn)
+    N = attn.shape[0]
+    for i in tqdm(range(N)):
+        attn_path = os.path.join(output_dir, f'query_attn_{i}.png')
+        
+        plt.imsave(attn_path, attn[i])
 
     if step > 5:
-        raise
+        return
+
+
+# for self-attention
+# def save_attn(attn, img_id, step, shape, alpha=0.5, draw_border=True, dpi=300):
+#     # attn: (N, H, W), N=200 - num_queries, H, W - height, width
+#     if step < 2:
+#         return
+    
+#     output_dir = f'./temp/image_{img_id}/sa-attn'
+#     os.makedirs(output_dir, exist_ok=True)
+
+#     attn_path = os.path.join(output_dir, f'query_attn.png')
+#     plt.imsave(attn_path, attn)
+
+#     if step > 5:
+#         raise
 
 
 
@@ -145,6 +148,96 @@ def visualize_single_mask_on_image(img, mask, shape, img_id, mask_idx, path,
     plt.savefig(path, dpi=dpi, bbox_inches='tight', pad_inches=0)
     plt.close(fig)
 
+
+
+
+def plot_pred_iam_set(image, masks, iams, img_id, step, shape, alpha=0.5, draw_border=True, dpi=300):
+    if step < 5:
+        return
+    
+    output_dir = f'./temp/image_{img_id}'
+    os.makedirs(output_dir, exist_ok=True)
+    save_path = os.path.join(output_dir, f'image_{img_id}_pred_iam_set.png')
+
+    # preprocess.
+    if isinstance(iams, np.ndarray):
+        iams = torch.tensor(iams, dtype=torch.float32)
+
+    iams = iams.clone().sigmoid()
+    
+
+    num_images = [1, 2, 14, 7]
+    # num_images = np.arange(10, 20, 1)
+
+    fig, axes = plt.subplots(2, len(num_images), figsize=(20, 10))
+    fig.subplots_adjust(wspace=0.05, hspace=0.01, left=0, right=1, bottom=0, top=1)
+
+    for i, idx in enumerate(num_images):
+        mask = masks[idx]
+        iam = iams[idx]
+
+        if isinstance(image, np.ndarray):
+            image = torch.tensor(image, dtype=torch.float32)
+        if isinstance(mask, np.ndarray):
+            mask = torch.tensor(mask, dtype=torch.float32)
+        if isinstance(iam, np.ndarray):
+            iam = torch.tensor(iam, dtype=torch.float32)
+
+        image = F.interpolate(image.unsqueeze(0).unsqueeze(0), size=shape, 
+                              mode="bilinear", align_corners=False).squeeze(0).squeeze(0)
+        mask = F.interpolate(mask.unsqueeze(0).unsqueeze(0), size=shape, 
+                             mode="bilinear", align_corners=False).squeeze(0).squeeze(0)
+        iam = F.interpolate(iam.unsqueeze(0).unsqueeze(0), size=shape, 
+                            mode="bilinear", align_corners=False).squeeze(0).squeeze(0)
+
+        # Top row: iams
+        axes[0, i].imshow(iam, cmap='jet')
+        axes[0, i].axis('off')
+
+        # Bottom row: image with mask overlay
+        axes[1, i].imshow(image, cmap='gray')
+        colored_mask = getNPMasks(mask.unsqueeze(0), shape, alpha=alpha, static_color=True)
+        _visualize_masks(axes[1, i], colored_mask, draw_border=draw_border)
+        axes[1, i].axis('off')
+
+    plt.savefig(save_path, dpi=dpi, bbox_inches='tight', pad_inches=0)
+    plt.close(fig)
+
+
+def plot_attn_set(attn, img_id, step, shape, dpi=300):
+    if step < 5:
+        return
+    
+    output_dir = f'./temp/image_{img_id}'
+    os.makedirs(output_dir, exist_ok=True)
+    save_path = os.path.join(output_dir, f'image_{img_id}_attn_set.png')
+
+    if isinstance(attn, np.ndarray):
+        attn = torch.tensor(attn, dtype=torch.float32)
+
+    num_images = [0, 1, 2]
+    labels = ['(a)', '(b)', '(c)']
+
+    fig, axes = plt.subplots(1, len(num_images), figsize=(20, 10))
+    fig.subplots_adjust(wspace=0.05, hspace=0.01, left=0, right=1, bottom=0, top=1)
+
+    print(attn.shape)
+    for i, idx in enumerate(num_images):
+        attn_map = attn[idx]
+
+        if isinstance(attn_map, np.ndarray):
+            attn_map = torch.tensor(attn_map, dtype=torch.float32)
+
+        attn_map = F.interpolate(attn_map.unsqueeze(0).unsqueeze(0), size=shape, 
+                                 mode="bilinear", align_corners=False).squeeze(0).squeeze(0)
+
+        axes[i].imshow(attn_map, cmap='viridis')
+        axes[i].axis('off')
+        axes[i].text(0.5, -0.05, labels[i], ha='center', va='top', 
+                     transform=axes[i].transAxes, fontsize=25)
+
+    plt.savefig(save_path, dpi=dpi, bbox_inches='tight', pad_inches=0)
+    plt.close(fig)
 
 
 def remove_padding(mask, ori_shape, rescale=False):
@@ -240,9 +333,9 @@ class AnalysisMMDetDataloaderEvaluator(COCOEvaluator):
         bboxes_pred_batch = preds['pred_bboxes']
         
         iams_batch = preds['pred_iams']['instance_iams']
-        # attn_batch = preds['attn']['mask_pixel_attn']
+        attn_batch = preds['attn']['mask_pixel_attn']
         # attn_batch = preds['attn']['inst_pixel_attn']
-        attn_batch = preds['attn']['query_sa_attn']
+        # attn_batch = preds['attn']['query_sa_attn']
         images_batch = preds['images']
 
         for batch_idx, (scores, masks_pred, iou_scores, bboxes_pred, iams_pred, attn, image) in enumerate(zip(
@@ -322,11 +415,11 @@ class AnalysisMMDetDataloaderEvaluator(COCOEvaluator):
                     ori_shape,
                     rescale=True
                 )
-                # attn = remove_padding(
-                #     attn, 
-                #     ori_shape,
-                #     rescale=False
-                # )
+                attn = remove_padding(
+                    attn, 
+                    ori_shape,
+                    rescale=False
+                )
 
             masks_pred = masks_pred > self.mask_threshold
             # ================================================
@@ -339,8 +432,21 @@ class AnalysisMMDetDataloaderEvaluator(COCOEvaluator):
 
             # save_image_and_masks(image, masks, iams, 
             #                      img_id=preds["img_id"][batch_idx], 
+            #                      step=step,
             #                      shape=ori_shape, 
-            #                      dpi=300)
+            #                      dpi=100)
+            
+            # plot_pred_iam_set(image, masks, iams, 
+            #                   img_id=preds["img_id"][batch_idx], 
+            #                   step=step,
+            #                   shape=ori_shape, 
+            #                   dpi=100)
+
+            # plot_attn_set(attn, 
+            #               img_id=preds["img_id"][batch_idx], 
+            #               step=step, 
+            #               shape=ori_shape, 
+            #               dpi=100)
 
             save_attn(attn, 
                       img_id=preds["img_id"][batch_idx], 

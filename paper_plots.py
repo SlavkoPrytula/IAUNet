@@ -244,24 +244,24 @@ def visualize_multiple_models(gt_json_path, pred_json_paths, image_dir, num_imag
     save_multi_model_vis(imgs, gt_coco, pred_cocos, image_ids, shape=[H, W], model_names=model_names, path=save_path)
 
 
-# gt_json_path = "/gpfs/space/projects/PerkinElmer/cytoplasm_segmentation/datasets/Revvity-25/v2/annotations/valid.json"
-# pred_json_paths = [
-#     "/gpfs/space/projects/PerkinElmer/cytoplasm_segmentation/mmdet_results/EXPERIMENTS/EXPERIMENTS_revityy_ext/Revityy/mask-rcnn_r50_fpn_1x_coco/job=52218535/results/coco_test.segm.json",
-#     "/gpfs/space/projects/PerkinElmer/cytoplasm_segmentation/mmdet_results/EXPERIMENTS/EXPERIMENTS_revityy_ext/Revityy/PointRend_r50_caffe_fpn_ms_1x_coco/job=52218539/results/coco_test.segm.json",
-#     "/gpfs/space/projects/PerkinElmer/cytoplasm_segmentation/mmdet_results/EXPERIMENTS/EXPERIMENTS_revityy_ext/Revityy/mask2former_r50_8xb2-lsj-50e_coco/job=52218543/results/coco_valid.segm.json",
-#     "runs/benchmarks/[Revvity_25]/[iaunet-r50]/[iadecoder_ml]/[InstanceHead-v2.2.1-dual-update]/[job=52200406]-[2024-09-28 11:07:25]/eval/results/coco.segm.json",
-# ]
-# image_dir = "/gpfs/space/projects/PerkinElmer/cytoplasm_segmentation/datasets/Revvity-25/v2/images"
-
-
-gt_json_path = "/gpfs/space/projects/PerkinElmer/cytoplasm_segmentation/datasets/LiveCell/crop_512x512/coco/annotations/livecell_coco_test.json"
+gt_json_path = "/project/project_465001327/datasets/Revvity-25/annotations/valid.json"
 pred_json_paths = [
-    "/gpfs/space/projects/PerkinElmer/cytoplasm_segmentation/mmdet_results/EXPERIMENTS/LiveCell/mask-rcnn_r50_fpn_1x_coco/job=52020558/results/coco_valid.segm.json",
-    "/gpfs/space/projects/PerkinElmer/cytoplasm_segmentation/mmdet_results/EXPERIMENTS/LiveCell/PointRend_r50_caffe_fpn_ms_1x_coco/job=52020557/results/coco_valid.segm.json",
-    "/gpfs/space/projects/PerkinElmer/cytoplasm_segmentation/mmdet_results/EXPERIMENTS/LiveCell/mask2former_r50_8xb2-lsj-50e_coco/job=52020562/results/coco_valid.segm.json",
-    "runs/ablations/[LiveCellCrop]/[iaunet-r50]/[iadecoder_ml_fpn]/[InstanceHead-v2.2.1-dual-update]/[job=52560797]-[2024-11-06 12:18:01]/eval/results/coco.segm.json",
+    "/gpfs/space/projects/PerkinElmer/cytoplasm_segmentation/mmdet_results/EXPERIMENTS/EXPERIMENTS_revityy_ext/Revityy/mask-rcnn_r50_fpn_1x_coco/job=52218535/results/coco_test.segm.json",
+    "/gpfs/space/projects/PerkinElmer/cytoplasm_segmentation/mmdet_results/EXPERIMENTS/EXPERIMENTS_revityy_ext/Revityy/PointRend_r50_caffe_fpn_ms_1x_coco/job=52218539/results/coco_test.segm.json",
+    "/gpfs/space/projects/PerkinElmer/cytoplasm_segmentation/mmdet_results/EXPERIMENTS/EXPERIMENTS_revityy_ext/Revityy/mask2former_r50_8xb2-lsj-50e_coco/job=52218543/results/coco_valid.segm.json",
+    "runs/benchmarks/[Revvity_25]/[iaunet-r50]/[iadecoder_ml_fpn]/[InstanceHead-v3.t-testing]/[job=8434991]-[2024-11-13 01:25:17]/eval/results/coco.segm.json",
 ]
-image_dir = "/gpfs/space/projects/PerkinElmer/cytoplasm_segmentation/datasets/LiveCell/crop_512x512/coco/images/livecell_test_images"
+image_dir = "/project/project_465001327/datasets/Revvity-25/images"
+
+
+# gt_json_path = "/gpfs/space/projects/PerkinElmer/cytoplasm_segmentation/datasets/LiveCell/crop_512x512/coco/annotations/livecell_coco_test.json"
+# pred_json_paths = [
+#     "/gpfs/space/projects/PerkinElmer/cytoplasm_segmentation/mmdet_results/EXPERIMENTS/LiveCell/mask-rcnn_r50_fpn_1x_coco/job=52020558/results/coco_valid.segm.json",
+#     "/gpfs/space/projects/PerkinElmer/cytoplasm_segmentation/mmdet_results/EXPERIMENTS/LiveCell/PointRend_r50_caffe_fpn_ms_1x_coco/job=52020557/results/coco_valid.segm.json",
+#     "/gpfs/space/projects/PerkinElmer/cytoplasm_segmentation/mmdet_results/EXPERIMENTS/LiveCell/mask2former_r50_8xb2-lsj-50e_coco/job=52020562/results/coco_valid.segm.json",
+#     "runs/ablations/[LiveCellCrop]/[iaunet-r50]/[iadecoder_ml_fpn]/[InstanceHead-v2.2.1-dual-update]/[job=52560797]-[2024-11-06 12:18:01]/eval/results/coco.segm.json",
+# ]
+# image_dir = "/gpfs/space/projects/PerkinElmer/cytoplasm_segmentation/datasets/LiveCell/crop_512x512/coco/images/livecell_test_images"
 
 
 visualize_multiple_models(gt_json_path, pred_json_paths, image_dir, 
