@@ -1,0 +1,27 @@
+# @package _global_
+dataset:
+  name: ISBI2014
+  type: ISBI2014
+
+  data_root: /project/project_465001327/datasets/ISBI2014/coco
+
+  train_dataset:
+    images: ${dataset.data_root}/isbi_train
+    ann_file: ${dataset.data_root}/annotations/isbi_train.json
+    size: [512, 512]
+    batch_size: 8
+
+  valid_dataset:
+    images: ${dataset.data_root}/isbi_val
+    ann_file: ${dataset.data_root}/annotations/isbi_val.json
+    size: [512, 512]
+    batch_size: 8
+
+  eval_dataset:
+    images: ${dataset.data_root}/isbi_test
+    ann_file: ${dataset.data_root}/annotations/isbi_test.json
+    size: [512, 512]
+    batch_size: 8
+
+  mean: [221.65, 221.65, 221.65]
+  std: [25.28, 25.28, 25.28]

@@ -11,7 +11,7 @@ from utils.registry import MODELS, DECODERS
 
 
 
-@MODELS.register(name="iaunet")
+@MODELS.register(name="iaunet_v2")
 class IAUNet(BaseModel):
     def __init__(self, cfg: cfg):
         super(IAUNet, self).__init__(cfg)
@@ -19,11 +19,9 @@ class IAUNet(BaseModel):
         self.encoder = MODELS.build(cfg.model.encoder)
         embed_dims = self.encoder.embed_dims
         self.embed_dims = embed_dims
-        self.n_levels = cfg.model.n_levels
 
         self.decoder = DECODERS.build(cfg.model.decoder, 
-                                      embed_dims=self.embed_dims,
-                                      n_levels=self.n_levels)
+                                      embed_dims=self.embed_dims) 
 
     def forward(self, x):
         max_shape = x.shape[-2:]

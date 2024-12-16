@@ -25,23 +25,69 @@ def get_flops(model, device="cuda:0"):
     print()
 
 
+# @hydra.main(version_base="1.3", config_path="../configs", config_name="train")
+# def profile_model(cfg: cfg):
+
+#     if True:
+#         # inst head.
+#         # cfg.model.decoder.instance_head.type = "InstanceHead-v1.1"
+#         # cfg.model.decoder.instance_head.type = "InstanceHead-v2.1-attn"
+#         # cfg.model.decoder.instance_head.type = "InstanceHead-v2.2-two-way-attn"
+#         # cfg.model.decoder.instance_head.type = "InstanceHead-v2.2.1-dual-update"
+#         # cfg.model.decoder.instance_head.type = "InstanceHead-v2.2.3-dual-update"
+#         # cfg.model.decoder.instance_head.type = "InstanceHead-v2.2.a-no-guided-query"
+#         # cfg.model.decoder.instance_head.type = "InstanceHead-v3.t-testing"
+#         cfg.model.decoder.instance_head.in_channels = 256
+#         cfg.model.decoder.instance_head.kernel_dim = 256
+#         cfg.model.decoder.instance_head.num_groups = 1
+#         cfg.model.decoder.instance_head.num_masks = 100
+#         # cfg.model.decoder.instance_head.num_layers = 1
+#         # mask branch.
+#         cfg.model.decoder.mask_branch.type = "MaskStackedConv" # MaskDoubleConv, MaskStackedConv
+#         cfg.model.decoder.mask_branch.dim = 256
+#         # inst branch.
+#         cfg.model.decoder.instance_branch.type = "InstStackedConv" # InstDoubleConv, InstStackedConv
+#         cfg.model.decoder.instance_branch.dim = 256
+        
+#         # model.
+#         # cfg.model.type = "resnet_iaunet_multitask_ml"
+#         cfg.model.type = "iaunet_v2"
+#         cfg.model.decoder.type = "iadecoder_ml_fpn"
+#         # cfg.model.encoder = dict(
+#         #     type='ResNet',
+#         #     depth=50,
+#         #     num_stages=4,
+#         #     out_indices=[1, 2, 3, 4],
+#         #     pretrained=True,
+#         # )
+
+#         cfg.model.n_levels = 4
+#         cfg.model.decoder.num_convs = 2
+#         cfg.model.decoder.last_layer_only = False
+
+#     model = get_model(cfg)
+
+#     if torch.cuda.is_available():
+#         model = model.to("cuda:0")
+
+#     get_flops(model)
+
+
 @hydra.main(version_base="1.3", config_path="../configs", config_name="train")
 def profile_model(cfg: cfg):
 
     if True:
-        # inst head.
-        # cfg.model.decoder.instance_head.type = "InstanceHead-v1.1"
-        # cfg.model.decoder.instance_head.type = "InstanceHead-v2.1-attn"
-        # cfg.model.decoder.instance_head.type = "InstanceHead-v2.2-two-way-attn"
-        # cfg.model.decoder.instance_head.type = "InstanceHead-v2.2.1-dual-update"
-        # cfg.model.decoder.instance_head.type = "InstanceHead-v2.2.3-dual-update"
-        # cfg.model.decoder.instance_head.type = "InstanceHead-v2.2.a-no-guided-query"
-        cfg.model.decoder.instance_head.type = "InstanceHead-v3.t-testing"
-        cfg.model.decoder.instance_head.in_channels = 256
-        cfg.model.decoder.instance_head.kernel_dim = 256
-        cfg.model.decoder.instance_head.num_groups = 1
-        cfg.model.decoder.instance_head.num_masks = 100
-        # cfg.model.decoder.instance_head.num_layers = 1
+        # transformer decoder config.
+        cfg.model.decoder.num_queries = 100
+        cfg.model.decoder.num_classes = 1
+        cfg.model.decoder.hidden_dim = 256
+        cfg.model.decoder.nheads = 8
+        cfg.model.decoder.dec_layers = 1
+        cfg.model.decoder.dropout = 0.1
+        cfg.model.decoder.pre_norm = False
+        cfg.model.decoder.dim_feedforward = 2048
+
+        # pixel decoder config.
         # mask branch.
         cfg.model.decoder.mask_branch.type = "MaskStackedConv" # MaskDoubleConv, MaskStackedConv
         cfg.model.decoder.mask_branch.dim = 256
@@ -50,8 +96,7 @@ def profile_model(cfg: cfg):
         cfg.model.decoder.instance_branch.dim = 256
         
         # model.
-        # cfg.model.type = "resnet_iaunet_multitask_ml"
-        cfg.model.type = "iaunet"
+        cfg.model.type = "iaunet_v2"
         cfg.model.decoder.type = "iadecoder_ml_fpn"
         # cfg.model.encoder = dict(
         #     type='ResNet',
@@ -61,9 +106,8 @@ def profile_model(cfg: cfg):
         #     pretrained=True,
         # )
 
-        cfg.model.n_levels = 3
+        cfg.model.decoder.n_levels = 4
         cfg.model.decoder.num_convs = 2
-        cfg.model.decoder.last_layer_only = False
 
     model = get_model(cfg)
 
@@ -75,16 +119,3 @@ def profile_model(cfg: cfg):
 
 if __name__ == "__main__":
     profile_model()
-
-
-
-        # cfg.model.encoder = dict(
-        #     type='UNet',
-        #     num_stages=5,
-        #     out_indices=(0, 1, 2, 3, 4),
-        #     pyramid_pooling=False,
-        #     pp_embed_dim=128,
-        #     embed_dims=[64, 128, 256, 512, 1024],
-        #     # embed_dims=[32, 64, 128, 256, 512],
-        #     depths=[1, 1, 1, 2, 1]
-        # )

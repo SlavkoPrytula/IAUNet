@@ -12,7 +12,6 @@ class BaseModel(nn.Module, ABC):
     ):
         super(BaseModel, self).__init__()
         self.cfg = cfg  
-        self.n_levels = cfg.model.n_levels
         
     @abstractmethod
     def forward(self, x):

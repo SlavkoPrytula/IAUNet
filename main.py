@@ -135,6 +135,8 @@ def run(rank: int = 0, world_size: int = 1, cfg: cfg = None):
     scheduler_cfg['optimizer'] = optimizer
     scheduler = SCHEDULERS.build(scheduler_cfg)
 
+    # hack.
+    cfg.model.criterion.num_classes = cfg.model.decoder.num_classes
     criterion = CRITERIONS.build(cfg.model.criterion)
 
     

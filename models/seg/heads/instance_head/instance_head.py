@@ -115,7 +115,10 @@ class InstanceHead(nn.Module):
                  kernel_dim: int = 256, 
                  num_masks: int = 100, 
                  num_groups: int = 1,
-                 activation: str = "softmax"):
+                 activation: str = "softmax",
+                 num_layers: int = 1,
+                 in_res = None
+                 ):
         super().__init__()
         self.dim = in_channels
         self.num_convs = num_convs

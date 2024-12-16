@@ -32,7 +32,8 @@ class InstanceHead(nn.Module):
                  dim_feedforward: int = 2048,
                  nhead: int = 8, 
                  normalize_before: bool = False,
-                 dropout: float = 0.0):
+                 dropout: float = 0.0, 
+                 in_res=None):
         super().__init__()
         self.dim = in_channels
         self.num_convs = num_convs

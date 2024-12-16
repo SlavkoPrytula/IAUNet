@@ -112,7 +112,7 @@ class SparseInstCriterion(nn.Module):
 
         print(self.matcher)
         print(self.weight_dict)
-        # print(self)
+        print(f'\ncomputing loss for {self.num_classes} classes\n')
 
 
     def get_weight_dict(self):

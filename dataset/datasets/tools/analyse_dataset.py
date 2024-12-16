@@ -70,8 +70,8 @@ import cv2
 
 import matplotlib.pyplot as plt
 
-data_root = '/gpfs/space/projects/PerkinElmer/cytoplasm_segmentation/datasets/NeurlPS22-CellSeg/coco_new/images'
-dataset = os.listdir(data_root)[100]
+data_root = '/project/project_465001327/datasets/ISBI2014/coco/isbi_train'
+dataset = os.listdir(data_root)
 
 means = []
 stds = []

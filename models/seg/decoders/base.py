@@ -23,19 +23,19 @@ from utils.registry import HEADS
 class BaseDecoder(nn.Module, ABC):
     def __init__(self, cfg: Decoder, embed_dims: list = [], n_levels: int = 4):
         super(BaseDecoder, self).__init__()
-        self.num_convs = cfg.num_convs
-        self.coord_conv = cfg.coord_conv
-        self.embed_dims = embed_dims
-        self.n_levels = n_levels
-        self.last_layer_only = cfg.last_layer_only
+        # self.num_convs = cfg.num_convs
+        # self.coord_conv = cfg.coord_conv
+        # self.embed_dims = embed_dims
+        # self.n_levels = n_levels
+        # self.last_layer_only = cfg.last_layer_only
 
-        self.mask_dim = cfg.mask_branch.dim
-        self.inst_dim = cfg.instance_branch.dim
-        self.kernel_dim = cfg.instance_head.kernel_dim
+        # self.mask_dim = cfg.mask_branch.dim
+        # self.inst_dim = cfg.instance_branch.dim
+        # self.kernel_dim = cfg.instance_head.kernel_dim
 
-        assert self.inst_dim == self.mask_dim, "mask dim should be equal to instance dim!"
+        # assert self.inst_dim == self.mask_dim, "mask dim should be equal to instance dim!"
 
-        embed_dims = embed_dims[::-1]
+        # embed_dims = embed_dims[::-1]
 
         # self.up_conv_layers = nn.ModuleList([])
         # for i in range(self.n_levels):
@@ -138,8 +138,20 @@ class BaseDecoder(nn.Module, ABC):
 
         return coord_feat
 
-    @abstractmethod
-    def forward(skips, ori_shape):
+
+    def forward(self, skips, ori_shape):
+        """
+        Default decoder forward function:
+        - _forward() -> dict()
+        - process_outputs() -> dict()
+
+        ori_shape - max_shape of an image to be returned
+        """
+        results = self._forward(skips)
+        results = self.process_outputs(results, ori_shape)
+        return results
+
+    def _forward(self, features):
         ...
 
     def process_outputs(self, results, ori_shape):

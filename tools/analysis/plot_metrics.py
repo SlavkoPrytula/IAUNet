@@ -1,5 +1,6 @@
 import matplotlib.pyplot as plt
 import pandas as pd
+from os import makedirs
 
 
 def preprocess_columns(dataframe):
@@ -8,8 +9,10 @@ def preprocess_columns(dataframe):
 
 
 def plot_metrics(csv_dict, metric_name, xlabel='Epochs', ylabel='Metric Value'):
+    save_path = './tools/analysis/outputs'
+    makedirs(save_path, exist_ok=True)
 
-    plt.figure(figsize=(10, 6))
+    plt.figure(figsize=(10, 6), dpi=300)
     
     colors = ['#FFB000', '#DC267F', '#648FFF', '#FE6100', '#785EF0', '#FFB5A7', '#80CBE5', '#1D3557', '#A8DADC', '#457B9D']
     
@@ -20,27 +23,27 @@ def plot_metrics(csv_dict, metric_name, xlabel='Epochs', ylabel='Metric Value'):
         if metric_name in df.columns:
             # Apply rolling average
             rolling_metric = df[metric_name].rolling(window=1, min_periods=1).mean()
-            plt.plot(df['epoch'], rolling_metric, linewidth=4,
+            plt.plot(df['epoch'], rolling_metric, linewidth=3,
                      label=name, color=colors[idx % len(colors)])
         else:
             print(f"Metric '{metric_name}' not found in {path}.")
     
     plt.xlabel(xlabel)
     plt.ylabel(ylabel)
-    plt.ylim([0.6, 0.9])
+    # plt.ylim([0.6, 0.9])
     plt.title(f'{metric_name}')
     plt.grid(True, which='both', linestyle='--', alpha=0.5)
     plt.legend(loc='best')
     plt.tight_layout()
-    plt.savefig("./tools/analysis/outputs/run_analysis.jpg")
+    plt.savefig(f"{save_path}/run_analysis.jpg")
 
 
 csv_dict = {
-    'Run 1': "runs/[resnet_iaunet_multitask]/[truncated_decoder-iadecoder_ml]/[ResNet]/[LiveCellCrop]/[softmax_iam]/[kernel_dim=256]-[multi_level=True]-[coord_conv=True]-[losses=['labels', 'masks']]/[InstanceHead-v1.1]/[job=51958106]-[2024-08-27 00:14:43]/results.csv", 
-    'Run 3': "runs/[resnet_iaunet_multitask_ml]/[truncated_decoder-iadecoder_ml]/[ResNet]/[LiveCellCrop]/[softmax_iam]/[kernel_dim=256]-[multi_level=True]-[coord_conv=True]-[losses=['labels', 'masks']]/[InstanceHead-v2.2-two-way-attn]/[job=51973059]-[2024-08-30 02:25:55]/results.csv", 
-    'Run 4': "runs/[resnet_iaunet_multitask_ml]/[truncated_decoder-iadecoder_ml]/[ResNet]/[LiveCellCrop]/[softmax_iam]/[kernel_dim=256]-[multi_level=True]-[coord_conv=True]-[losses=['labels', 'masks']]/[InstanceHead-v2.2.1-dual-update]/[job=51978235]-[2024-08-31 21:43:39]/results.csv", 
+    'v1': "runs/benchmarks/[Revvity_25]/[iaunet-r101]/[iadecoder_ml_fpn]/[InstanceHead-v3.t-testing]/[job=8434992]-[2024-11-13 01:25:25]/results.csv", 
+    'v2': "runs/benchmarks/[Revvity_25]/[iaunet-r50]/[iadecoder_ml_fpn]/[InstanceHead-v2.2-two-way-attn]/[job=8693932]-[2024-12-10 16:08:44]/results.csv", 
+    'v2 + ca': "runs/experiments/[Revvity_25]/[iaunet-r50]/[iadecoder_ml_fpn_ia_queries]/[job=8708274]-[2024-12-11 13:57:51]/results.csv", 
 }
 
-plot_metrics(csv_dict, 'loss_valid')
+plot_metrics(csv_dict, 'mAP@0.5:0.95')
 
 # epoch, mAP@0.5:0.95,      mAP@0.5,     mAP@0.75,   mAP(s)@0.5,   mAP(m)@0.5,   mAP(l)@0.5,     mean_IoU,   loss_valid,loss_ce_valid,loss_bce_masks_valid,loss_dice_masks_valid,   loss_train,loss_ce_train,loss_bce_masks_train,loss_dice_masks_train
