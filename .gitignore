@@ -4,6 +4,7 @@ wandb/*
 visuals/*
 runs/*
 outputs/*
+runs
 
 tools/analysis/outputs
 
