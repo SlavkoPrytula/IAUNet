@@ -379,6 +379,41 @@ class SparseInstCriterion(nn.Module):
     def loss_visible(self, outputs, targets, indices, num_masks, **kwargs):
         return self._loss_masks(outputs, targets, indices, num_masks, name="visible_masks")
     
+    def loss_activations(self, outputs, targets, indices, num_masks, **kwargs):
+        """
+        Compute the losses related to the masks: the focal loss and the dice loss.
+        targets dicts must contain the key "masks" containing a tensor of dim [nb_target_boxes, h, w]
+        """
+        src_idx = self._get_src_permutation_idx(indices)
+        tgt_idx = self._get_tgt_permutation_idx(indices)
+        src_masks = outputs["pred_iams"]["instance_iams"]
+        src_masks = src_masks[src_idx]
+
+        masks = [t['instance_masks'] for t in targets]
+        # TODO use valid to mask invalid areas due to padding in loss
+        target_masks, valid = nested_tensor_from_tensor_list(masks).decompose()
+        target_masks = target_masks.to(src_masks)
+        target_masks = target_masks[tgt_idx]
+
+        # upsample predictions to the target size
+        src_masks = F.interpolate(src_masks[:, None], size=target_masks.shape[-2:],
+                                    mode="bilinear", align_corners=False)
+
+        src_masks = src_masks.squeeze(1)
+        target_masks = target_masks.squeeze(1)
+        src_masks = src_masks.flatten(1)
+        target_masks = target_masks.flatten(1)
+
+        losses = {
+            "loss_bce_iams": sigmoid_ce_loss_jit(src_masks, target_masks, num_masks),
+            "loss_dice_iams": dice_loss_jit(src_masks, target_masks, num_masks),
+        }
+
+        del src_masks
+        del target_masks
+
+        return losses
+    
 
     def loss_boxes(self, outputs, targets, indices, num_boxes, **kwargs):
         """Compute the losses related to the bounding boxes, the L1 regression loss and the GIoU loss
@@ -410,6 +445,7 @@ class SparseInstCriterion(nn.Module):
             "overlaps": self.loss_overlaps,
             "visible": self.loss_visible,
             "iou": self.loss_iou,
+            "activations": self.loss_activations,
         }
         
         assert loss in loss_map, f"loss {loss} not found in loss_map!"

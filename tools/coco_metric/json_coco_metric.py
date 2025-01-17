@@ -116,11 +116,15 @@ if __name__ == "__main__":
     # pred_json_path = 'runs/benchmarks/[Revvity_25]/[iaunet-r50]/[iadecoder_ml_fpn]/[InstanceHead-v3.t-testing]/[job=8434991]-[2024-11-13 01:25:17]/eval/results/coco.segm.json'
     # image_dir = "/project/project_465001327/datasets/LiveCell/crop_512x512/coco/images/livecell_test_images"
     
-    # Revvity-25
-    gt_json_path = "/project/project_465001327/datasets/Revvity-25/annotations/valid.json"
-    pred_json_path = 'runs/benchmarks/[Revvity_25]/[iaunet-swin-s]/[iadecoder_ml_fpn]/[InstanceHead-v3.t-testing]/[job=8434993]-[2024-11-13 01:25:25]/eval/results/coco.segm.json'
-    image_dir = "/project/project_465001327/datasets/Revvity-25/images"
+    # # Revvity-25
+    # gt_json_path = "/project/project_465001327/datasets/Revvity-25/annotations/valid.json"
+    # pred_json_path = 'runs/benchmarks/[Revvity_25]/[iaunet-swin-s]/[iadecoder_ml_fpn]/[InstanceHead-v3.t-testing]/[job=8434993]-[2024-11-13 01:25:25]/eval/results/coco.segm.json'
+    # image_dir = "/project/project_465001327/datasets/Revvity-25/images"
 
+    # ISBI2014
+    gt_json_path = "/project/project_465001327/datasets/ISBI2014/coco/annotations/isbi_test.json"
+    pred_json_path = 'runs/experiments_v2/[ISBI2014]/[iaunet-r50]/[iadecoder_ml_fpn_ia_queries]/[job=8772744]-[2024-12-16 13:33:00]/results/coco.segm.json'
+    image_dir = "/project/project_465001327/datasets/ISBI2014/coco/isbi_test"
 
     gt_coco, pred_coco, _ = json_coco_evaluation(gt_json_path, pred_json_path)
 
@@ -128,19 +132,19 @@ if __name__ == "__main__":
     # idx = 101438
     image_ids = gt_coco.getImgIds()
     
-    # for idx in range(2, 6):
-    #     img_id = image_ids[idx]
-    #     img_info = gt_coco.loadImgs(ids=[img_id])[0]
-    #     img_name = img_info['file_name']
-    #     base_name = img_name.split(".")[0]
-    #     img_path = join(image_dir, img_name)
+    for idx in range(2, 6):
+        img_id = image_ids[idx]
+        img_info = gt_coco.loadImgs(ids=[img_id])[0]
+        img_name = img_info['file_name']
+        base_name = img_name.split(".")[0]
+        img_path = join(image_dir, img_name)
 
-    #     img = cv2.imread(img_path, -1)
-    #     img = img / img.max()
+        img = cv2.imread(img_path, -1)
+        img = img / img.max()
 
-    #     if len(img.shape) == 3:
-    #         img = img[..., 0]
+        if len(img.shape) == 3:
+            img = img[..., 0]
 
-    #     H, W = img_info["height"], img_info["width"]
-    #     save_coco_vis(img, gt_coco, pred_coco, img_id, shape=[H, W], 
-    #                   path=f"./tools/coco_metric/results/yolov9e-seg/{base_name}.jpg")
+        H, W = img_info["height"], img_info["width"]
+        save_coco_vis(img, gt_coco, pred_coco, img_id, shape=[H, W], 
+                      path=f"./tools/coco_metric/results/iaunet/ISBI2014/{base_name}.jpg")
