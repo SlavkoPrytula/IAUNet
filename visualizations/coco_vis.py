@@ -14,10 +14,10 @@ def _visualize_masks(ax, masks, draw_border=False):
     for mask in masks:
         if draw_border:
             binary_mask = mask[..., 3] > 0
-            # dilation = binary_dilation(binary_mask, iterations=10)
-            # erosion = binary_erosion(binary_mask, iterations=2)
-            dilation = binary_dilation(binary_mask, iterations=6)
-            erosion = binary_erosion(binary_mask, iterations=4)
+            dilation = binary_dilation(binary_mask, iterations=10)
+            erosion = binary_erosion(binary_mask, iterations=2)
+            # dilation = binary_dilation(binary_mask, iterations=6)
+            # erosion = binary_erosion(binary_mask, iterations=4)
             border = dilation & ~erosion
             
             for c in range(3):

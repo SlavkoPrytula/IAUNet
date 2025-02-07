@@ -61,7 +61,6 @@ def c2_msra_fill(module: nn.Module) -> None:
 def _make_stack_3x3_convs(num_convs, in_channels, out_channels):
     convs = []
     for _ in range(num_convs):
-        # possibly add ssm (s4)
         convs.append(nn.Conv2d(in_channels, out_channels, 3, padding=1))
         convs.append(nn.BatchNorm2d(out_channels))
         convs.append(nn.ReLU(inplace=True))

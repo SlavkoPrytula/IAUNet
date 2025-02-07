@@ -1,4 +1,4 @@
-from .iadecoder.iadecoder import IADecoder
+# from .iadecoder.iadecoder import IADecoder
 # from .iadecoder.iadecoder_ml import IADecoder
 # from .iadecoder.iadecoder_ml_fpn import IADecoder
 # from .iadecoder.iadecoder_ml_fpn_add_skip import IADecoder
@@ -14,6 +14,9 @@ from .iadecoder.iadecoder import IADecoder
 # from .iadecoder.ablations.iadecoder_ml_fpn_no_inst_branch import IADecoder
 # from .iadecoder.ablations.iadecoder_ml_fpn_no_mask_branch import IADecoder
 
-from .iadecoder.optimized.iadecoder_ml_fpn import IADecoder
-from .iadecoder.optimized.iadecoder_ml_fpn_aux import IADecoder
-from .iadecoder.optimized.iadecoder_ml_fpn_ia_queries import IADecoder
+from .iadecoder.v2.iadecoder_ml_fpn import IADecoder
+from .iadecoder.v2.iadecoder_ml_fpn_ia_queries import IADecoder
+from .iadecoder.v2.iadecoder_ml_fpn_dual_path import IADecoder
+
+from .iadecoder.v2.experimental.iadecoder_ml_fpn_parallel_decoder_query import IADecoder
+from .iadecoder.v2.experimental.iadecoder_ml_fpn_sequential_decoder_query import IADecoder

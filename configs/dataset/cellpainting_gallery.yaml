@@ -1,0 +1,27 @@
+# @package _global_
+dataset:
+  name: cellpainting_gallery
+  type: cellpainting_gallery
+
+  data_root: /gpfs/space/projects/PerkinElmer/cytoplasm_segmentation/datasets/cellpainting-gallery/BR00116991__2020-11-05T19_51_35-Measurement1/coco
+
+  train_dataset:
+    images: ${dataset.data_root}/images
+    ann_file: ${dataset.data_root}/annotations/train_cell.json
+    size: [512, 512]
+    batch_size: 4
+
+  valid_dataset:
+    images: ${dataset.data_root}/images
+    ann_file: ${dataset.data_root}/annotations/val_cell.json
+    size: [512, 512]
+    batch_size: 4
+
+  eval_dataset:
+    images: ${dataset.data_root}/images
+    ann_file: ${dataset.data_root}/annotations/test_cell.json
+    size: [512, 512]
+    batch_size: 4
+
+  mean: [133.488, 133.488, 133.488]
+  std: [26.903, 26.903, 26.903]

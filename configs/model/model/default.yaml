@@ -3,7 +3,7 @@ criterion:
   losses:
     - labels
     - masks
-    - activations
+    # - activations
     # - bboxes
   weights:
     labels: 1.0

@@ -19,15 +19,16 @@ model:
     # pixel decoder config.
     type: iadecoder_ml
     n_levels: 4
-    num_convs: 2
 
     mask_branch:
       type: MaskStackedConv # opt: MaskDoubleConv, MaskStackedConv
       dim: 256
+      num_convs: 2
 
     instance_branch:
       type: InstStackedConv # opt: InstDoubleConv, InstStackedConv
       dim: 256
+      num_convs: 2
     
     # transformer decoder config.
     num_queries: 100

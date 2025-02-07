@@ -3,7 +3,8 @@ dataset:
   name: ISBI2014
   type: ISBI2014
 
-  data_root: /project/project_465001327/datasets/ISBI2014/coco
+  # data_root: /project/project_465001327/datasets/ISBI2014/coco
+  data_root:  /gpfs/space/projects/PerkinElmer/cytoplasm_segmentation/datasets/ISBI2014/coco
 
   train_dataset:
     images: ${dataset.data_root}/isbi_train

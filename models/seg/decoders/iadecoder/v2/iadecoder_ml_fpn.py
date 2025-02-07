@@ -11,7 +11,6 @@ sys.path.append("./")
 from models.seg.nn.blocks import (DoubleConv, DoubleConv_v1, DoubleConv_v2, 
                                   SE_block)
 
-from models.seg.decoders.iadecoder.iadecoder import IADecoder
 from models.seg.decoders.base import BaseDecoder
 from configs.structure import Decoder
 from utils.registry import DECODERS, HEADS
@@ -32,9 +31,8 @@ class IADecoder(BaseDecoder):
         super(BaseDecoder, self).__init__()
 
         self.n_levels = n_levels
-        num_convs = cfg.num_convs
+        num_convs = cfg.mask_branch.num_convs
         mask_dim = cfg.mask_branch.dim
-        inst_dim = cfg.instance_branch.dim
 
         hidden_dim = cfg.hidden_dim
         num_classes = cfg.num_classes + 1
@@ -62,14 +60,14 @@ class IADecoder(BaseDecoder):
         self.up_conv_layers = nn.ModuleList([])
         for i in range(n_levels - 1):
             if i == 0:
-                in_channels = fpn_dim + 2
+                in_channels = fpn_dim
             else:
-                in_channels = fpn_dim * 2 + 2
+                in_channels = fpn_dim * 2
             out_channels = fpn_dim
 
             upconv = nn.Sequential( 
-                DoubleConv_v2(in_channels, out_channels), 
-                SE_block(num_features=out_channels) 
+                DoubleConv_v1(in_channels, out_channels), 
+                # SE_block(num_features=out_channels) 
             )
             self.up_conv_layers.append(upconv)
 
@@ -93,26 +91,9 @@ class IADecoder(BaseDecoder):
                     num_convs=num_convs
                 )
             self.mask_branch.append(mask_branch)
-        
-        # instance features.
-        self.instance_branch = nn.ModuleList([])
-        instance_branch_layer = HEADS.get(cfg.instance_branch.type)
-        for i in range(n_levels - 1):
-            if i == 0:
-                instance_branch = instance_branch_layer(
-                    in_channels=fpn_dim + 2, 
-                    out_channels=inst_dim, 
-                    num_convs=num_convs
-                )
-            else:
-                instance_branch = instance_branch_layer(
-                    in_channels=fpn_dim + 2, 
-                    out_channels=inst_dim, 
-                    num_convs=num_convs
-                )
-            self.instance_branch.append(instance_branch)
 
 
+        # mask head.
         self.lateral_conv = nn.Sequential(
             nn.Conv2d(mask_dim, mask_dim, kernel_size=1),
             nn.BatchNorm2d(mask_dim),
@@ -122,8 +103,9 @@ class IADecoder(BaseDecoder):
             nn.BatchNorm2d(mask_dim),
             nn.ReLU(inplace=True),
         )
+        
 
-
+        # transformer decoder.
         N_steps = hidden_dim // 2
         self.pe_layer = PositionEmbeddingSine(N_steps, normalize=True)
 
@@ -204,8 +186,6 @@ class IADecoder(BaseDecoder):
 
         for i in range(self.n_levels - 1):
             if i != 0:
-                coord_features = self.compute_coordinates(x)
-                x = torch.cat([coord_features, x], dim=1)
                 x = nn.UpsamplingBilinear2d(scale_factor=2)(x)
 
                 skip = features[-(i + 1)]
@@ -217,43 +197,30 @@ class IADecoder(BaseDecoder):
                 skip = features[-1]
                 skip = self.skip_conv_layers[i](skip)
 
-                coord_features = self.compute_coordinates(skip)
-                x = torch.cat([coord_features, skip], dim=1)
-                x = self.up_conv_layers[i](x)
+                x = self.up_conv_layers[i](skip)
 
             
-            if i != 0:
-                mask_feats = nn.UpsamplingBilinear2d(scale_factor=2)(mask_feats)
-                # mask_feats = torch.cat([x, mask_feats], dim=1)
-                mask_feats = mask_feats + x
-                mask_feats = self.mask_branch[i](mask_feats)   
-            else:
-                mask_feats = self.mask_branch[i](x)
-
-
             # if i != 0:
-            #     inst_feats = nn.UpsamplingBilinear2d(scale_factor=2)(inst_feats)
-            #     # inst_feats = torch.cat([x, inst_feats], dim=1)
-            #     inst_feats = inst_feats + x
-
-            #     coord_features = self.compute_coordinates(inst_feats)
-            #     inst_feats = torch.cat([coord_features, inst_feats], dim=1)
-            #     inst_feats = self.instance_branch[i](inst_feats)
+            #     mask_feats = nn.UpsamplingBilinear2d(scale_factor=2)(mask_feats)
+            #     mask_feats = torch.cat([x, mask_feats], dim=1)
+            #     mask_feats = mask_feats + x
+            #     mask_feats = self.mask_branch[i](mask_feats)   
             # else:
-            #     coord_features = self.compute_coordinates(x)
-            #     inst_feats = torch.cat([coord_features, x], dim=1)
-            #     inst_feats = self.instance_branch[i](inst_feats)
+            #     mask_feats = self.mask_branch[i](x)
+
+            x = self.mask_branch[i](x)
+
 
             # transformer decoder.
-            B, C, H, W = mask_feats.shape
+            B, C, H, W = x.shape
 
-            pos = self.pe_layer(mask_feats, None)
+            pos = self.pe_layer(x, None)
             pos = pos.flatten(2).permute(2, 0, 1)
-            mask_feats = mask_feats.flatten(2).permute(2, 0, 1)
+            x = x.flatten(2).permute(2, 0, 1)
 
             # query ca.
             query_feat, _ = self.transformer_instance_cross_attention_layers[i](
-                query_feat, mask_feats, 
+                query_feat, x, 
                 memory_mask=None, 
                 memory_key_padding_mask=None, 
                 pos=pos, query_pos=query_embed
@@ -268,16 +235,17 @@ class IADecoder(BaseDecoder):
             
             # query ffn.
             query_feat = self.transformer_instance_ffn_layers[i](query_feat)
-            
-            mask_feats = mask_feats.permute(1, 2, 0).view(B, C, H, W)
+
+            x = x.permute(1, 2, 0).view(B, C, H, W)
+        
 
         # getting the first backbone feature map (1/4 - 'res2')
         # output_conv( lateral_conv(features[0]) + (x2)mask_feats ) 
         out = features[0]
-        y = self.lateral_conv(out) + F.interpolate(mask_feats, size=out.shape[-2:], 
+        y = self.lateral_conv(out) + F.interpolate(x, size=out.shape[-2:], 
                                                    mode="bilinear", align_corners=False)
-        mask_feats = self.output_conv(y)
-
+        x = self.output_conv(y)
+        
         query_feat = self.decoder_norm(query_feat)
         query_feat = query_feat.transpose(0, 1)
 
@@ -296,8 +264,7 @@ class IADecoder(BaseDecoder):
             'mask_embed': mask_embed,
         }
 
-        results["mask_feats"] = mask_feats
-        results["inst_feats"] = mask_feats
+        results["mask_feats"] = x
     
         return results
     
@@ -308,7 +275,6 @@ class IADecoder(BaseDecoder):
         mask_embed = results["mask_embed"]
         bboxes = results["bboxes"]['instance_bboxes']
         mask_feats = results["mask_feats"]
-        inst_feats = results["inst_feats"]
         iams = results.get('iams')
         inst_pixel_attn = results.get('inst_pixel_attn')
         mask_pixel_attn = results.get('mask_pixel_attn')
@@ -335,7 +301,6 @@ class IADecoder(BaseDecoder):
             'pred_bboxes': bboxes,
             'pred_instance_feats': {
                 "mask_feats": mask_feats,
-                "inst_feats": inst_feats,
             }, 
             'attn': {
                 "inst_pixel_attn": inst_pixel_attn,

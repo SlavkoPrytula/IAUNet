@@ -31,7 +31,7 @@ class DoubleConv_v1(nn.Module):
         out = self.layer_1(x)
         out = self.layer_2(out)
 
-        out = out + self.projection(x)
+        # out = out + self.projection(x)
         return out
 
 

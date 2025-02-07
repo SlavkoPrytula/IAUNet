@@ -72,7 +72,8 @@ def main(cfg: cfg):
     visualize(
         images=targets["image"][0, ...], 
         path='./test_image.jpg', 
-        cmap='gray'
+        cmap='gray',
+        show_title=False
     )
 
     H, W = targets["image"].shape[-2:] #targets["ori_shape"]

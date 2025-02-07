@@ -26,13 +26,12 @@ def remove_label_annotations(coco_json_path, output_json_path, label_ids):
 
 
 if __name__ == "__main__":
-    data_root = "/gpfs/space/projects/PerkinElmer/cytoplasm_segmentation/datasets/EVICAN2/coco"
-    coco_json_path = join(data_root, "annotations/EVICAN2/instances_eval2019_difficult_EVICAN2_area.json")
+    data_root = "/gpfs/space/projects/PerkinElmer/cytoplasm_segmentation/datasets/cellpainting-gallery/BR00116991__2020-11-05T19_51_35-Measurement1/coco_v1"
+    coco_json_path = join(data_root, "annotations/val.json")
 
     output_json_path = join(
         dirname(coco_json_path), 
-        'processed',
-        basename(coco_json_path).replace('_area.json', '_cell.json')
+        basename(coco_json_path).replace('val.json', 'val_cell.json')
         )
 
     remove_label_annotations(coco_json_path, output_json_path, label_ids=[2])

@@ -11,9 +11,10 @@ from .hubmap import HuBMAP
 from .neurlps22_cellseg import NeurlPS22_CellSeg
 from .revvity_25 import Revvity_25
 from .isbi2014 import ISBI2014
+from .cellpainting_gallery import CellPaintingGallery
 
 
 __all__ = ['Brightfield_Dataset', 'OriginalPlusSyntheticBrightfield', 'Rectangle',
            'EVICAN2', 'LiveCell', 'LiveCell2Percent', 'LiveCell30Images', 
            'YeastNet', 'HuBMAP', 'BrightfieldCOCO',
-           'NeurlPS22_CellSeg', 'Revvity_25', 'ISBI2014']
+           'NeurlPS22_CellSeg', 'Revvity_25', 'ISBI2014', 'CellPaintingGallery']

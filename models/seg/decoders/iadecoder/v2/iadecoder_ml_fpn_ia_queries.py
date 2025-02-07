@@ -10,8 +10,9 @@ sys.path.append("./")
 
 from models.seg.nn.blocks import (DoubleConv, DoubleConv_v1, DoubleConv_v2, 
                                   SE_block)
+from models.seg.heads.instance_head.instance_head_v2 import IABlock
 
-from models.seg.decoders.iadecoder.iadecoder import IADecoder
+# from models.seg.decoders.iadecoder.iadecoder import IADecoder
 from models.seg.decoders.base import BaseDecoder
 from configs.structure import Decoder
 from utils.registry import DECODERS, HEADS
@@ -22,7 +23,7 @@ from models.seg.nn.blocks import CrossAttentionLayer, SelfAttentionLayer, Positi
 
 
 
-@DECODERS.register(name='iadecoder_ml_fpn')
+@DECODERS.register(name='iadecoder_ml_fpn_ia_queries')
 class IADecoder(BaseDecoder):
     def __init__(self, 
                  cfg: Decoder, 
@@ -124,6 +125,53 @@ class IADecoder(BaseDecoder):
         )
 
 
+        # -------------------------------------------------------
+        # ia layer stuff.
+        self.ia_blocks = nn.ModuleList()
+        for i in range(n_levels - 1):
+            self.ia_blocks.append(
+                IABlock(
+                    in_channels=inst_dim, 
+                    num_queries=num_queries, 
+                    query_dim=hidden_dim,
+                )
+            )
+
+        # ca.
+        self.query_cross_attention_layers = nn.ModuleList([
+            CrossAttentionLayer(
+                d_model=hidden_dim,
+                nhead=nheads,
+                dropout=dropout,
+                normalize_before=pre_norm,
+            )
+            for _ in range(self.num_layers)
+        ])
+        
+        # sa.
+        self.query_self_attention_layers = nn.ModuleList([
+            SelfAttentionLayer(
+                d_model=hidden_dim,
+                nhead=nheads,
+                dropout=dropout,
+                normalize_before=pre_norm,
+            )
+            for _ in range(self.num_layers)
+        ])
+
+        # ffn.
+        self.query_ffn_layers = nn.ModuleList([
+            FFNLayer(
+                d_model=hidden_dim,
+                dim_feedforward=dim_feedforward, 
+                dropout=dropout, 
+                normalize_before=pre_norm
+            )
+            for _ in range(self.num_layers)
+        ])
+        # -------------------------------------------------------
+
+
         N_steps = hidden_dim // 2
         self.pe_layer = PositionEmbeddingSine(N_steps, normalize=True)
 
@@ -161,9 +209,10 @@ class IADecoder(BaseDecoder):
         ])
 
         # learnable query features.
-        self.query_feat = nn.Embedding(num_queries, hidden_dim)
+        self.query_m_feat = nn.Embedding(num_queries, hidden_dim)
         # learnable query p.e.
-        self.query_embed = nn.Embedding(num_queries, hidden_dim)
+        self.query_m_embed = nn.Embedding(num_queries, hidden_dim)
+        self.query_s_embed = nn.Embedding(num_queries, hidden_dim)
         
         self.decoder_norm = nn.LayerNorm(hidden_dim)
 
@@ -198,8 +247,9 @@ class IADecoder(BaseDecoder):
         
         B, C, H, W = features[0].shape
 
-        query_embed = self.query_embed.weight.unsqueeze(1).repeat(1, B, 1)
-        query_feat = self.query_feat.weight.unsqueeze(1).repeat(1, B, 1)
+        query_s_embed = self.query_s_embed.weight.unsqueeze(1).repeat(1, B, 1)
+        query_m_embed = self.query_m_embed.weight.unsqueeze(1).repeat(1, B, 1)
+        query_m_feat = self.query_m_feat.weight.unsqueeze(1).repeat(1, B, 1)
         
 
         for i in range(self.n_levels - 1):
@@ -231,18 +281,39 @@ class IADecoder(BaseDecoder):
                 mask_feats = self.mask_branch[i](x)
 
 
-            # if i != 0:
-            #     inst_feats = nn.UpsamplingBilinear2d(scale_factor=2)(inst_feats)
-            #     # inst_feats = torch.cat([x, inst_feats], dim=1)
-            #     inst_feats = inst_feats + x
+            if i != 0:
+                inst_feats = nn.UpsamplingBilinear2d(scale_factor=2)(inst_feats)
+                # inst_feats = torch.cat([x, inst_feats], dim=1)
+                inst_feats = inst_feats + x
 
-            #     coord_features = self.compute_coordinates(inst_feats)
-            #     inst_feats = torch.cat([coord_features, inst_feats], dim=1)
-            #     inst_feats = self.instance_branch[i](inst_feats)
-            # else:
-            #     coord_features = self.compute_coordinates(x)
-            #     inst_feats = torch.cat([coord_features, x], dim=1)
-            #     inst_feats = self.instance_branch[i](inst_feats)
+                coord_features = self.compute_coordinates(inst_feats)
+                inst_feats = torch.cat([coord_features, inst_feats], dim=1)
+                inst_feats = self.instance_branch[i](inst_feats)
+            else:
+                coord_features = self.compute_coordinates(x)
+                inst_feats = torch.cat([coord_features, x], dim=1)
+                inst_feats = self.instance_branch[i](inst_feats)
+
+
+            # ia block.
+            query_s_feat, iams = self.ia_blocks[i](inst_feats)
+            query_s_feat = query_s_feat.transpose(0, 1)
+
+            query_m_feat, _ = self.query_cross_attention_layers[i](
+                query_m_feat, query_s_feat, 
+                memory_mask=None, 
+                memory_key_padding_mask=None, 
+                pos=query_s_embed, query_pos=query_m_embed
+            )
+
+            query_m_feat, _ = self.query_self_attention_layers[i](
+                query_m_feat, tgt_mask=None, 
+                tgt_key_padding_mask=None, 
+                query_pos=query_m_embed
+                )
+
+            query_m_feat = self.query_ffn_layers[i](query_m_feat)
+
 
             # transformer decoder.
             B, C, H, W = mask_feats.shape
@@ -252,24 +323,25 @@ class IADecoder(BaseDecoder):
             mask_feats = mask_feats.flatten(2).permute(2, 0, 1)
 
             # query ca.
-            query_feat, _ = self.transformer_instance_cross_attention_layers[i](
-                query_feat, mask_feats, 
+            query_m_feat, _ = self.transformer_instance_cross_attention_layers[i](
+                query_m_feat, mask_feats, 
                 memory_mask=None, 
                 memory_key_padding_mask=None, 
-                pos=pos, query_pos=query_embed
+                pos=pos, query_pos=query_m_embed
                 )
             
             # query sa.
-            query_feat, _ = self.transformer_instance_self_attention_layers[i](
-                query_feat, tgt_mask=None, 
+            query_m_feat, _ = self.transformer_instance_self_attention_layers[i](
+                query_m_feat, tgt_mask=None, 
                 tgt_key_padding_mask=None, 
-                query_pos=query_embed
+                query_pos=query_m_embed
                 )
             
             # query ffn.
-            query_feat = self.transformer_instance_ffn_layers[i](query_feat)
+            query_m_feat = self.transformer_instance_ffn_layers[i](query_m_feat)
             
             mask_feats = mask_feats.permute(1, 2, 0).view(B, C, H, W)
+
 
         # getting the first backbone feature map (1/4 - 'res2')
         # output_conv( lateral_conv(features[0]) + (x2)mask_feats ) 
@@ -278,14 +350,14 @@ class IADecoder(BaseDecoder):
                                                    mode="bilinear", align_corners=False)
         mask_feats = self.output_conv(y)
 
-        query_feat = self.decoder_norm(query_feat)
-        query_feat = query_feat.transpose(0, 1)
+        query_m_feat = self.decoder_norm(query_m_feat)
+        query_m_feat = query_m_feat.transpose(0, 1)
 
         # predictions.
-        pred_logits = self.cls_score(query_feat)
-        mask_embed = self.mask_embed(query_feat)
-        pred_scores = self.objectness(query_feat)
-        pred_bboxes = self.bbox_pred(query_feat)
+        pred_logits = self.cls_score(query_m_feat)
+        mask_embed = self.mask_embed(query_m_feat)
+        pred_scores = self.objectness(query_m_feat)
+        pred_bboxes = self.bbox_pred(query_m_feat)
 
         results = {
             'logits': pred_logits,
@@ -294,10 +366,13 @@ class IADecoder(BaseDecoder):
                 'instance_bboxes': pred_bboxes
             },
             'mask_embed': mask_embed,
+            'iams': {
+                'instance_iams': iams,
+            },
         }
 
         results["mask_feats"] = mask_feats
-        results["inst_feats"] = mask_feats
+        results["inst_feats"] = inst_feats
     
         return results
     
@@ -354,19 +429,19 @@ class IADecoder(BaseDecoder):
 #     layer_idx = i * self.num_layers // self.n_levels + j
 
 #     # query ca.
-#     query_feat, _ = self.transformer_instance_cross_attention_layers[layer_idx](
-#         query_feat, inst_feats, 
+#     query_m_feat, _ = self.transformer_instance_cross_attention_layers[layer_idx](
+#         query_m_feat, inst_feats, 
 #         memory_mask=None, 
 #         memory_key_padding_mask=None, 
-#         pos=pos, query_pos=query_embed
+#         pos=pos, query_pos=query_m_embed
 #         )
     
 #     # query sa.
-#     query_feat, _ = self.transformer_instance_self_attention_layers[layer_idx](
-#         query_feat, tgt_mask=None, 
+#     query_m_feat, _ = self.transformer_instance_self_attention_layers[layer_idx](
+#         query_m_feat, tgt_mask=None, 
 #         tgt_key_padding_mask=None, 
-#         query_pos=query_embed
+#         query_pos=query_m_embed
 #         )
     
 #     # query ffn.
-#     query_feat = self.transformer_instance_ffn_layers[layer_idx](query_feat)
+#     query_m_feat = self.transformer_instance_ffn_layers[layer_idx](query_m_feat)

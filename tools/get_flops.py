@@ -82,7 +82,7 @@ def profile_model(cfg: cfg):
         cfg.model.decoder.num_classes = 1
         cfg.model.decoder.hidden_dim = 256
         cfg.model.decoder.nheads = 8
-        cfg.model.decoder.dec_layers = 1
+        cfg.model.decoder.dec_layers = 3
         cfg.model.decoder.dropout = 0.1
         cfg.model.decoder.pre_norm = False
         cfg.model.decoder.dim_feedforward = 2048
@@ -94,6 +94,7 @@ def profile_model(cfg: cfg):
         # inst branch.
         cfg.model.decoder.instance_branch.type = "InstStackedConv" # InstDoubleConv, InstStackedConv
         cfg.model.decoder.instance_branch.dim = 256
+        cfg.model.decoder.mask_branch.num_convs = 2
         
         # model.
         cfg.model.type = "iaunet_v2"
@@ -107,7 +108,6 @@ def profile_model(cfg: cfg):
         # )
 
         cfg.model.decoder.n_levels = 4
-        cfg.model.decoder.num_convs = 2
 
     model = get_model(cfg)
 

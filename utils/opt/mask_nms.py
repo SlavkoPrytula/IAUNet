@@ -1,5 +1,3 @@
-from utils.visualise import visualize
-
 def mask_nms(cate_labels, seg_masks, sum_masks, cate_scores, nms_thr=0.5):
     n_samples = len(cate_scores)
     if n_samples == 0:

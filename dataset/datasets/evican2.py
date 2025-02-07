@@ -84,9 +84,9 @@ def main(cfg: cfg):
 
     time_s = time.time()
 
-    dataset = EVICAN2(cfg, dataset_type="train", 
+    dataset = EVICAN2(cfg, dataset_type="eval", 
                     #   normalization=normalize,
-                      transform=train_transforms(cfg)
+                      transform=valid_transforms(cfg)
                       )
     
     print(len(dataset))
@@ -105,11 +105,21 @@ def main(cfg: cfg):
     visualize(
         images=targets["image"][0, ...], 
         path='./test_image.jpg', 
-        cmap='gray'
+        cmap='gray',
+        show_title=False 
     )
 
-    H, W = targets["ori_shape"]
+    visualize(
+        images=targets["image"][0, ...], 
+        path='./test_image.jpg', 
+        cmap='gray',
+        show_title=False
+    )
+
+    H, W = targets["image"].shape[-2:] #targets["ori_shape"]
+    # H, W = targets["ori_shape"]
     visualize_masks(
+        figsize=[30, 30],
         img=targets["image"][0, ...],
         masks=targets["instance_masks"],
         shape=[H, W],
@@ -117,14 +127,15 @@ def main(cfg: cfg):
         draw_border=True, 
         static_color=False,
         path='./test_mask.jpg',
-        show_img=True
+        dpi=100
+        # show_img=True
     )
 
-    visualize_grid_v2(
-        masks=targets["instance_masks"].numpy(), 
-        path='./test_inst.jpg',
-        ncols=5
-    )
+    # visualize_grid_v2(
+    #     masks=targets["instance_masks"].numpy(), 
+    #     path='./test_inst.jpg',
+    #     ncols=5
+    # )
 
 if __name__ == "__main__":
     main()
