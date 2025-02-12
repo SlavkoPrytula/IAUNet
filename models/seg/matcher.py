@@ -67,6 +67,8 @@ class HungarianMatcher(nn.Module):
         self.cost_class = cfg.cost_cls
         self.cost_mask = cfg.cost_mask
         self.cost_dice = cfg.cost_dice
+        self.cost_bbox = cfg.cost_bbox
+        self.cost_giou = cfg.cost_giou
         # assert 1 != 0 or cost_mask != 0 or cost_dice != 0, "all costs cant be 0"
 
     @torch.no_grad()
@@ -142,7 +144,7 @@ class HungarianMatcher(nn.Module):
         ]
 
     @torch.no_grad()
-    def forward(self, outputs, targets, _):
+    def forward(self, outputs, targets):
         """Performs the matching
 
         Params:
@@ -288,12 +290,9 @@ class PointSampleHungarianMatcher(nn.Module):
 
                 # Compute the bce loss between masks
                 cost_mask = batch_sigmoid_ce_loss_jit(pred_mask, tgt_mask)
-
                 # Compute the dice loss betwen masks
                 cost_dice = batch_dice_loss_jit(pred_mask, tgt_mask)
-
             
-            # Final cost matrix
             C = (
                 self.cost_class * cost_class
                 + self.cost_mask * cost_mask
@@ -305,7 +304,6 @@ class PointSampleHungarianMatcher(nn.Module):
             C = C.reshape(num_queries, -1).cpu()
             # quick fix.
             C = torch.nan_to_num(C, nan=0)
-
             indices.append(linear_sum_assignment(C))
 
         return [
@@ -314,7 +312,7 @@ class PointSampleHungarianMatcher(nn.Module):
         ]
 
     @torch.no_grad()
-    def forward(self, outputs, targets, _):
+    def forward(self, outputs, targets):
         """Performs the matching
 
         Params:

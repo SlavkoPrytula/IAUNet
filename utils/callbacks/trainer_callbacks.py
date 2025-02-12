@@ -63,5 +63,5 @@ class LossLoggerCallback(Callback):
         
         print()
         for l in loss_dict:
-            logger.info(f'{l}: {loss_dict[l]}')
+            logger.info(f'{l}: {loss_dict[l]:.4f}')
         print()

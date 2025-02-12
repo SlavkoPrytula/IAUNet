@@ -1,6 +1,7 @@
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
+from fvcore.nn.weight_init import c2_msra_fill
 
 
 class DoubleConv_v1(nn.Module):
@@ -31,7 +32,7 @@ class DoubleConv_v1(nn.Module):
         out = self.layer_1(x)
         out = self.layer_2(out)
 
-        # out = out + self.projection(x)
+        out = out + self.projection(x)
         return out
 
 
@@ -57,11 +58,35 @@ class DoubleConv_v2(nn.Module):
             nn.BatchNorm2d(c_out),
             nn.ReLU(inplace=True),
         )
-        
+
         if c_in != c_out:
             self.projection = nn.Conv2d(c_in, c_out, kernel_size=1, stride=1)
         else:
             self.projection = nn.Identity()
+
+
+        mask_convs = []
+        for i in range(2):
+            mask_convs.append(
+                nn.Sequential(
+                    nn.Conv2d(c_out, c_out, kernel_size=3, padding=1),
+                    nn.BatchNorm2d(c_out),
+                    nn.ReLU(inplace=True),
+                )
+            )
+        self.mask_convs = nn.Sequential(*mask_convs)
+
+        self._init_weights()
+
+    def _init_weights(self):
+        for m in self.modules():
+            if isinstance(m, nn.Conv2d):
+                c2_msra_fill(m)  
+
+        for m in self.mask_convs.modules():
+            if isinstance(m, nn.Conv2d):
+                c2_msra_fill(m)   
+                   
 
     def forward(self, x):
         out = self.depthwise_conv1(x)
@@ -73,6 +98,8 @@ class DoubleConv_v2(nn.Module):
         out = self.norm_relu2(out)
         
         out = out + self.projection(x)
+
+        out = self.mask_convs(out)
         
         return out
     

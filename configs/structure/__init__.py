@@ -90,6 +90,12 @@ class Optimizer:
     weight_decay: float = 0.05
 
 @dataclass
+class Solver:
+    optimizer: Optimizer
+    backbone_multiplier: float = 0.1
+    embedding_weight_decay: float = 0.0
+
+@dataclass
 class Scheduler:
     type: str = "CosineAnnealingLR"
     eta_min: float = 1.0e-06
@@ -115,6 +121,7 @@ class Decoder:
     mask_branch: Optional[dict] = None
     instance_branch: Optional[dict] = None
     instance_head: Optional[dict] = None
+    num_classes: int = 1
 
 
 @dataclass
@@ -128,7 +135,7 @@ class Model:
     decoder: Optional[Decoder] = None
     criterion: Optional[Criterion] = None
     evaluator: Optional[Evaluator] = None
-    optimizer: Optional[Optimizer] = None
+    solver: Optional[Solver] = None
     scheduler: Optional[Scheduler] = None
     load_pretrained: bool = False
     weights: str = ''

@@ -1,5 +1,5 @@
 import torch
-from torch import nn
+from torch import le, nn
 from torch.nn import functional as F
 from fvcore.nn.weight_init import c2_msra_fill, c2_xavier_fill
 from torch.nn import init
@@ -21,7 +21,7 @@ from models.seg.nn.blocks import CrossAttentionLayer, SelfAttentionLayer, Positi
 
 
 
-@DECODERS.register(name='iadecoder_ml_fpn')
+@DECODERS.register(name='iadecoder_ml_fpn_dual_path_staged')
 class IADecoder(BaseDecoder):
     def __init__(self, 
                  cfg: Decoder, 
@@ -41,6 +41,7 @@ class IADecoder(BaseDecoder):
         nheads = cfg.nheads
         dropout = cfg.dropout
         pre_norm = cfg.pre_norm
+
         self.num_layers = cfg.dec_layers * self.n_levels
         self.dec_layers = cfg.dec_layers
         self.embed_dims = embed_dims
@@ -82,6 +83,7 @@ class IADecoder(BaseDecoder):
         N_steps = hidden_dim // 2
         self.pe_layer = PositionEmbeddingSine(N_steps, normalize=True)
 
+        # transformer layers for updating queries.
         # ca.
         self.transformer_instance_cross_attention_layers = nn.ModuleList([
             CrossAttentionLayer(
@@ -115,6 +117,40 @@ class IADecoder(BaseDecoder):
             for _ in range(self.num_layers)
         ])
 
+        # transformer layers for updating pixel features.
+        # sa.
+        # self.transformer_pixel_self_attention_layers = nn.ModuleList([
+        #     SelfAttentionLayer(
+        #         d_model=hidden_dim,
+        #         nhead=nheads,
+        #         dropout=dropout,
+        #         normalize_before=pre_norm,
+        #     )
+        #     for _ in range(self.num_layers)
+        # ])
+
+        # ca.
+        # self.transformer_pixel_cross_attention_layers = nn.ModuleList([
+        #     CrossAttentionLayer(
+        #         d_model=hidden_dim,
+        #         nhead=nheads,
+        #         dropout=dropout,
+        #         normalize_before=pre_norm,
+        #     )
+        #     for _ in range(self.num_layers)
+        # ])
+
+        # # ffn.
+        # self.transformer_pixel_ffn_layers = nn.ModuleList([
+        #     FFNLayer(
+        #         d_model=hidden_dim,
+        #         dim_feedforward=dim_feedforward, 
+        #         dropout=dropout, 
+        #         normalize_before=pre_norm
+        #     )
+        #     for _ in range(self.num_layers)
+        # ])
+
         # learnable query features.
         self.query_feat = nn.Embedding(num_queries, hidden_dim)
         # learnable query p.e.
@@ -124,7 +160,7 @@ class IADecoder(BaseDecoder):
 
         self.fc = nn.Linear(hidden_dim, hidden_dim)
         self.cls_score = nn.Linear(hidden_dim, num_classes)
-        self.mask_embed = nn.Linear(hidden_dim, mask_dim) # MLP(hidden_dim, hidden_dim, mask_dim, 3) 
+        self.mask_embed =  nn.Linear(hidden_dim, mask_dim) # MLP(hidden_dim, hidden_dim, mask_dim, 3) 
         self.objectness = nn.Linear(hidden_dim, 1)
         self.bbox_pred = nn.Linear(hidden_dim, 4)
         
@@ -140,25 +176,31 @@ class IADecoder(BaseDecoder):
                     if l.bias is not None:
                         nn.init.constant_(l.bias, 0)
 
-        c2_xavier_fill(self.lateral_conv[0])
-        c2_xavier_fill(self.output_conv[0])
-
         bias_value = -np.log((1 - self.prior_prob) / self.prior_prob)
         init.normal_(self.cls_score.weight, std=0.01)
         init.constant_(self.cls_score.bias, bias_value)
         init.normal_(self.mask_embed.weight, std=0.01)
         init.constant_(self.mask_embed.bias, 0.0)
-        c2_xavier_fill(self.fc)
-        
 
-    def forward_one_layer(self, pixel_feats, query_feat, query_embed, pos, layer_idx):        
-        # query ca.
-        query_feat, _ = self.transformer_instance_cross_attention_layers[layer_idx](
-            query_feat, pixel_feats, 
-            memory_mask=None, 
-            memory_key_padding_mask=None, 
-            pos=pos, query_pos=query_embed
-            )
+
+    def forward_one_layer(self, pixel_feats, query_feat, query_embed, pos, layer_idx):
+        # pixel ca.
+        # pixel_feats, _ = self.transformer_pixel_cross_attention_layers[layer_idx](
+        #     pixel_feats, query_feat, 
+        #     memory_mask=None, 
+        #     memory_key_padding_mask=None, 
+        #     pos=query_embed, query_pos=pos
+        #     )
+        
+        # # pixel sa.
+        # # pixel_feats, _ = self.transformer_pixel_self_attention_layers[layer_idx](
+        # #     pixel_feats, tgt_mask=None, 
+        # #     tgt_key_padding_mask=None, 
+        # #     query_pos=pos
+        # #     )
+        
+        # # pixel ffn.
+        # pixel_feats = self.transformer_pixel_ffn_layers[layer_idx](pixel_feats)
         
         # query sa.
         query_feat, _ = self.transformer_instance_self_attention_layers[layer_idx](
@@ -167,10 +209,18 @@ class IADecoder(BaseDecoder):
             query_pos=query_embed
             )
         
+        # query ca.
+        query_feat, _ = self.transformer_instance_cross_attention_layers[layer_idx](
+            query_feat, pixel_feats, 
+            memory_mask=None, 
+            memory_key_padding_mask=None, 
+            pos=pos, query_pos=query_embed
+            )
+        
         # query ffn.
         query_feat = self.transformer_instance_ffn_layers[layer_idx](query_feat)
-        
-        return query_feat
+
+        return pixel_feats, query_feat
         
 
     def _forward(self, features):
@@ -180,9 +230,7 @@ class IADecoder(BaseDecoder):
         query_embed = self.query_embed.weight.unsqueeze(1).repeat(1, B, 1)
         query_feat = self.query_feat.weight.unsqueeze(1).repeat(1, B, 1)
         
-        predictions_mask = []
-        predictions_class = []
-        predictions_boxes = []
+        src = []
         for i in range(self.n_levels):
             if i != 0:
                 x = nn.UpsamplingBilinear2d(scale_factor=2)(x)
@@ -198,42 +246,59 @@ class IADecoder(BaseDecoder):
 
                 x = self.up_conv_layers[i](skip)
 
+            src.append(x)
+    
+        # here we want to take the intermediate feature maps from the pixel decoder and refine them 
+        # using the transformer decoder.
+        # for every multi-scale feature map we fill process it with a single transformer layer with the queries
+        # each tranformer layer updates the query and pixel features.
+        # we will store the refined pixel features in a list.
+        # after the loop we will use the refined pixel features and loop again for num_layers 
+        # (e.g. num_layers=3 means we do 3 update loops over pixel features).
 
-            # transformer decoder.
-            B, C, H, W = x.shape
+        for _, j in enumerate(range(self.dec_layers)):
+            for i, x in enumerate(src):
+                layer_idx = j * self.n_levels + i
 
-            pos = self.pe_layer(x, None)
-            pos = pos.flatten(2).permute(2, 0, 1)
-            x = x.flatten(2).permute(2, 0, 1)
+                # transformer decoder.
+                B, C, H, W = x.shape
 
-            # query_feat = self.forward_one_layer(x, query_feat, query_embed, pos, i)
-            for j in range(self.dec_layers):
-                layer_idx = i * self.dec_layers + j
-                query_feat = self.forward_one_layer(x, query_feat, query_embed, pos, layer_idx)
+                pos = self.pe_layer(x, None)
+                pos = pos.flatten(2).permute(2, 0, 1)
+                x = x.flatten(2).permute(2, 0, 1)
+                
+                x, query_feat = self.forward_one_layer(x, query_feat, query_embed, pos, layer_idx)
+                
+                x = x.permute(1, 2, 0).view(B, C, H, W)
+                src[i] = x
 
-            x = x.permute(1, 2, 0).view(B, C, H, W)
+        # we can get the mask_features here and the use duap-path to update them and queries.
+        # <>
 
-            # adding aux outputs.
-            # outputs_class, outputs_mask, outputs_boxes = \
-            #     self.forward_prediction_heads(query_feat, x)
+        # predictions_mask = []
+        # predictions_class = []
+        # predictions_boxes = []
+        # for i, x in enumerate(src):
+        #     # adding aux outputs.
+        #     outputs_class, outputs_mask, outputs_boxes = \
+        #         self.forward_prediction_heads(query_feat, x)
             
-            # predictions_mask.append(outputs_mask)
-            # predictions_class.append(outputs_class)
-            # predictions_boxes.append(outputs_boxes)
+        #     predictions_mask.append(outputs_mask)
+        #     predictions_class.append(outputs_class)
+        #     predictions_boxes.append(outputs_boxes)
 
 
         # getting the first backbone feature map (1/4 - 'res2')
-        # output_conv( lateral_conv(features[0]) + (x2)mask_feats ) 
+        # output_conv( lateral_conv(features[0]) + (x2)mask_feats )
+        # src[-1] - 1/8
         out = features[0] # 1/4
-        y = self.lateral_conv(out) + F.interpolate(x, size=out.shape[-2:], 
+        y = self.lateral_conv(out) + F.interpolate(src[-1], size=out.shape[-2:], 
                                                    mode="bilinear", align_corners=False)
         mask_features = self.output_conv(y)
         
 
         query_feat = self.decoder_norm(query_feat)
         query_feat = query_feat.transpose(0, 1)
-
-        query_feat = self.fc(query_feat)
 
         # predictions.
         pred_logits = self.cls_score(query_feat)
@@ -318,28 +383,7 @@ class IADecoder(BaseDecoder):
         }
     
         return output
-    
-    
 
 
-# for j in range(self.num_layers // self.n_levels):
-#     # get idx of dec. layer
-#     layer_idx = i * self.num_layers // self.n_levels + j
 
-#     # query ca.
-#     query_feat, _ = self.transformer_instance_cross_attention_layers[layer_idx](
-#         query_feat, inst_feats, 
-#         memory_mask=None, 
-#         memory_key_padding_mask=None, 
-#         pos=pos, query_pos=query_embed
-#         )
-    
-#     # query sa.
-#     query_feat, _ = self.transformer_instance_self_attention_layers[layer_idx](
-#         query_feat, tgt_mask=None, 
-#         tgt_key_padding_mask=None, 
-#         query_pos=query_embed
-#         )
-    
-#     # query ffn.
-#     query_feat = self.transformer_instance_ffn_layers[layer_idx](query_feat)
+

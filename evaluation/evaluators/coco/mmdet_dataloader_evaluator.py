@@ -146,15 +146,15 @@ class MMDetDataloaderEvaluator(COCOEvaluator):
             bboxes_pred = bboxes_pred[sort_inds]
 
             # nms.
-            # seg_masks = masks_pred > self.mask_threshold
-            # sum_masks = seg_masks.sum((1, 2)).float()
+            seg_masks = masks_pred > self.mask_threshold
+            sum_masks = seg_masks.sum((1, 2)).float()
             
-            # keep = mask_nms(labels, seg_masks, sum_masks, scores, nms_thr=self.nms_threshold)
-            # masks_pred = masks_pred[keep]
-            # scores = scores[keep]
-            # labels = labels[keep]
-            # iou_scores = iou_scores[keep]
-            # bboxes_pred = bboxes_pred[keep]
+            keep = mask_nms(labels, seg_masks, sum_masks, scores, nms_thr=self.nms_threshold)
+            masks_pred = masks_pred[keep]
+            scores = scores[keep]
+            labels = labels[keep]
+            iou_scores = iou_scores[keep]
+            bboxes_pred = bboxes_pred[keep]
 
             # postprocessing - currently done here, should be moved to model.
             ori_shape = preds["ori_shape"][batch_idx]

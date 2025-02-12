@@ -10,4 +10,4 @@
 
 nvidia-smi
 
-python eval.py --experiment_path
+python eval.py

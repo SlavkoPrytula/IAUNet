@@ -12,13 +12,14 @@
 #SBATCH -A revvity
 
 
-DATASET="revvity_25"
+DATASET="isbi2014"
 echo "running on $DATASET with:"
 echo "model=model/iaunet/v2/iaunet-r50"
-echo "model.decoder.type=iadecoder_ml_fpn_dual_path"
+echo "model.decoder.type=iadecoder_ml_fpn"
 
 python main.py model=model/iaunet/v2/iaunet-r50 \
-               model.decoder.type=iadecoder_ml_fpn_dual_path \
+               model.decoder.type=iadecoder_ml_fpn \
+               model.decoder.num_classes=2 \
                model.decoder.dec_layers=3 \
                dataset=$DATASET \
                job_id=$SLURM_JOB_ID

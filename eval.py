@@ -42,15 +42,14 @@ def run(cfg: _cfg):
     print()
 
     eval_dataset = dataset(cfg, 
-                            dataset_type="eval",
-                            transform=valid_transforms(cfg),
-                            )
+                           dataset_type="eval",
+                           transform=valid_transforms(cfg))
     
     eval_dataloader = build_loader(eval_dataset, 
-                                    batch_size=cfg.dataset.eval_dataset.batch_size, 
-                                    num_workers=cfg.trainer.num_workers, 
-                                    collate_fn=trivial_batch_collator, 
-                                    seed=cfg.seed)
+                                   batch_size=cfg.dataset.eval_dataset.batch_size, 
+                                   num_workers=cfg.trainer.num_workers, 
+                                   collate_fn=trivial_batch_collator, 
+                                   seed=cfg.seed)
 
     # build and prepare model.
     model = build_model(cfg)
@@ -140,7 +139,8 @@ if __name__ == '__main__':
     # experiment_path = Path("runs/ablations/[LiveCellCrop]/[iaunet-r50]/[iadecoder_ml_fpn]/[InstanceHead-v2.2.a-no-support-query]/[job=52577562]-[2024-11-10 01:10:08]")
 
     # [swin]
-    experiment_path = Path("runs/experiments_v2/[cellpainting_gallery]/[iaunet-r50]/[iadecoder_ml_fpn]/[job=53293976]-[2025-01-21 18:34:23]")
+    # experiment_path = Path("runs/experiments_v2/[ISBI2014]/[iaunet-r50]/[iadecoder_ml_fpn]/[job=53670380]-[2025-02-09 14:23:05]")
+    experiment_path = Path("runs/experiments_v2/[LiveCellCrop]/[iaunet-r50]/[iadecoder_ml_fpn]/[job=53683182]-[2025-02-10 18:44:45]")
 
 
 
@@ -161,7 +161,9 @@ if __name__ == '__main__':
     # cfg.dataset.name = "EVICAN2_Difficult"
 
     # cfg.dataset = "LiveCell"
-    # cfg.dataset.name = "LiveCellCrop"
+    cfg.dataset.name = "LiveCellCrop"
+
+    # cfg.dataset.name = "ISBI2014"
 
     # cfg.dataset.name = "Revvity_25"
     
@@ -169,17 +171,17 @@ if __name__ == '__main__':
     # cfg.dataset.name = "YeastNet"
     # cfg.dataset.name = "HuBMAP"
 
-    cfg.dataset.name = "cellpainting_gallery"
+    # cfg.dataset.name = "cellpainting_gallery"
 
     eval_cfg = OmegaConf.create({
         'model': {
             'evaluator': {
                 'type': "MMDetDataloaderEvaluator",
                 'mask_thr': 0.5,
-                'score_thr': 0.25,
+                'score_thr': 0.1,
                 'nms_thr': 0.5,
                 'metric': 'segm',
-                'classwise': False,
+                'classwise': True,
                 'outfile_prefix': "eval/results/coco",
             },
             'criterion': {

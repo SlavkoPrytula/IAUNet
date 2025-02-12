@@ -156,37 +156,58 @@ class BaseCOCODataset(Dataset):
     
 
     def get_bboxes(self, img_id: int, cat_id: list=[0], iscrowd=None):
-        """
-        Get bounding boxes for all annotations of a given image.
-        
-        Parameters:
-        - img_id: The COCO image id.
-        
-        Returns:
-        - bboxes: A list of bounding boxes, each in the format [x_min, y_min, x_max, y_max].
-        """
         img_id = self.image_ids[img_id]
-        ann_ids = self.coco.getAnnIds(imgIds=[img_id], catIds=cat_id, iscrowd=iscrowd)
-        annotations = self.coco.loadAnns(ann_ids)
+        annIds = self.coco.getAnnIds(imgIds=[img_id], catIds=cat_id, iscrowd=iscrowd)
+        annotations = self.coco.loadAnns(annIds)
 
         bboxes = []
         for ann in annotations:
-            # This assumes polygon annotations which are stored as [x1, y1, x2, y2, ..., xn, yn]
-            if 'segmentation' in ann and ann['segmentation']:
+            if 'bbox' in ann and ann['bbox']:
+                x, y, w, h = ann['bbox']
+                bboxes.append([x, y, x + w, y + h])
+            elif 'segmentation' in ann and ann['segmentation']:
                 for polygon in ann['segmentation']:
-                    xs = polygon[0::2]  # Extract every other element starting from 0
-                    ys = polygon[1::2]  # Extract every other element starting from 1
+                    xs = polygon[0::2]
+                    ys = polygon[1::2]
                     x_min = min(xs)
                     y_min = min(ys)
                     x_max = max(xs)
                     y_max = max(ys)
-                    width = x_max - x_min
-                    height = y_max - y_min
                     bboxes.append([x_min, y_min, x_max, y_max])
-        # bboxes = [ann['bbox'] for ann in annotations]
-        # bboxes = [[x, y, x + w, y + h] for x, y, w, h in bboxes]
 
         return bboxes
+
+        # """
+        # Get bounding boxes for all annotations of a given image.
+        
+        # Parameters:
+        # - img_id: The COCO image id.
+        
+        # Returns:
+        # - bboxes: A list of bounding boxes, each in the format [x_min, y_min, x_max, y_max].
+        # """
+        # img_id = self.image_ids[img_id]
+        # ann_ids = self.coco.getAnnIds(imgIds=[img_id], catIds=cat_id, iscrowd=iscrowd)
+        # annotations = self.coco.loadAnns(ann_ids)
+
+        # bboxes = []
+        # for ann in annotations:
+        #     # This assumes polygon annotations which are stored as [x1, y1, x2, y2, ..., xn, yn]
+        #     if 'segmentation' in ann and ann['segmentation']:
+        #         for polygon in ann['segmentation']:
+        #             xs = polygon[0::2]  # Extract every other element starting from 0
+        #             ys = polygon[1::2]  # Extract every other element starting from 1
+        #             x_min = min(xs)
+        #             y_min = min(ys)
+        #             x_max = max(xs)
+        #             y_max = max(ys)
+        #             width = x_max - x_min
+        #             height = y_max - y_min
+        #             bboxes.append([x_min, y_min, x_max, y_max])
+        # # bboxes = [ann['bbox'] for ann in annotations]
+        # # bboxes = [[x, y, x + w, y + h] for x, y, w, h in bboxes]
+
+        # return bboxes
 
 
     def masks_to_boxes(self, masks):

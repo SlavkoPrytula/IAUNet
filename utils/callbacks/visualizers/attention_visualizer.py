@@ -27,8 +27,8 @@ class AttentionVisualizer(BaseVisualizer):
         if output[f'attn'][type] is None:
             return 
         
-        attn = output[f'attn'][type].cpu().detach().numpy() # b, n, n
-        attn = attn[0]
+        attn = output[f'attn'][type].cpu().detach().numpy() # b, l, l
+        attn = attn[0] # get first batch - (l, l)
 
         visualize(
             figsize=[15, 15],

@@ -10,13 +10,15 @@ criterion:
     bce_masks: 5.0
     dice_masks: 2.0
     iou_masks: 2.0
+    bbox_weight: 5.0
+    giou_weight: 2.0
     no_object_weight: 0.1
   matcher:
     type: PointSampleHungarianMatcher
     cost_cls: 1.0
     cost_dice: 2.0
     cost_mask: 5.0
-    cost_bbox: 1.0
+    cost_bbox: 5.0
     cost_giou: 2.0
   num_classes: 1
 

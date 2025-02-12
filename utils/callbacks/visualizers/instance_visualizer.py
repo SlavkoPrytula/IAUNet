@@ -31,6 +31,9 @@ class InstanceVisualizer(BaseVisualizer):
         """
         Pred Mask Visuals
         """
+        assert 'pred_logits' in output, f"pred_logits not in output"
+        assert 'pred_bboxes' in output, f"pred_bboxes not in output"
+        
         if not f'pred_{self.inst_type}_masks' in output:
             return 
         
@@ -40,8 +43,11 @@ class InstanceVisualizer(BaseVisualizer):
         probs = output['pred_logits'].softmax(-1)
         scores = probs[0, :, 0].cpu().detach().numpy()
 
-        iou_scores = output['pred_scores'].sigmoid()
-        iou_scores = iou_scores[0, :, 0].cpu().detach().numpy()
+        if 'pred_scores' in output:
+            iou_scores = output['pred_scores'].sigmoid()
+            iou_scores = iou_scores[0, :, 0].cpu().detach().numpy()
+        else:
+            iou_scores = np.zeros_like(scores)
 
         h, w = output[f'pred_{self.inst_type}_masks'].shape[-2:]
         bboxes = box_cxcywh_to_xyxy(output["pred_bboxes"])

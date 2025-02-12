@@ -51,10 +51,13 @@ model:
   model_files: ''
 
   # model training params.
-  optimizer:
-    type: AdamW
-    lr: 0.0001
-    weight_decay: 0.05
+  solver:
+    optimizer:
+      type: AdamW
+      lr: 0.0001
+      weight_decay: 0.05
+    backbone_lr_multiplier: 0.1
+    embedding_weight_decay: 0.0
 
   scheduler:
     type: CosineAnnealingLR

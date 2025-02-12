@@ -6,7 +6,7 @@ import wandb
 
 import hydra
 from omegaconf import OmegaConf
-from configs import cfg, experiment_name
+from configs import cfg
 
 from dataset.dataloaders import (build_loader, 
                                  build_loader_ms,
@@ -36,6 +36,44 @@ from models.build_model import build_model
 from engine.trainer import Trainer
 
 TIME = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+
+
+def build_optimizer(cfg, model):
+    optimizer_cfg = cfg['optimizer']
+    base_lr = optimizer_cfg.get("lr", 1e-4)
+    base_weight_decay = optimizer_cfg.get("weight_decay", 0.05)
+
+    backbone_lr_multiplier = cfg.get("backbone_lr_multiplier", 0.1)
+    embedding_weight_decay = cfg.get("embedding_weight_decay", 0.0)
+
+    params = []
+    memo = set()
+
+    backbone_names = ["backbone", "encoder"]
+    for module_name, module in model.named_modules():
+        for param_name, param in module.named_parameters(recurse=False):
+            if not param.requires_grad:
+                continue  # Skip frozen parameters
+            if param in memo:
+                continue  # Avoid duplicates
+            memo.add(param)
+
+            hyperparams = {
+                "lr": base_lr,
+                "weight_decay": base_weight_decay,
+            }
+
+            if any(name in module_name.lower() for name in backbone_names):
+                hyperparams["lr"] *= backbone_lr_multiplier
+                print(f"Setting LR for {module_name} to {hyperparams['lr']}")
+            if isinstance(module, torch.nn.Embedding):
+                hyperparams["weight_decay"] = embedding_weight_decay
+                print(f"Setting weight decay for {module_name} to {hyperparams['weight_decay']}")
+
+            params.append({"params": param, **hyperparams})
+
+    optimizer_cfg["params"] = params
+    return optimizer_cfg
 
 
 def run(rank: int = 0, world_size: int = 1, cfg: cfg = None):
@@ -126,8 +164,10 @@ def run(rank: int = 0, world_size: int = 1, cfg: cfg = None):
     # - build and prepare model
     model = build_model(cfg)
 
-    optimizer_cfg = OmegaConf.to_container(cfg.model.optimizer, resolve=True)
+    solver_cfg = OmegaConf.to_container(cfg.model.solver, resolve=True)
+    optimizer_cfg = solver_cfg['optimizer']
     optimizer_cfg['params'] = model.parameters()
+    # optimizer_cfg = build_optimizer(solver_cfg, model)
     optimizer = OPTIMIZERS.build(optimizer_cfg)
 
     scheduler_cfg = OmegaConf.to_container(cfg.model.scheduler, resolve=True)

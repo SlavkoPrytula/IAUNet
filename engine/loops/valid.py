@@ -78,9 +78,7 @@ class ValidLoop(BaseLoop):
                 evaluator.process(output)
             
             # get losses.
-            loss_dict = self.criterion(output, targets, 
-                                       [self.cfg.dataset.valid_dataset.size], 
-                                       epoch=self.epoch)
+            loss_dict = self.criterion(output, targets, epoch=self.epoch)
             loss = sum(loss_dict.values())
             
             running_loss += (loss.item() * batch_size)

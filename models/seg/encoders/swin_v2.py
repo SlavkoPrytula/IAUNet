@@ -130,6 +130,10 @@ class SwinTransformer(nn.Module):
             (96, (2, 2, 18, 2)): 'swin_small_patch4_window7_224',
             (128, (2, 2, 18, 2)): 'swin_base_patch4_window7_224',
             (192, (2, 2, 18, 2)): 'swin_large_patch4_window7_224',
+            (96, (2, 2, 6, 2)): 'swin_tiny_patch4_window12_384',
+            (96, (2, 2, 18, 2)): 'swin_small_patch4_window12_384',
+            (128, (2, 2, 18, 2)): 'swin_base_patch4_window12_384',
+            (192, (2, 2, 18, 2)): 'swin_large_patch4_window12_384',
         }
         return model_cfgs.get((self.embed_dim, tuple(self.depths)), None)
 

@@ -65,7 +65,7 @@ class IAMVisualizer(BaseVisualizer):
         """
         Pred IAMs Visuals
         """
-        if output['pred_iams'] is None:
+        if 'pred_iams' not in output or output['pred_iams'] is None:
             return
         if not f'{self.inst_type}_iams' in output['pred_iams']:
             return 
@@ -101,7 +101,6 @@ class IAMVisualizer(BaseVisualizer):
             self.plot_softmax_iam(grid_masks, grid_titles, save_path, batch_idx=grid_idx)
             self.plot_sigmoid_iam(grid_masks, grid_titles, save_path, batch_idx=grid_idx)
         
-
         
     def plot_iam_preds(self, cfg, output, save_path):
         self._plot_preds(output, save_path=save_path)
