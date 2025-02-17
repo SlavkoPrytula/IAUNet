@@ -556,6 +556,7 @@ class SwinTransformer(nn.Module):
         model_cfg_name = self.get_model_cfg_name()
         if model_cfg_name:
             cfg = default_cfgs[model_cfg_name]
+            print(cfg)
 
             from dataclasses import asdict
             tag, pretrained_cfg = cfg.default_with_tag
@@ -580,12 +581,17 @@ class SwinTransformer(nn.Module):
 
     def get_model_cfg_name(self):
         model_cfgs = {
-            (96, (2, 2, 6, 2)): 'swin_tiny_patch4_window7_224',
-            (96, (2, 2, 18, 2)): 'swin_small_patch4_window7_224',
-            (128, (2, 2, 18, 2)): 'swin_base_patch4_window7_224',
-            (192, (2, 2, 18, 2)): 'swin_large_patch4_window7_224',
+            (96, (2, 2, 6, 2), 224): 'swin_tiny_patch4_window7_224',
+            (96, (2, 2, 18, 2), 224): 'swin_small_patch4_window7_224',
+            (128, (2, 2, 18, 2), 224): 'swin_base_patch4_window7_224',
+            (192, (2, 2, 18, 2), 224): 'swin_large_patch4_window7_224',
+
+            # (96, (2, 2, 6, 2), 384): 'swin_tiny_patch4_window12_384',
+            # (96, (2, 2, 18, 2), 384): 'swin_small_patch4_window12_384',
+            (128, (2, 2, 18, 2), 384): 'swin_base_patch4_window12_384',
+            (192, (2, 2, 18, 2), 384): 'swin_large_patch4_window12_384',
         }
-        return model_cfgs.get((self.embed_dim, tuple(self.depths)), None)
+        return model_cfgs.get((self.embed_dim, tuple(self.depths), self.pretrain_img_size), None)
 
     @staticmethod
     def _init_weights(m):
@@ -616,7 +622,13 @@ class SwinTransformer(nn.Module):
 
 
 if __name__ == '__main__':
-    model = SwinTransformer()
+    model = SwinTransformer(pretrain_img_size=384, 
+                            embed_dim=128,
+                            patch_size=4, 
+                            window_size=12, 
+                            depths=(2, 2, 18, 2),
+                            num_heads=(4, 8, 16, 32),
+                            pretrained=True)
 
     x = torch.rand(1, 3, 512, 512)
     feats = model(x)

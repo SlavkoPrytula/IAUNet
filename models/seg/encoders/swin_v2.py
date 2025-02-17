@@ -158,7 +158,13 @@ class SwinTransformer(nn.Module):
 
 
 if __name__ == '__main__':
-    model = SwinTransformer(pretrain_img_size=512, window_size=8, pretrained=True)
+    model = SwinTransformer(pretrain_img_size=384, 
+                            embed_dim=96,
+                            patch_size=4, 
+                            window_size=12, 
+                            depths=(2, 2, 18, 2),
+                            num_heads=(3, 6, 12, 24),
+                            pretrained=True)
     x = torch.rand(1, 3, 512, 512)
     feats = model(x)
     for y in feats:

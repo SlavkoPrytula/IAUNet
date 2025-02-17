@@ -21,7 +21,7 @@ from models.seg.nn.blocks import CrossAttentionLayer, SelfAttentionLayer, Positi
 from models.seg.heads.common import _make_stack_3x3_convs
 
 
-@DECODERS.register(name='iadecoder_ml_fpn')
+@DECODERS.register(name='iadecoder_ml_fpn/experimental/no_mask_decoupling')
 class IADecoder(BaseDecoder):
     def __init__(self, 
                  cfg: Decoder, 
@@ -212,29 +212,26 @@ class IADecoder(BaseDecoder):
 
                 # coord_features = self.compute_coordinates(skip)
                 # x = torch.cat([coord_features, skip], dim=1)
-                x = self.up_conv_layers[i](x)
+                # x = self.up_conv_layers[i](x)
+
+                x = self.up_conv_layers[i](skip)
 
             # decoupling.
-            if i != 0:
-                mask_feats = nn.UpsamplingBilinear2d(scale_factor=2)(mask_feats)
-                mask_feats = mask_feats + x
-                mask_feats = self.mask_branch[i](mask_feats)   
-            else:
-                mask_feats = self.mask_branch[i](x)
+            x = self.mask_branch[i](x)
 
             # transformer decoder.
-            B, C, H, W = mask_feats.shape
+            B, C, H, W = x.shape
 
-            pos = self.pe_layer(mask_feats, None)
+            pos = self.pe_layer(x, None)
             pos = pos.flatten(2).permute(2, 0, 1)
-            mask_feats = mask_feats.flatten(2).permute(2, 0, 1)
+            x = x.flatten(2).permute(2, 0, 1)
 
             # query_feat = self.forward_one_layer(x, query_feat, query_embed, pos, i)
             for j in range(self.dec_layers):
                 layer_idx = i * self.dec_layers + j
-                query_feat = self.forward_one_layer(mask_feats, query_feat, query_embed, pos, layer_idx)
+                query_feat = self.forward_one_layer(x, query_feat, query_embed, pos, layer_idx)
 
-            mask_feats = mask_feats.permute(1, 2, 0).view(B, C, H, W)
+            x = x.permute(1, 2, 0).view(B, C, H, W)
 
             # adding aux outputs.
             # outputs_class, outputs_mask, outputs_boxes = \
@@ -248,7 +245,7 @@ class IADecoder(BaseDecoder):
         # getting the first backbone feature map (1/4 - 'res2')
         # output_conv( lateral_conv(features[0]) + (x2)mask_feats ) 
         out = features[0] # 1/4
-        y = self.lateral_conv(out) + F.interpolate(mask_feats, size=out.shape[-2:], 
+        y = self.lateral_conv(out) + F.interpolate(x, size=out.shape[-2:], 
                                                    mode="bilinear", align_corners=False)
         mask_feats = self.output_conv(y)
         

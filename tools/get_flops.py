@@ -62,31 +62,18 @@ def profile_model(cfg: cfg):
         cfg.model.decoder.num_classes = 1
         cfg.model.decoder.hidden_dim = 256
         cfg.model.decoder.nheads = 8
-        cfg.model.decoder.dec_layers = 3
-        cfg.model.decoder.dropout = 0.1
+        cfg.model.decoder.dec_layers = 1
+        cfg.model.decoder.dropout = 0.0
         cfg.model.decoder.pre_norm = False
-        cfg.model.decoder.dim_feedforward = 2048
+        cfg.model.decoder.dim_feedforward = 1024
 
         # pixel decoder config.
-        # mask branch.
         cfg.model.decoder.mask_branch.type = "MaskStackedConv" # MaskDoubleConv, MaskStackedConv
         cfg.model.decoder.mask_branch.dim = 256
-        # inst branch.
-        cfg.model.decoder.instance_branch.type = "InstStackedConv" # InstDoubleConv, InstStackedConv
-        cfg.model.decoder.instance_branch.dim = 256
-        cfg.model.decoder.mask_branch.num_convs = 2
         
         # model.
         cfg.model.type = "iaunet_v2"
         cfg.model.decoder.type = "iadecoder_ml_fpn"
-        # cfg.model.encoder = dict(
-        #     type='ResNet',
-        #     depth=50,
-        #     num_stages=4,
-        #     out_indices=[1, 2, 3, 4],
-        #     pretrained=True,
-        # )
-
         cfg.model.decoder.n_levels = 4
 
     model = get_model(cfg)

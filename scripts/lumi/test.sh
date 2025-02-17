@@ -1,13 +1,15 @@
 #!/bin/bash
-#SBATCH --partition=gpu
-#SBATCH --gres=gpu:tesla:1
-#SBATCH --time=4:00:00
-#SBATCH --mem=24GB
-#SBATCH --job-name=eval_iaunet
-#SBATCH --exclude=falcon3
-#SBATCH --output=./outputs/eval/eval_job_%j.out
-#SBATCH -A revvity
+#SBATCH --partition=small-g
+#SBATCH --nodes=1
+#SBATCH --gpus-per-task=1
+#SBATCH --cpus-per-task=7
+#SBATCH --mem=64G
+#SBATCH --time=24:00:00
 
-nvidia-smi
+#SBATCH --job-name=iaunet
+#SBATCH --output=./outputs/eval/job_%j.log
 
-python eval.py 
+#SBATCH -A project_465001327
+
+singularity exec /project/project_465001327/lumi_setup.sif \
+            python eval.py 

@@ -9,3 +9,4 @@ drop_path_rate: 0.5
 patch_norm: True
 pretrained: True
 out_indices: [0, 1, 2, 3]
+pretrain_img_size: 384
