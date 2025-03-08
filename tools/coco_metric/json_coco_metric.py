@@ -66,7 +66,7 @@ def json_coco_evaluation(gt_json_path, pred_json_path, return_stats=False):
     predictions = load(pred_json_path)
 
     for pred in predictions:
-        pred['category_id'] += 1 # fix
+        # pred['category_id'] += 1 # fix
         if 'bbox' in pred:
             del pred['bbox']
 
@@ -114,14 +114,14 @@ if __name__ == "__main__":
     # image_dir = "/gpfs/space/projects/PerkinElmer/cytoplasm_segmentation/datasets/EVICAN2/coco/images/EVICAN_eval2019"
 
     
-    # gt_json_path = "/project/project_465001327/datasets/LiveCell/crop_512x512/coco/annotations/livecell_coco_test.json"
-    # pred_json_path = '/gpfs/helios/home/prytula/scripts/experimental_segmentation/Cell-DETR/runs/[job=53508516]-[2025-02-04 14:21:17]/results/coco_eval.segm.json'
-    # image_dir = "/project/project_465001327/datasets/LiveCell/crop_512x512/coco/images/livecell_test_images"
+    gt_json_path = "/project/project_465001327/datasets/LiveCell/crop_512x512/coco/annotations/livecell_coco_test.json"
+    pred_json_path = '/gpfs/helios/home/prytula/scripts/experimental_segmentation/MaskDINO/runs/livecell_crop/maskdino_R50/[job=]-[2025-02-17_15-57-40]/inference/coco_instances_results.json'
+    image_dir = "/project/project_465001327/datasets/LiveCell/crop_512x512/coco/images/livecell_test_images"
     
     # Revvity-25
-    gt_json_path = "/gpfs/space/projects/PerkinElmer/cytoplasm_segmentation/datasets/Revvity-25/v2/annotations/valid.json"
-    pred_json_path = '/gpfs/helios/home/prytula/scripts/experimental_segmentation/Cell-DETR/runs/[job=53581992]-[2025-02-05 20:22:55]/results/coco_eval.segm.json'
-    image_dir = "/gpfs/space/projects/PerkinElmer/cytoplasm_segmentation/datasets/Revvity-25/v2/images"
+    # gt_json_path = "/gpfs/space/projects/PerkinElmer/cytoplasm_segmentation/datasets/Revvity-25/v2/annotations/valid.json"
+    # pred_json_path = '/gpfs/helios/home/prytula/scripts/experimental_segmentation/Cell-DETR/runs/[job=53581992]-[2025-02-05 20:22:55]/results/coco_eval.segm.json'
+    # image_dir = "/gpfs/space/projects/PerkinElmer/cytoplasm_segmentation/datasets/Revvity-25/v2/images"
 
     # ISBI2014
     # gt_json_path = "/gpfs/space/projects/PerkinElmer/cytoplasm_segmentation/datasets/ISBI2014/coco/annotations/isbi_test.json"
@@ -149,5 +149,5 @@ if __name__ == "__main__":
 
         H, W = img_info["height"], img_info["width"]
         save_coco_vis(img, gt_coco, pred_coco, img_id, shape=[H, W], 
-                      path=f"./tools/coco_metric/results/celldetr/ISBI2014/{base_name}.jpg")
+                      path=f"./tools/coco_metric/results/maskdino/livecell_crop/{base_name}.jpg")
     

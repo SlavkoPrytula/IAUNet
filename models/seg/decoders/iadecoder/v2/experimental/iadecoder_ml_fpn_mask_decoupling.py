@@ -21,7 +21,7 @@ from models.seg.nn.blocks import CrossAttentionLayer, SelfAttentionLayer, Positi
 from models.seg.heads.common import _make_stack_3x3_convs
 
 
-@DECODERS.register(name='iadecoder_ml_fpn/experimental/mask_decoupling')
+@DECODERS.register(name='iadecoder_ml_fpn/experimental/clip_grad_norm')
 class IADecoder(BaseDecoder):
     def __init__(self, 
                  cfg: Decoder, 
@@ -35,7 +35,7 @@ class IADecoder(BaseDecoder):
         mask_dim = cfg.mask_branch.dim
 
         hidden_dim = cfg.hidden_dim
-        num_classes = cfg.num_classes + 1
+        num_classes = cfg.num_classes
         num_queries = cfg.num_queries
         dim_feedforward = cfg.dim_feedforward
         nheads = cfg.nheads
@@ -44,6 +44,7 @@ class IADecoder(BaseDecoder):
         self.num_layers = cfg.dec_layers * self.n_levels
         self.dec_layers = cfg.dec_layers
         self.embed_dims = embed_dims
+        self.semantic_ce_loss = True
 
         embed_dims = self.embed_dims[::-1]
 
@@ -56,11 +57,10 @@ class IADecoder(BaseDecoder):
         # upconv layers.
         self.up_conv_layers = nn.ModuleList([])
         for i in range(self.n_levels):
-            # in_channels = hidden_dim + 2 if i == 0 else hidden_dim * 2 + 2
-            in_channels = hidden_dim if i == 0 else hidden_dim * 2
+            in_channels = hidden_dim + 2 if i == 0 else hidden_dim * 2 + 2
             upconv = nn.Sequential( 
                 DoubleConv_v2(in_channels, hidden_dim), 
-                # SE_block(num_features=hidden_dim) 
+                SE_block(num_features=hidden_dim) 
             )
             self.up_conv_layers.append(upconv)
 
@@ -134,7 +134,10 @@ class IADecoder(BaseDecoder):
         self.decoder_norm = nn.LayerNorm(hidden_dim)
 
         self.fc = nn.Linear(hidden_dim, hidden_dim)
-        self.cls_score = nn.Linear(hidden_dim, num_classes)
+        if self.semantic_ce_loss:
+            self.class_embed = nn.Linear(hidden_dim, num_classes+1)
+        else:
+            self.class_embed = nn.Linear(hidden_dim, num_classes)
         self.mask_embed =  nn.Linear(hidden_dim, mask_dim) #MLP(hidden_dim, hidden_dim, mask_dim, 3) 
         self.objectness = nn.Linear(hidden_dim, 1)
         self.bbox_pred = nn.Linear(hidden_dim, 4)
@@ -152,16 +155,15 @@ class IADecoder(BaseDecoder):
                     if l.bias is not None:
                         nn.init.constant_(l.bias, 0)
 
-        c2_xavier_fill(self.lateral_conv[0])
-        c2_xavier_fill(self.output_conv[0])
+        # c2_xavier_fill(self.lateral_conv[0])
+        # c2_xavier_fill(self.output_conv[0])
 
         bias_value = -np.log((1 - self.prior_prob) / self.prior_prob)
-        init.normal_(self.cls_score.weight, std=0.01)
-        init.constant_(self.cls_score.bias, bias_value)
+        init.normal_(self.class_embed.weight, std=0.01)
+        init.constant_(self.class_embed.bias, bias_value)
         init.normal_(self.mask_embed.weight, std=0.01)
         init.constant_(self.mask_embed.bias, 0.0)
-        c2_xavier_fill(self.fc)
-
+        
 
     def forward_one_layer(self, pixel_feats, query_feat, query_embed, pos, layer_idx):        
         # query ca.
@@ -198,8 +200,8 @@ class IADecoder(BaseDecoder):
         for i in range(self.n_levels):
             # upconvs.
             if i != 0:
-                # coord_features = self.compute_coordinates(x)
-                # x = torch.cat([coord_features, x], dim=1)
+                coord_features = self.compute_coordinates(x)
+                x = torch.cat([coord_features, x], dim=1)
                 x = nn.UpsamplingBilinear2d(scale_factor=2)(x)
 
                 skip = features[-(i + 1)]
@@ -211,11 +213,9 @@ class IADecoder(BaseDecoder):
                 skip = features[-1]
                 skip = self.skip_conv_layers[i](skip)
 
-                # coord_features = self.compute_coordinates(skip)
-                # x = torch.cat([coord_features, skip], dim=1)
-                # x = self.up_conv_layers[i](x)
-
-                x = self.up_conv_layers[i](skip)
+                coord_features = self.compute_coordinates(skip)
+                x = torch.cat([coord_features, skip], dim=1)
+                x = self.up_conv_layers[i](x)
 
             # decoupling.
             if i != 0:
@@ -227,10 +227,12 @@ class IADecoder(BaseDecoder):
 
             # transformer decoder.
             B, C, H, W = mask_feats.shape
+
             pos = self.pe_layer(mask_feats, None)
             pos = pos.flatten(2).permute(2, 0, 1)
             mask_feats = mask_feats.flatten(2).permute(2, 0, 1)
 
+            # query_feat = self.forward_one_layer(x, query_feat, query_embed, pos, i)
             for j in range(self.dec_layers):
                 layer_idx = i * self.dec_layers + j
                 query_feat = self.forward_one_layer(mask_feats, query_feat, query_embed, pos, layer_idx)
@@ -254,11 +256,11 @@ class IADecoder(BaseDecoder):
         mask_feats = self.output_conv(y)
         
 
-        query_feat = self.decoder_norm(query_feat)
+        query_feat = self.decoder_norm(query_feat) # (N, D)
         query_feat = query_feat.transpose(0, 1)
 
         # predictions.
-        pred_logits = self.cls_score(query_feat)
+        pred_logits = self.class_embed(query_feat)
         mask_embed = self.mask_embed(query_feat)
         pred_scores = self.objectness(query_feat)
         pred_bboxes = self.bbox_pred(query_feat)
@@ -285,7 +287,7 @@ class IADecoder(BaseDecoder):
         decoder_output = decoder_output.transpose(0, 1)
 
         # predictions.
-        pred_logits = self.cls_score(decoder_output)
+        pred_logits = self.class_embed(decoder_output)
         mask_embed = self.mask_embed(decoder_output)
         pred_bboxes = self.bbox_pred(decoder_output)
 
@@ -346,4 +348,4 @@ class IADecoder(BaseDecoder):
         }
     
         return output
-    
+

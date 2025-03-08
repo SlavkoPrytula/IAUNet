@@ -5,8 +5,8 @@ runs_dir: 'runs'
 
 # run_name: '[${dataset.name}]/[${model.decoder.type}]/[${model.model_name}]'
 
-experiment_name: experiments_v2
-# experiment_name: benchmarks
+# experiment_name: experiments_v2
+experiment_name: benchmarks_v2
 # experiment_name: ablations
 # run_name: '[${dataset.name}]/[${model.model_name}]/[${model.decoder.type}]'
 run_name: '[${dataset.name}]/[${model.model_name}]/${experiment_name:${model.decoder.type}}'

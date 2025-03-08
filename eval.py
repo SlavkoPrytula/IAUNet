@@ -140,7 +140,7 @@ if __name__ == '__main__':
 
     # [swin]
     # experiment_path = Path("runs/experiments_v2/[ISBI2014]/[iaunet-r50]/[iadecoder_ml_fpn]/[job=53670380]-[2025-02-09 14:23:05]")
-    experiment_path = Path("runs/experiments_v2/[LiveCellCrop]/[iaunet-r50]/[iadecoder_ml_fpn]/[job=9541227]-[2025-02-15 13:50:42]")
+    experiment_path = Path("runs/experiments_v2/[LiveCellCrop]/[iaunet-r50]/[iadecoder_ml_fpn]/[experimental]/[deep_supervision]/[job=9766337]-[2025-03-04 18:38:18]")
 
 
 
@@ -178,8 +178,8 @@ if __name__ == '__main__':
             'evaluator': {
                 'type': "MMDetDataloaderEvaluator",
                 'mask_thr': 0.5,
-                'score_thr': 0.01,
-                'nms_thr': 0.8,
+                'score_thr': 0.1,
+                'nms_thr': 0.5,
                 'metric': 'segm',
                 'classwise': True,
                 'outfile_prefix': "eval/results/coco",

@@ -43,7 +43,7 @@ class InstanceVisualizer(BaseVisualizer):
         probs = output['pred_logits'].softmax(-1)
         scores = probs[0, :, 0].cpu().detach().numpy()
 
-        if 'pred_scores' in output:
+        if output.get('pred_scores') is not None:
             iou_scores = output['pred_scores'].sigmoid()
             iou_scores = iou_scores[0, :, 0].cpu().detach().numpy()
         else:

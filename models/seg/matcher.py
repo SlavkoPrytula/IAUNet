@@ -205,6 +205,7 @@ class PointSampleHungarianMatcher(nn.Module):
         self.cost_giou = cfg.cost_giou
 
         self.num_points = 112 * 112
+        print(self)
 
 
     @torch.no_grad()

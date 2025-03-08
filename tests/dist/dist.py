@@ -76,6 +76,7 @@ class SimpleMetric:
         self.results.clear()
         return metrics_list[0]
 
+
 def train(rank, world_size):
     setup(rank, world_size)
 

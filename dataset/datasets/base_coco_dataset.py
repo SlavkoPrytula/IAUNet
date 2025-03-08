@@ -64,27 +64,24 @@ class BaseCOCODataset(Dataset):
         # (H, W, M) -> (H, W, N)
         masks, keep = self.filter_empty_masks(masks, return_idx=True) 
         # bboxes = self.masks_to_boxes(masks)
-        # labels = labels[keep]
-
+    
         image = image.transpose((2, 0, 1))
         image = torch.tensor(image, dtype=torch.float32)
         
         masks = masks.transpose((2, 0, 1))
         masks = torch.tensor(masks, dtype=torch.float32)
 
-        # labels
         labels = torch.tensor(labels, dtype=torch.int64)
         labels = labels[keep]
 
         # h, w = image.shape[-2:]
         # bboxes = torch.tensor(bboxes, dtype=torch.float32)
-        # bboxes = box_xyxy_to_cxcywh(bboxes)
-        # bboxes = bboxes / torch.tensor([w, h, w, h], dtype=torch.float32)
+        # bboxes = box_xyxy_to_cxcywh(bboxes) / torch.tensor([w, h, w, h], dtype=torch.float32)
 
         target = {
-            "image": image,
-            "instance_masks": masks,
-            "labels": labels,
+            "image": image, # (H, W)
+            "instance_masks": masks, # (N, H, W)
+            "labels": labels, # (N)
             # "bboxes": bboxes,
         }
         metadata = self.img_infos(idx)

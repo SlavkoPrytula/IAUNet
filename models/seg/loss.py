@@ -112,9 +112,13 @@ class SparseInstCriterion(nn.Module):
         self.oversample_ratio = 3.0
         self.importance_sample_ratio = 0.75
 
-        print(self.matcher)
-        print(self.weight_dict)
-        print(f'\ncomputing loss for {self.num_classes} classes\n')
+        self.focal_alpha = 0.25
+        self.semantic_ce_loss = True
+
+        # print(self.matcher)
+        # print(self.weight_dict)
+        # print(f'\ncomputing loss for {self.num_classes} classes\n')
+        print(self)
 
 
     def get_weight_dict(self):
@@ -122,6 +126,7 @@ class SparseInstCriterion(nn.Module):
                   "loss_giou", "loss_bbox",)
         weight_dict = {}
 
+        # cls.
         ce_weight = self.loss_weights.labels
         
         # mask.
@@ -135,8 +140,9 @@ class SparseInstCriterion(nn.Module):
         weight_dict = dict(
             zip(losses, (
                 ce_weight, bce_masks_weight, dice_masks_weight, objectness_masks_weight, 
-                giou_weight, bbox_weight,
-                )))
+                giou_weight, bbox_weight,))
+        )
+        
         return weight_dict
         
 
@@ -153,28 +159,48 @@ class SparseInstCriterion(nn.Module):
         return batch_idx, tgt_idx
     
 
-    def loss_labels(self, outputs, targets, indices, num_masks, **kwargs):
+    def loss_labels_ce(self, outputs, targets, indices, num_masks, **kwargs):
         """Classification loss (NLL)
         targets dicts must contain the key "labels" containing a tensor of dim [nb_target_boxes]
         """
-        assert "pred_logits" in outputs, f"logits not found."
+        assert "pred_logits" in outputs
         src_logits = outputs["pred_logits"].float()
 
         idx = self._get_src_permutation_idx(indices)
         target_classes_o = torch.cat([t["labels"][J] for t, (_, J) in zip(targets, indices)])
         target_classes = torch.full(
             src_logits.shape[:2], self.num_classes, dtype=torch.int64, device=src_logits.device
-        )  # [1, 1, 1, 1, 1, 1, ...] size(50)
-        target_classes[idx] = target_classes_o # [1, 0, 1, 1, 0, 1, ...] size(50), where 0 is the obj class
+        )
+        target_classes[idx] = target_classes_o
 
         self.empty_weight = self.empty_weight.to(src_logits.device)
 
         loss_ce = F.cross_entropy(src_logits.transpose(1, 2), target_classes, self.empty_weight)
         losses = {"loss_ce": loss_ce}
-       
-        # if log:
-        # TODO this should probably be a separate loss, not hacked in this one here
-        # losses['cls_accuracy'] = accuracy(src_logits[idx], target_classes_o, topk=100)[0]
+        return losses
+
+
+    def loss_labels(self, outputs, targets, indices, num_masks, **kwargs):
+        """Classification loss (Binary focal loss)
+        targets dicts must contain the key "labels" containing a tensor of dim [nb_target_boxes]
+        """
+        assert 'pred_logits' in outputs
+        src_logits = outputs['pred_logits']
+
+        idx = self._get_src_permutation_idx(indices)
+        target_classes_o = torch.cat([t["labels"][J] for t, (_, J) in zip(targets, indices)])
+        target_classes = torch.full(src_logits.shape[:2], self.num_classes,
+                                    dtype=torch.int64, device=src_logits.device)
+        target_classes[idx] = target_classes_o
+
+        target_classes_onehot = torch.zeros([src_logits.shape[0], src_logits.shape[1], src_logits.shape[2]+1],
+                                            dtype=src_logits.dtype, layout=src_logits.layout, device=src_logits.device)
+        target_classes_onehot.scatter_(2, target_classes.unsqueeze(-1), 1)
+
+        target_classes_onehot = target_classes_onehot[:,:,:-1]
+        loss_ce = sigmoid_focal_loss(src_logits, target_classes_onehot, num_masks, alpha=self.focal_alpha, gamma=2) * src_logits.shape[1]
+        losses = {'loss_ce': loss_ce}
+
         return losses
 
 
@@ -385,7 +411,7 @@ class SparseInstCriterion(nn.Module):
     
     def get_loss(self, loss, outputs, targets, indices, num_masks, **kwargs):
         loss_map = {
-            "labels": self.loss_labels,
+            "labels": self.loss_labels_ce if self.semantic_ce_loss else self.loss_labels,
             "masks": self.loss_masks,
             "bboxes": self.loss_boxes,
             "occluders": self.loss_occluders,
@@ -449,11 +475,28 @@ class SparseInstCriterion(nn.Module):
         return losses
 
     def __repr__(self, _repr_indent=4):
-        head = "Loss " + self.__class__.__name__
+        head = "Criterion " + self.__class__.__name__
+        # body = [
+        #     f"{k}: {v}" for k, v in self.weight_dict
+        # ]
+        # lines = [head] + [" " * _repr_indent + line for line in body]
+        # lines += [f"num_classes: {self.num_classes}"]
+        # lines += [f"losses: {self.losses}"]
+        # lines += [f"semantic_ce_loss: {self.semantic_ce_loss}"]
+
         body = [
-            f"{k}: {v}" for k, v in self.weight_dict
+            "losses: {}".format(self.losses),
+            "weight_dict: {}".format(self.weight_dict),
+            "num_classes: {}".format(self.num_classes),
+            "eos_coef: {}".format(self.eos_coef),
+            "num_points: {}".format(self.num_points),
+            "oversample_ratio: {}".format(self.oversample_ratio),
+            "importance_sample_ratio: {}".format(self.importance_sample_ratio),
+            "semantic_ce_loss: {}".format(self.semantic_ce_loss),
         ]
+        _repr_indent = 4
         lines = [head] + [" " * _repr_indent + line for line in body]
+
         return "\n" + "\n".join(lines) + "\n"
     
 

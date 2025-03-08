@@ -48,13 +48,19 @@ def get_flops(model, device="cuda:0"):
 
     gflops = flops / 1e9
     params = params / 1e6
-    print(f'Flops: {gflops:.3f}G')
-    print(f'Params: {params:.3f}M')
+    print(f'Flops = {gflops:.3f}G')
+    print(f'Params = {params:.3f}M')
     print()
-
+    print(f'Flops = {gflops:.0f}G')
+    print(f'Params = {params:.0f}M')
+    print()
+    print(f'Flops (x0.5) = {gflops / 2:.0f}G')
+    print(f'Params = {params:.0f}M')
+    print()
+    
 
 @hydra.main(version_base="1.3", config_path="../configs", config_name="train")
-def profile_model(cfg: cfg):
+def profile_model(cfg = cfg):
 
     if True:
         # transformer decoder config.
@@ -62,7 +68,7 @@ def profile_model(cfg: cfg):
         cfg.model.decoder.num_classes = 1
         cfg.model.decoder.hidden_dim = 256
         cfg.model.decoder.nheads = 8
-        cfg.model.decoder.dec_layers = 1
+        cfg.model.decoder.dec_layers = 3
         cfg.model.decoder.dropout = 0.0
         cfg.model.decoder.pre_norm = False
         cfg.model.decoder.dim_feedforward = 1024
@@ -73,7 +79,7 @@ def profile_model(cfg: cfg):
         
         # model.
         cfg.model.type = "iaunet_v2"
-        cfg.model.decoder.type = "iadecoder_ml_fpn"
+        cfg.model.decoder.type = "iadecoder_ml_fpn/experimental/deep_supervision"
         cfg.model.decoder.n_levels = 4
 
     model = get_model(cfg)

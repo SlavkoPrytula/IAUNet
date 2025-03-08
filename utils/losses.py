@@ -52,13 +52,7 @@ dice_loss_jit = torch.jit.script(
 )  # type: torch.jit.ScriptModule
 
 
-def sigmoid_focal_loss(
-    inputs: torch.Tensor,
-    targets: torch.Tensor,
-    num_masks: float,
-    alpha: float = 0.25,
-    gamma: float = 2.0,
-) -> torch.Tensor:
+def sigmoid_focal_loss(inputs, targets, num_boxes, alpha: float = 0.25, gamma: float = 2):
     """
     Loss used in RetinaNet for dense detection: https://arxiv.org/abs/1708.02002.
     Args:
@@ -83,7 +77,8 @@ def sigmoid_focal_loss(
         alpha_t = alpha * targets + (1 - alpha) * (1 - targets)
         loss = alpha_t * loss
 
-    return loss.mean(1).sum() / num_masks
+
+    return loss.mean(1).sum() / num_boxes
 
 
 

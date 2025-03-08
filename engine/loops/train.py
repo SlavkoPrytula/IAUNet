@@ -1,6 +1,7 @@
 import wandb
 from typing import Dict
 
+import torch
 from torch.cuda import amp
 from utils.utils import nested_tensor_from_tensor_list
 
@@ -75,6 +76,7 @@ class TrainLoop(BaseLoop):
                 
             self.scaler.scale(loss).backward()
             if (step + 1) % 1 == 0:
+                # torch.nn.utils.clip_grad_norm_(self.model.parameters(), max_norm=1)
                 self.scaler.step(self.optimizer)
                 self.scaler.update()
 

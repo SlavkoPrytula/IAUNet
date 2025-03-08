@@ -45,7 +45,7 @@ class ResNet(nn.Module):
         else:
             raise ValueError(f"Unsupported ResNet depth: {depth}")
 
-        # self.embed_dims = [self.embed_dims[i] for i in out_indices]
+        self.embed_dims = [self.embed_dims[i] for i in out_indices]
 
         self.conv1 = model.conv1
         self.bn1 = model.bn1

@@ -7,6 +7,7 @@ import torch.nn.functional as F
 from .coco_evaluator import COCOEvaluator
 from utils.utils import nested_tensor_from_tensor_list
 from utils.opt.mask_nms import mask_nms
+from utils.box_ops import box_cxcywh_to_xyxy
 from utils.registry import EVALUATORS, DATASETS
 from evaluation.mmdet import CocoMetric
 
@@ -62,6 +63,8 @@ class MMDetDataloaderEvaluator(COCOEvaluator):
         class_names = [category['name'] for category in categories]
         self.metric.dataset_meta = dict(classes=class_names)
 
+        self.score_threshold = cfg.model.evaluator.score_thr
+        self.mask_threshold = cfg.model.evaluator.mask_thr
         self.nms_threshold = cfg.model.evaluator.nms_thr
 
 
@@ -101,13 +104,13 @@ class MMDetDataloaderEvaluator(COCOEvaluator):
     def process(self, preds: dict):
         scores_batch = preds['pred_logits'].softmax(-1)
         masks_pred_batch = preds['pred_instance_masks'].sigmoid()
-        iou_scores_batch = preds['pred_scores'].sigmoid()
+        # iou_scores_batch = preds['pred_scores'].sigmoid()
         bboxes_pred_batch = preds['pred_bboxes']
 
-        for batch_idx, (scores, masks_pred, iou_scores, bboxes_pred) in enumerate(zip(
-            scores_batch, masks_pred_batch, iou_scores_batch, bboxes_pred_batch)):
+        for batch_idx, (scores, masks_pred, bboxes_pred) in enumerate(zip(
+            scores_batch, masks_pred_batch, bboxes_pred_batch)):
             scores = scores[:, :-1]
-            iou_scores = iou_scores.flatten(0, 1)
+            # iou_scores = iou_scores.flatten(0, 1)
 
             labels = torch.arange(self.num_classes, device=scores.device).unsqueeze(0).repeat(masks_pred.shape[0], 1).flatten(0, 1)
             scores, topk_indices = scores.flatten(0, 1).topk(masks_pred.shape[0], sorted=False)
@@ -115,7 +118,7 @@ class MMDetDataloaderEvaluator(COCOEvaluator):
 
             topk_indices = topk_indices // self.num_classes
             masks_pred = masks_pred[topk_indices]
-            iou_scores = iou_scores[topk_indices]
+            # iou_scores = iou_scores[topk_indices]
             bboxes_pred = bboxes_pred[topk_indices]
 
 
@@ -127,34 +130,34 @@ class MMDetDataloaderEvaluator(COCOEvaluator):
             # scores = torch.sqrt(scores * iou_scores)
             scores = scores * maskness_scores
 
-            # ========== CLS Score ==========
+            # # ========== CLS Score ==========
             # # score filtering.
-            keep = scores > self.score_threshold
-            masks_pred = masks_pred[keep]
-            scores = scores[keep]
-            labels = labels[keep]
-            iou_scores = iou_scores[keep]
-            bboxes_pred = bboxes_pred[keep]
+            # keep = scores > self.score_threshold
+            # masks_pred = masks_pred[keep]
+            # scores = scores[keep]
+            # labels = labels[keep]
+            # iou_scores = iou_scores[keep]
+            # bboxes_pred = bboxes_pred[keep]
 
-            # ========== NMS ==========
-            # pre_nms sort.
-            sort_inds = torch.argsort(scores, descending=True)
-            masks_pred = masks_pred[sort_inds]
-            scores = scores[sort_inds]
-            labels = labels[sort_inds]
-            iou_scores = iou_scores[sort_inds]
-            bboxes_pred = bboxes_pred[sort_inds]
+            # # ========== NMS ==========
+            # # pre_nms sort.
+            # sort_inds = torch.argsort(scores, descending=True)
+            # masks_pred = masks_pred[sort_inds]
+            # scores = scores[sort_inds]
+            # labels = labels[sort_inds]
+            # iou_scores = iou_scores[sort_inds]
+            # bboxes_pred = bboxes_pred[sort_inds]
 
-            # nms.
-            seg_masks = masks_pred > self.mask_threshold
-            sum_masks = seg_masks.sum((1, 2)).float()
+            # # nms.
+            # seg_masks = masks_pred > self.mask_threshold
+            # sum_masks = seg_masks.sum((1, 2)).float()
             
-            keep = mask_nms(labels, seg_masks, sum_masks, scores, nms_thr=self.nms_threshold)
-            masks_pred = masks_pred[keep]
-            scores = scores[keep]
-            labels = labels[keep]
-            iou_scores = iou_scores[keep]
-            bboxes_pred = bboxes_pred[keep]
+            # keep = mask_nms(labels, seg_masks, sum_masks, scores, nms_thr=self.nms_threshold)
+            # masks_pred = masks_pred[keep]
+            # scores = scores[keep]
+            # labels = labels[keep]
+            # iou_scores = iou_scores[keep]
+            # bboxes_pred = bboxes_pred[keep]
 
             # postprocessing - currently done here, should be moved to model.
             ori_shape = preds["ori_shape"][batch_idx]
@@ -181,6 +184,64 @@ class MMDetDataloaderEvaluator(COCOEvaluator):
 
             data_samples = [results]
             self.metric.process({}, data_samples)
+
+
+    # def process(self, preds: dict):
+    #     scores_batch = preds['pred_logits']
+    #     masks_pred_batch = preds['pred_instance_masks']
+    #     iou_scores_batch = preds['pred_scores']
+    #     bboxes_pred_batch = preds['pred_bboxes']
+
+    #     for batch_idx, (scores, masks_pred, iou_scores, bboxes_pred) in enumerate(zip(
+    #         scores_batch, masks_pred_batch, iou_scores_batch, bboxes_pred_batch)):
+    #         scores = scores.sigmoid()
+            
+    #         labels = torch.arange(self.num_classes, device=scores.device).unsqueeze(0).repeat(masks_pred.shape[0], 1).flatten(0, 1)
+    #         scores, topk_indices = scores.flatten(0, 1).topk(masks_pred.shape[0], sorted=False)
+    #         labels = labels[topk_indices]
+
+    #         topk_indices = topk_indices // self.num_classes
+    #         masks_pred = masks_pred[topk_indices]
+    #         iou_scores = iou_scores[topk_indices]
+    #         bboxes_pred = bboxes_pred[topk_indices]
+
+    #         # mask (before sigmoid)
+    #         pred_masks = (masks_pred > 0).float()
+
+    #         # calculate average mask prob
+    #         mask_scores_per_image = (masks_pred.sigmoid().flatten(1) * pred_masks.flatten(1)).sum(1) / (pred_masks.flatten(1).sum(1) + 1e-6)
+    #         scores = scores * mask_scores_per_image
+
+    #         keep = scores > self.score_threshold
+    #         pred_masks = pred_masks[keep]
+    #         scores = scores[keep]
+    #         labels = labels[keep]
+    #         bboxes_pred = bboxes_pred[keep]
+
+    #         # postprocessing - currently done here, should be moved to model.
+    #         ori_shape = preds["ori_shape"][batch_idx]
+    #         if pred_masks.shape[0]:
+    #             pred_masks = remove_padding(
+    #                 pred_masks, 
+    #                 ori_shape,
+    #                 rescale=True
+    #             )
+
+    #         # ================================================
+
+    #         results = dict()
+    #         results["img_id"] = preds["img_id"][batch_idx]
+    #         results["ori_shape"] = preds["ori_shape"][batch_idx]
+    #         results["pred_instances"] = {
+    #             "masks": pred_masks,
+    #             "labels": labels,
+    #             "scores": scores,
+    #             "mask_scores": scores,
+    #             "bboxes": bboxes_pred,
+    #         }
+
+    #         data_samples = [results]
+    #         self.metric.process({}, data_samples)
         
 
     def evaluate(self, verbose=False):
@@ -204,3 +265,18 @@ class MMDetDataloaderEvaluator(COCOEvaluator):
 
         self.gt_coco = self.metric._coco_api
         self.pred_coco = self.metric.coco_dt
+
+
+    def __repr__(self):
+        head = "Evaluator " + self.__class__.__name__
+        body = [
+            f"dataset: {self.dataset.ann_file}",
+            f"num_classes: {self.num_classes}",
+            f"mask_threshold: {self.mask_threshold}",
+            f"score_threshold: {self.score_threshold}",
+            f"nms_threshold: {self.nms_threshold}",
+        ]
+        _repr_indent = 4
+        lines = [head] + [" " * _repr_indent + line for line in body]
+
+        return "\n" + "\n".join(lines) + "\n"

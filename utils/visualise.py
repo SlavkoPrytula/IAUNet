@@ -1,5 +1,7 @@
 import os
 import numpy as np
+import torch
+from utils.box_ops import box_cxcywh_to_xyxy
 from matplotlib import pyplot as plt
 from mpl_toolkits.mplot3d import Axes3D
 import matplotlib.patches as patches
@@ -93,7 +95,7 @@ def visualize_grid_v2(figsize=(10, 10), masks=None, bboxes=None, titles=None,
 
     Args:
     - masks (numpy.ndarray): A binary mask array of shape (N, H, W).
-    - bboxes (list): A list of bounding boxes for each mask, where each bounding box is (x_min, y_min, x_max, y_max).
+    - bboxes (numpy.ndarray): A list of bounding boxes for each mask, where each bounding box is (x_min, y_min, x_max, y_max).
     - titles (list): A list of titles for each subplot.
     - ncols (int): The number of columns in the grid.
     - nrows (int): The number of rows in the grid.
@@ -122,13 +124,15 @@ def visualize_grid_v2(figsize=(10, 10), masks=None, bboxes=None, titles=None,
             # Draw bounding box
             if bboxes is not None:
                 bbox = bboxes[i]
-                # Convert normalized bbox coordinates to pixel values
-                x_min, y_min, x_max, y_max = bbox
-                w = x_max - x_min
-                h = y_max - y_min
-                rect = patches.Rectangle((x_min, y_min), w, h, linewidth=1, edgecolor='r', facecolor='none')
+                if isinstance(bbox, np.ndarray):
+                    bbox = torch.tensor(bbox)
+                bbox = bbox * torch.tensor([W, H, W, H], dtype=torch.float32)
+                bbox = box_cxcywh_to_xyxy(bbox)
+                x_min, y_min, x_max, y_max = bbox.int().tolist()
+                rect = plt.Rectangle((x_min, y_min), x_max - x_min, y_max - y_min,
+                                     edgecolor='red', facecolor='none', linewidth=2)
                 ax.add_patch(rect)
-
+                
     # Remove any unused subplots
     for i in range(N, nrows*ncols):
         axs.flat[i].set_visible(False)

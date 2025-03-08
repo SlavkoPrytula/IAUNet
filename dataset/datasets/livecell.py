@@ -89,6 +89,7 @@ def main(cfg: cfg):
 
     visualize_grid_v2(
         masks=targets["instance_masks"].numpy(), 
+        bboxes=targets["bboxes"].numpy(),
         path='./test_inst.jpg',
         ncols=5
     )
