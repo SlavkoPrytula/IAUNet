@@ -101,7 +101,7 @@ def get_config_from_path(path: str) -> _cfg:
 
 def parse_args():
     parser = argparse.ArgumentParser(description='Run evaluation with IAUNet')
-    parser.add_argument('experiment_path', type=str, nargs='?', default=None, help='Path to the experiment directory')
+    parser.add_argument('--experiment_path', type=str, default=None, help='Path to the experiment directory')
     parser.add_argument('--experiment_name', type=str, default='', help='name of the experiment')
     return parser.parse_args()
 
@@ -140,7 +140,7 @@ if __name__ == '__main__':
 
     # [swin]
     # experiment_path = Path("runs/experiments_v2/[ISBI2014]/[iaunet-r50]/[iadecoder_ml_fpn]/[job=53670380]-[2025-02-09 14:23:05]")
-    experiment_path = Path("runs/experiments_v2/[LiveCellCrop]/[iaunet-r50]/[iadecoder_ml_fpn]/[experimental]/[deep_supervision]/[job=9766337]-[2025-03-04 18:38:18]")
+    # experiment_path = Path("runs/benchmarks_v2/[EVICAN2_Easy]/[iaunet-swin-b-p4-w12-384]/[iadecoder_ml_fpn]/[experimental]/[deep_supervision]/[job=9865344]-[2025-03-10 20:19:35]")
 
 
 
@@ -161,7 +161,7 @@ if __name__ == '__main__':
     # cfg.dataset.name = "EVICAN2_Difficult"
 
     # cfg.dataset = "LiveCell"
-    cfg.dataset.name = "LiveCellCrop"
+    # cfg.dataset.name = "LiveCellCrop"
 
     # cfg.dataset.name = "ISBI2014"
 
@@ -173,13 +173,15 @@ if __name__ == '__main__':
 
     # cfg.dataset.name = "cellpainting_gallery"
 
+    print(f'>>> {cfg.dataset.name}')
+
     eval_cfg = OmegaConf.create({
         'model': {
             'evaluator': {
                 'type': "MMDetDataloaderEvaluator",
                 'mask_thr': 0.5,
-                'score_thr': 0.1,
-                'nms_thr': 0.5,
+                'score_thr': 0.01,
+                'nms_thr': 0.8,
                 'metric': 'segm',
                 'classwise': True,
                 'outfile_prefix': "eval/results/coco",
@@ -228,4 +230,4 @@ if __name__ == '__main__':
 
 
 
-# python eval.py
+# python eval.py e

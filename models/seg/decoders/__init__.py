@@ -27,6 +27,6 @@ try:
     from .iadecoder.v2.experimental.iadecoder_ml_fpn_deep_supervision import IADecoder
     from .iadecoder.v2.experimental.iadecoder_ml_fpn_dual_path_deep_supervision import IADecoder
     from .iadecoder.v2.experimental.iadecoder_ml_fpn_dual_path import IADecoder
-    from .iadecoder.v2.experimental.iadecoder_ml_fpn_last_layer_dual_path import IADecoder
+    from .iadecoder.v2.experimental.iadecoder_ml_fpn_mask_feats_dual_path import IADecoder
 except:
     pass

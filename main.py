@@ -104,6 +104,7 @@ def run(rank: int = 0, world_size: int = 1, cfg: cfg = None):
     OmegaConf.save(config=cfg, f=config_path)
 
     # set logger.
+    cfg.logger.log.log_files = [str(cfg.run.save_dir / log) for log in cfg.logger.log.log_files]
     logger = setup_logger(
         name=cfg.logger.log.name, 
         log_files=cfg.logger.log.log_files

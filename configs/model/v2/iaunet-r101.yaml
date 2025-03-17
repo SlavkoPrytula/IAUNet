@@ -1,0 +1,14 @@
+# @package _global_
+defaults:
+  - v2/iaunet-base.yaml
+  - _self_
+
+model:
+  model_name: iaunet-r101
+
+  encoder: 
+    type: ResNet
+    depth: 101
+    num_stages: 4
+    out_indices: [1, 2, 3, 4]
+    pretrained: true

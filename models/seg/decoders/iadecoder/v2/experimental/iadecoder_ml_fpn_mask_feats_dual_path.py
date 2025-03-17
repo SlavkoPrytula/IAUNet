@@ -21,7 +21,7 @@ from models.seg.nn.blocks import CrossAttentionLayer, SelfAttentionLayer, Positi
 from models.seg.heads.common import _make_stack_3x3_convs
 
 
-@DECODERS.register(name='iadecoder_ml_fpn/experimental/deep_supervision')
+@DECODERS.register(name='iadecoder_ml_fpn/experimental/mask_feats_dual_path')
 class IADecoder(BaseDecoder):
     def __init__(self, 
                  cfg: Decoder, 
@@ -126,6 +126,29 @@ class IADecoder(BaseDecoder):
             for _ in range(self.num_layers)
         ])
 
+        # transformer layers for updating pixel features.
+        # ca.
+        self.transformer_pixel_cross_attention_layers = nn.ModuleList([
+            CrossAttentionLayer(
+                d_model=hidden_dim,
+                nhead=nheads,
+                dropout=dropout,
+                normalize_before=pre_norm,
+            )
+            for _ in range(self.n_levels)
+        ])
+    
+        # ffn.
+        self.transformer_pixel_ffn_layers = nn.ModuleList([
+            FFNLayer(
+                d_model=hidden_dim,
+                dim_feedforward=dim_feedforward, 
+                dropout=dropout, 
+                normalize_before=pre_norm
+            )
+            for _ in range(self.n_levels)
+        ])
+
         # learnable query features.
         self.query_feat = nn.Embedding(num_queries, hidden_dim)
         # learnable query p.e.
@@ -198,6 +221,30 @@ class IADecoder(BaseDecoder):
         return pixel_feats, query_feat, attn
         
 
+    def forward_dual_path_layer(self, pixel_feats, query_feat, query_embed, pos, layer_idx):      
+        # pixel ca.
+        pixel_feats, pixel_ca_attn = self.transformer_pixel_cross_attention_layers[layer_idx](
+            pixel_feats, query_feat, 
+            memory_mask=None, 
+            memory_key_padding_mask=None, 
+            pos=query_embed, query_pos=pos
+            )
+        
+        # pixel ffn.
+        pixel_feats = self.transformer_pixel_ffn_layers[layer_idx](pixel_feats)
+
+        # attn.
+        HW, B, _ = pixel_feats.shape
+        H, W = int(HW ** 0.5), int(HW ** 0.5)
+        pixel_ca_attn = pixel_ca_attn.permute(0, 2, 1).view(B, -1, H, W)
+
+        attn = {
+            f'pixel_ca_attn.{layer_idx}': pixel_ca_attn,
+        }
+        
+        return pixel_feats, query_feat, attn
+
+
     def _forward(self, features):
         # features - multi-scale encoder features (1/4, 1/8, 1/16, 1/32)
         B, C, H, W = features[0].shape
@@ -253,78 +300,22 @@ class IADecoder(BaseDecoder):
         mask_features = self.output_conv(y)
 
 
-        # transformer decoder.
-        # ------------------------
-        # this is a transformer decoder scaled in snake style.
-        # [x], [q] -> [dec_layer_0.0] -> [dec_layer_1.0] -> ... -> [dec_layer_n.0] -> 
-        #          -> [dec_layer_0.1] -> [dec_layer_1.1] -> ... -> [dec_layer_n.1] -> ...
-        # ------------------------
-        # for _, j in enumerate(range(self.dec_layers)):
-        #     for i, x in enumerate(src):
-        #         layer_idx = j * self.n_levels + i
-
-        #         B, C, H, W = x.shape
-        #         pos = self.pe_layer(x, None)
-        #         pos = pos.flatten(2).permute(2, 0, 1)
-        #         x = x.flatten(2).permute(2, 0, 1)
-                
-        #         x, query_feat = self.forward_one_layer(x, query_feat, query_embed, pos, layer_idx)
-                
-        #         x = x.permute(1, 2, 0).view(B, C, H, W)
-        #         # src[i] = x
-
-        #         # adding aux outputs.
-        #         outputs_class, outputs_mask, outputs_boxes = \
-        #             self.forward_prediction_heads(query_feat, mask_features)
-                
-        #         predictions_mask.append(outputs_mask)
-        #         predictions_class.append(outputs_class)
-        #         predictions_boxes.append(outputs_boxes)
-
-        
-        # # ------------------------
-        # # this is a transformer decoder scaled in width.
-        # # [x], [q] -> [dec_layer_0.0] -> [dec_layer_0.1] -> ... -> [dec_layer_0.n]
-        # # ------------------------
-        # for i, x in enumerate(src):
-        #     for _, j in enumerate(range(self.dec_layers)):
-        #         layer_idx = i * self.dec_layers + j
-
-        #         B, C, H, W = x.shape
-        #         pos = self.pe_layer(x, None)
-        #         pos = pos.flatten(2).permute(2, 0, 1)
-        #         x = x.flatten(2).permute(2, 0, 1)
-                
-        #         x, query_feat, attn = self.forward_one_layer(x, query_feat, query_embed, pos, layer_idx)
-                
-        #         x = x.permute(1, 2, 0).view(B, C, H, W)
-
-        #         # adding aux outputs.
-        #         outputs_class, outputs_mask, outputs_boxes = \
-        #             self.forward_prediction_heads(query_feat, mask_features)
-                
-        #         predictions_mask.append(outputs_mask)
-        #         predictions_class.append(outputs_class)
-        #         predictions_boxes.append(outputs_boxes)
-
-
         # ------------------------
         # this is a transformer decoder scaled in width.
         # [x], [q] -> [dec_layer_0.0] -> [dec_layer_0.1] -> ... -> [dec_layer_0.n]
         # here we use a group deep supervision (compute loss after all transformer decoder layers).
         # ------------------------
         for i, x in enumerate(src):
+            
+            B, C, H, W = x.shape
+            pos = self.pe_layer(x, None)
+            pos = pos.flatten(2).permute(2, 0, 1)
+            x = x.flatten(2).permute(2, 0, 1)
+
             for _, j in enumerate(range(self.dec_layers)):
                 layer_idx = i * self.dec_layers + j
-
-                B, C, H, W = x.shape
-                pos = self.pe_layer(x, None)
-                pos = pos.flatten(2).permute(2, 0, 1)
-                x = x.flatten(2).permute(2, 0, 1)
                 
                 x, query_feat, attn = self.forward_one_layer(x, query_feat, query_embed, pos, layer_idx)
-                
-                x = x.permute(1, 2, 0).view(B, C, H, W)
 
                 # adding aux outputs.
                 outputs_class, outputs_mask, outputs_boxes = \
@@ -334,16 +325,25 @@ class IADecoder(BaseDecoder):
                 predictions_class.append(outputs_class)
                 predictions_boxes.append(outputs_boxes)
 
-                # predictions_attn.append(attn)
-        
+                predictions_attn.append(attn)
+            
+            B, C, H, W = mask_features.shape
+            pos = self.pe_layer(mask_features, None)
+            pos = pos.flatten(2).permute(2, 0, 1)
+            mask_features = mask_features.flatten(2).permute(2, 0, 1)
+
+            mask_features, query_feat, attn = self.forward_dual_path_layer(mask_features, query_feat, query_embed, pos, i)
+            
+            mask_features = mask_features.permute(1, 2, 0).view(B, C, H, W)
+
 
         results = {
             'logits': predictions_class[-1],
             'bboxes': predictions_boxes[-1],
             'masks': predictions_mask[-1],
-            # 'aux_outputs': self._set_aux_loss(
-            #     predictions_class[:-1], predictions_mask[:-1], predictions_boxes[:-1]
-            # )
+            'aux_outputs': self._set_aux_loss(
+                predictions_class[:-1], predictions_mask[:-1], predictions_boxes[:-1]
+            )
         }
 
         results["mask_feats"] = mask_features
@@ -405,7 +405,7 @@ class IADecoder(BaseDecoder):
                 "mask_feats": mask_feats,
             }, 
             'attn': attn,
-            # 'aux_outputs': aux_outputs
+            'aux_outputs': aux_outputs
         }
     
         return output

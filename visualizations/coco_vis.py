@@ -10,20 +10,26 @@ import torch
 from .palette import jitter_color, random_color
 
 
-def _visualize_masks(ax, masks, draw_border=False):
+def _visualize_masks(ax, masks, draw_border=False, border_size=5):
+    """
+    Visualizes masks with optional border.
+
+    :param ax: Matplotlib axis to draw on.
+    :param masks: List of RGBA masks.
+    :param draw_border: Whether to draw borders.
+    :param border_size: Thickness of the border.
+    """
     for mask in masks:
         if draw_border:
             binary_mask = mask[..., 3] > 0
-            dilation = binary_dilation(binary_mask, iterations=10)
-            erosion = binary_erosion(binary_mask, iterations=2)
-            # dilation = binary_dilation(binary_mask, iterations=6)
-            # erosion = binary_erosion(binary_mask, iterations=4)
+            dilation = binary_dilation(binary_mask, iterations=border_size + 2)
+            erosion = binary_erosion(binary_mask, iterations=border_size)
+
             border = dilation & ~erosion
-            
+
             for c in range(3):
-                mask[..., c][border] = 1  # Set border color to white
-        
-        # mask[..., 3][border] = 1
+                mask[..., c][border] = 1  
+
         ax.imshow(mask)
 
 
@@ -79,17 +85,17 @@ def getNPMasks(masks, shape, alpha=1, static_color=False):
     return np.array(colored_masks)
 
 
-def visualize_coco_anns(coco_api, idx, ax, shape, alpha=1, draw_border=False, static_color=False):
+def visualize_coco_anns(coco_api, idx, ax, shape, alpha=1, border_size=5, draw_border=False, static_color=False):
     if not coco_api: # no instances were detected :(
         return 
     
     annIds = coco_api.getAnnIds(imgIds=[idx])
     anns = coco_api.loadAnns(annIds)
     masks = getMasks(coco_api, anns, shape, alpha=alpha, static_color=static_color)
-    _visualize_masks(ax, masks, draw_border)
+    _visualize_masks(ax, masks, draw_border, border_size)
 
 
-def visualize_masks(img, masks, shape, alpha=1, draw_border=False, static_color=False, path=None, show_img=False, figsize=[20, 10], dpi=100):
+def visualize_masks(img, masks, shape, alpha=1, border_size=5, draw_border=False, static_color=False, path=None, show_img=False, figsize=[20, 10], dpi=100):
     img = F.interpolate(img.unsqueeze(0).unsqueeze(0), size=shape, 
                         mode="bilinear", align_corners=False).squeeze(0).squeeze(0)
 
@@ -104,7 +110,7 @@ def visualize_masks(img, masks, shape, alpha=1, draw_border=False, static_color=
         ax[1].imshow(img, cmap='gray')
 
         masks = getNPMasks(masks, shape, alpha=alpha, static_color=static_color)
-        _visualize_masks(ax[1], masks, draw_border)
+        _visualize_masks(ax[1], masks, draw_border, border_size)
         
         for a in ax:
             a.axis('off')
@@ -118,7 +124,7 @@ def visualize_masks(img, masks, shape, alpha=1, draw_border=False, static_color=
         ax.imshow(img, cmap='gray')
 
         masks = getNPMasks(masks, shape, alpha=alpha, static_color=static_color)
-        _visualize_masks(ax, masks, draw_border)
+        _visualize_masks(ax, masks, draw_border, border_size)
         
         ax.axis('off')
         ax.set_xlim(0, shape[1]-1)

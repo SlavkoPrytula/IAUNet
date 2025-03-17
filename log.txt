@@ -1,0 +1,13 @@
+03/13 19:38:39 - iadecoder_ml_fpn/experimental/deep_supervision - INFO - Using GPU: AMD Instinct MI250X on rank None
+03/13 19:45:54 - iadecoder_ml_fpn/experimental/deep_supervision - INFO - Using GPU: AMD Instinct MI250X on rank None
+03/13 19:46:04 - iadecoder_ml_fpn/experimental/deep_supervision - INFO - Evaluating the best model...
+03/13 19:46:04 - iadecoder_ml_fpn/experimental/deep_supervision - INFO - TestLoop
+03/13 19:48:24 - iadecoder_ml_fpn/experimental/deep_supervision - INFO - Using GPU: AMD Instinct MI250X on rank None
+03/13 19:48:31 - iadecoder_ml_fpn/experimental/deep_supervision - INFO - Evaluating the best model...
+03/13 19:48:31 - iadecoder_ml_fpn/experimental/deep_supervision - INFO - TestLoop
+03/13 20:04:14 - iadecoder_ml_fpn/experimental/deep_supervision - INFO - Using GPU: AMD Instinct MI250X on rank None
+03/13 20:04:23 - iadecoder_ml_fpn/experimental/deep_supervision - INFO - Evaluating the best model...
+03/13 20:04:23 - iadecoder_ml_fpn/experimental/deep_supervision - INFO - TestLoop
+03/13 20:09:36 - iadecoder_ml_fpn/experimental/deep_supervision - INFO - Using GPU: AMD Instinct MI250X on rank None
+03/13 20:09:43 - iadecoder_ml_fpn/experimental/deep_supervision - INFO - Evaluating the best model...
+03/13 20:09:43 - iadecoder_ml_fpn/experimental/deep_supervision - INFO - TestLoop

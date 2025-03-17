@@ -7,10 +7,13 @@
 #SBATCH --time=24:00:00
 
 #SBATCH --job-name=iaunet
-#SBATCH --output=./outputs/eval/job_%j.log
+#SBATCH --output=./outputs/train/job_%j.log
 
 #SBATCH -A project_465001327
 
+
 singularity exec /project/project_465001327/lumi_setup.sif \
-            python eval.py \
-            --experiment_path "runs/benchmarks_v2/[LiveCellCrop]/[iaunet-r50]/[iadecoder_ml_fpn]/[experimental]/[deep_supervision]/[job=9839472]-[2025-03-08 18:06:46]"
+            python main.py \
+            model=model/iaunet/iaunet-r50 \
+            dataset=evican2_medium \
+            job_id=$SLURM_JOB_ID

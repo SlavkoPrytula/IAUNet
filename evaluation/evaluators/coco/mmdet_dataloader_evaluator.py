@@ -130,23 +130,23 @@ class MMDetDataloaderEvaluator(COCOEvaluator):
             # scores = torch.sqrt(scores * iou_scores)
             scores = scores * maskness_scores
 
-            # # ========== CLS Score ==========
-            # # score filtering.
-            # keep = scores > self.score_threshold
-            # masks_pred = masks_pred[keep]
-            # scores = scores[keep]
-            # labels = labels[keep]
+            # ========== CLS Score ==========
+            # score filtering.
+            keep = scores > self.score_threshold
+            masks_pred = masks_pred[keep]
+            scores = scores[keep]
+            labels = labels[keep]
             # iou_scores = iou_scores[keep]
-            # bboxes_pred = bboxes_pred[keep]
+            bboxes_pred = bboxes_pred[keep]
 
-            # # ========== NMS ==========
-            # # pre_nms sort.
-            # sort_inds = torch.argsort(scores, descending=True)
-            # masks_pred = masks_pred[sort_inds]
-            # scores = scores[sort_inds]
-            # labels = labels[sort_inds]
+            # ========== NMS ==========
+            # pre_nms sort.
+            sort_inds = torch.argsort(scores, descending=True)
+            masks_pred = masks_pred[sort_inds]
+            scores = scores[sort_inds]
+            labels = labels[sort_inds]
             # iou_scores = iou_scores[sort_inds]
-            # bboxes_pred = bboxes_pred[sort_inds]
+            bboxes_pred = bboxes_pred[sort_inds]
 
             # # nms.
             # seg_masks = masks_pred > self.mask_threshold
@@ -156,7 +156,7 @@ class MMDetDataloaderEvaluator(COCOEvaluator):
             # masks_pred = masks_pred[keep]
             # scores = scores[keep]
             # labels = labels[keep]
-            # iou_scores = iou_scores[keep]
+            # # iou_scores = iou_scores[keep]
             # bboxes_pred = bboxes_pred[keep]
 
             # postprocessing - currently done here, should be moved to model.

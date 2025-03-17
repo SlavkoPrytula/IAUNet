@@ -1,0 +1,35 @@
+# @package _global_
+defaults:
+  - v2/iaunet-base.yaml
+  - _self_
+
+model:
+  model_name: iaunet-swin-b-p4-w12-384
+
+  encoder: 
+    type: SwinTransformer
+    embed_dim: 128
+    depths: [2, 2, 18, 2]
+    num_heads: [4, 8, 16, 32]
+    window_size: 12
+    mlp_ratio: 4
+    qkv_bias: True
+    drop_path_rate: 0.5
+    patch_norm: True
+    pretrained: True
+    out_indices: [0, 1, 2, 3]
+    pretrain_img_size: 384
+    
+  decoder: 
+    # pixel decoder config.
+    type: iadecoder_ml_fpn/experimental/deep_supervision
+
+    # transformer decoder config.
+    num_queries: 100
+    num_classes: 1
+    hidden_dim: 256
+    nheads: 8
+    dec_layers: 1
+    dropout: 0.1
+    pre_norm: false
+    dim_feedforward: 1024
