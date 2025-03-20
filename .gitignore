@@ -22,7 +22,7 @@ __pycache__/
 
 csv2latex.py
 csv2latex copy.py
-log.txt
-temp/
 test_einops.py
-cvpr/
+log.txt
+temp
+cvpr

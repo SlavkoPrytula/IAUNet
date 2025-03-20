@@ -189,27 +189,32 @@
 
 
 
-import os
+# import os
 
-def print_dir_tree(root_dir, indent=""):
-    """Recursively prints the directory tree structure."""
-    try:
-        entries = sorted(os.listdir(root_dir))
-    except PermissionError:
-        print(f"{indent}[Permission Denied] {root_dir}")
-        return
+# def print_dir_tree(root_dir, indent=""):
+#     """Recursively prints the directory tree structure."""
+#     try:
+#         entries = sorted(os.listdir(root_dir))
+#     except PermissionError:
+#         print(f"{indent}[Permission Denied] {root_dir}")
+#         return
     
-    for index, entry in enumerate(entries):
-        path = os.path.join(root_dir, entry)
-        is_last = index == len(entries) - 1
-        prefix = "└── " if is_last else "├── "
+#     for index, entry in enumerate(entries):
+#         path = os.path.join(root_dir, entry)
+#         is_last = index == len(entries) - 1
+#         prefix = "└── " if is_last else "├── "
         
-        print(indent + prefix + entry)
+#         print(indent + prefix + entry)
         
-        if os.path.isdir(path):
-            new_indent = indent + ("    " if is_last else "│   ")
-            print_dir_tree(path, new_indent)
+#         if os.path.isdir(path):
+#             new_indent = indent + ("    " if is_last else "│   ")
+#             print_dir_tree(path, new_indent)
 
 
-root_path = "./configs"
-print_dir_tree(root_path)
+# root_path = "./configs"
+# print_dir_tree(root_path)
+
+
+
+data_dir = "/gpfs/helios/home/etais/com_palo/2025-03-06_OrganoidExport1"
+
