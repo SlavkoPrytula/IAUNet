@@ -3,8 +3,8 @@ dataset:
   name: Revvity_25
   type: Revvity_25
 
-  data_root: /project/project_465001327/datasets/Revvity-25
-  # data_root: /gpfs/space/projects/PerkinElmer/cytoplasm_segmentation/datasets/Revvity-25/v2
+  # data_root: /project/project_465001327/datasets/Revvity-25
+  data_root: /gpfs/space/projects/PerkinElmer/cytoplasm_segmentation/datasets/Revvity-25/v2
 
   train_dataset:
     images: ${dataset.data_root}/images

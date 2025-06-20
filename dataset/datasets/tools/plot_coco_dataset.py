@@ -44,7 +44,7 @@ def visualize_masks(img, masks, shape, alpha=1, draw_border=False, static_color=
         plt.close(fig)
 
 
-def visualize(coco_json_path, images_dir, output_path, img_ids=None, alpha=0.65, num_cols=4):
+def visualize(coco_json_path, images_dir, output_path, output_name, img_ids=None, alpha=0.65, num_cols=4):
     coco = COCO(coco_json_path)
     img_ids = img_ids or coco.getImgIds()
     num_imgs = len(img_ids)
@@ -64,7 +64,16 @@ def visualize(coco_json_path, images_dir, output_path, img_ids=None, alpha=0.65,
             # Read and normalize the image
             img = cv2.imread(img_path, -1) / 255.0 
             img = torch.tensor(img, dtype=torch.float32)
-            img = img[..., 0]
+
+            if img.ndim == 3 and img.shape[2] == 3:
+                img = img[..., 0]
+            elif img.ndim == 3 and img.shape[2] == 4:
+                img = img[..., 0]
+            elif img.ndim == 2:
+                pass
+            else:
+                raise ValueError(f"Unexpected image shape: {img.shape}")
+            
             H, W = img_info['height'], img_info['width']
 
             # Load and prepare masks
@@ -78,10 +87,21 @@ def visualize(coco_json_path, images_dir, output_path, img_ids=None, alpha=0.65,
             H, W = 512, 512
             
             # Resize images and masks to match the target shape
+            # pad if needed and resize
+
+            # pad
+            max_shape = max(img.shape[0], img.shape[1])
+            pad_h = (max_shape - img.shape[0]) // 2
+            pad_w = (max_shape - img.shape[1]) // 2
+            img = F.pad(img, (pad_w, pad_w, pad_h, pad_h), mode='constant', value=0)
+            masks = F.pad(masks, (pad_w, pad_w, pad_h, pad_h), mode='constant', value=0)
+
+            # resize
             img_resized = F.interpolate(img.unsqueeze(0).unsqueeze(0), size=(H, W), 
                                         mode="bilinear", align_corners=False).squeeze(0).squeeze(0)
             masks_resized = F.interpolate(masks.unsqueeze(0), size=(H, W), 
                                           mode="bilinear", align_corners=False).squeeze(0)
+                                          
 
             # Top row: image with masks
             visualize_masks(img_resized, masks_resized, shape=(H, W), 
@@ -93,13 +113,50 @@ def visualize(coco_json_path, images_dir, output_path, img_ids=None, alpha=0.65,
         for ax in axes.flatten()[num_imgs % num_cols:]:
             ax.axis('off')
 
-        save_img_path = os.path.join(output_path, f'coco_dataset_images_set_{fig_idx + 1}.png')
+        save_img_path = os.path.join(output_path, f'{output_name}_{fig_idx + 1}.png')
         os.makedirs(output_path, exist_ok=True)
         plt.savefig(save_img_path, bbox_inches='tight', pad_inches=0, dpi=100)
         plt.close(fig)
 
 
-coco_json_path = '/project/project_465001327/datasets/Revvity-25/annotations/train.json'
-images_dir = '/project/project_465001327/datasets/Revvity-25/images'
-output_path = './'
-visualize(coco_json_path, images_dir, output_path, num_cols=4)
+# revvity-25
+# coco_json_path = '/project/project_465001327/datasets/Revvity-25/annotations/train.json'
+# images_dir = '/project/project_465001327/datasets/Revvity-25/images'
+# output_path = './'
+# visualize(coco_json_path, images_dir, output_path, num_cols=4)
+
+
+# # livecell
+# coco_json_path = '/gpfs/space/projects/PerkinElmer/cytoplasm_segmentation/datasets/LiveCell/crop_512x512/coco/annotations/livecell_coco_test.json'
+# images_dir = '/gpfs/space/projects/PerkinElmer/cytoplasm_segmentation/datasets/LiveCell/crop_512x512/coco/images/livecell_test_images'
+# output_path = './cvpr/datasets/'
+# visualize(coco_json_path, images_dir, output_path, output_name='livecell_dataset_images_set', num_cols=4)
+
+
+
+# isbi2014
+# coco_json_path = '/gpfs/space/projects/PerkinElmer/cytoplasm_segmentation/datasets/ISBI2014/coco/annotations/isbi_test.json'
+# images_dir = '/gpfs/space/projects/PerkinElmer/cytoplasm_segmentation/datasets/ISBI2014/coco/isbi_test'
+# output_path = './cvpr/datasets/'
+# visualize(coco_json_path, images_dir, output_path, output_name='isbi2014_dataset_images_set', num_cols=4)
+
+
+# evican2
+# coco_json_path = '/gpfs/space/projects/PerkinElmer/cytoplasm_segmentation/datasets/EVICAN2/coco/annotations/EVICAN2/processed/instances_train2019_EVICAN2_cell.json'
+# images_dir = '/gpfs/space/projects/PerkinElmer/cytoplasm_segmentation/datasets/EVICAN2/coco/images/EVICAN_train2019'
+coco_json_path = '/gpfs/space/projects/PerkinElmer/cytoplasm_segmentation/datasets/EVICAN2/coco/annotations/EVICAN2/processed/instances_eval2019_easy_EVICAN2_cell.json'
+images_dir = '/gpfs/space/projects/PerkinElmer/cytoplasm_segmentation/datasets/EVICAN2/coco/images/EVICAN_eval2019'
+output_path = './cvpr/datasets/evican2'
+visualize(coco_json_path, images_dir, output_path, output_name='evican2_easy_dataset_images_set', num_cols=4)
+
+
+coco_json_path = '/gpfs/space/projects/PerkinElmer/cytoplasm_segmentation/datasets/EVICAN2/coco/annotations/EVICAN2/processed/instances_eval2019_medium_EVICAN2_cell.json'
+images_dir = '/gpfs/space/projects/PerkinElmer/cytoplasm_segmentation/datasets/EVICAN2/coco/images/EVICAN_eval2019'
+output_path = './cvpr/datasets/evican2'
+visualize(coco_json_path, images_dir, output_path, output_name='evican2_medium_dataset_images_set', num_cols=4)
+
+
+coco_json_path = '/gpfs/space/projects/PerkinElmer/cytoplasm_segmentation/datasets/EVICAN2/coco/annotations/EVICAN2/processed/instances_eval2019_difficult_EVICAN2_cell.json'
+images_dir = '/gpfs/space/projects/PerkinElmer/cytoplasm_segmentation/datasets/EVICAN2/coco/images/EVICAN_eval2019'
+output_path = './cvpr/datasets/evican2'
+visualize(coco_json_path, images_dir, output_path, output_name='evican2_difficult_dataset_images_set', num_cols=4)

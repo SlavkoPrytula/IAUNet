@@ -157,7 +157,17 @@ def visualize_multiple_models(gt_json_path, pred_json_paths, image_dir, num_imag
     gt_coco, pred_cocos = get_coco(gt_json_path, _pred_json_paths)
     image_ids = gt_coco.getImgIds()[:num_images]
     # image_ids = [image_ids[0], image_ids[3], image_ids[4]]
-    # image_ids = image_ids[5:]
+    # image_ids = [image_ids[5], image_ids[6], image_ids[7]]
+    # image_ids = image_ids[:5]
+
+    # Revvity-25
+    image_ids = [image_ids[3], image_ids[4], image_ids[5]]
+    
+    # LiveCell
+    # image_ids = [image_ids[0], image_ids[3], image_ids[11]]
+    
+    # ISBI2014
+    # image_ids = [image_ids[12], image_ids[18], image_ids[11]]
 
     # metrics_per_image = compute_metrics(gt_coco, pred_cocos[0], image_ids[0])
     # print(metrics_per_image)
@@ -189,14 +199,68 @@ def visualize_multiple_models(gt_json_path, pred_json_paths, image_dir, num_imag
 
 
 
+# LiveCell
+# gt_json_path = "/gpfs/space/projects/PerkinElmer/cytoplasm_segmentation/datasets/LiveCell/crop_512x512/coco/annotations/livecell_coco_test.json"
+# pred_json_paths = {
+#     "MaskRCNN-R50": "/gpfs/space/projects/PerkinElmer/cytoplasm_segmentation/mmdet_results/EXPERIMENTS/LiveCell/mask-rcnn_r50_fpn_1x_coco/job=52020558/results/coco_valid.segm.json",
+#     "PointRend-R50": "/gpfs/space/projects/PerkinElmer/cytoplasm_segmentation/mmdet_results/EXPERIMENTS/LiveCell/PointRend_r50_caffe_fpn_ms_1x_coco/job=52020557/results/coco_valid.segm.json",
+#     "Mask2Former-R50": "/gpfs/space/projects/PerkinElmer/cytoplasm_segmentation/mmdet_results/EXPERIMENTS/LiveCell/mask2former_r50_8xb2-lsj-50e_coco/job=52020562/results/coco_valid.segm.json",
+#     "MaskDINO-R50": "/gpfs/helios/home/prytula/scripts/experimental_segmentation/MaskDINO/runs/livecell_crop/maskdino_R50/[job=]-[2025-03-06_14-32-36]/inference/coco_instances_results.json",
+#     "IAUNet-R50 (ours)": "temp/runs/benchmarks_v2/[LiveCellCrop]/[iaunet-r50]/coco.segm.json",
+# }
+# image_dir = "/gpfs/space/projects/PerkinElmer/cytoplasm_segmentation/datasets/LiveCell/crop_512x512/coco/images/livecell_test_images"
 
-gt_json_path = "/project/project_465001327/datasets/Revvity-25/annotations/valid.json"
+
+# Revvity-25
+gt_json_path = "/gpfs/space/projects/PerkinElmer/cytoplasm_segmentation/datasets/Revvity-25/v2/annotations/valid.json"
 pred_json_paths = {
-    "IAUNet": "runs/benchmarks_v2/[Revvity_25]/[iaunet-r50]/[iadecoder_ml_fpn]/[experimental]/[deep_supervision]/[job=9865327]-[2025-03-10 20:19:46]/eval/results/coco.segm.json",
-    "IAUNet": "runs/benchmarks_v2/[Revvity_25]/[iaunet-r50]/[iadecoder_ml_fpn]/[experimental]/[deep_supervision]/[job=9865327]-[2025-03-10 20:19:46]/eval/results/coco.segm.json",
+    "MaskRCNN-R50": "/gpfs/space/projects/PerkinElmer/cytoplasm_segmentation/mmdet_results/EXPERIMENTS/EXPERIMENTS_revityy_ext/Revityy/mask-rcnn_r50_fpn_1x_coco/job=52218535/results/coco_test.segm.json",
+    "PointRend-R50": "/gpfs/space/projects/PerkinElmer/cytoplasm_segmentation/mmdet_results/EXPERIMENTS/EXPERIMENTS_revityy_ext/Revityy/PointRend_r50_caffe_fpn_ms_1x_coco/job=52218539/results/coco_test.segm.json",
+    "Mask2Former-R50": "/gpfs/space/projects/PerkinElmer/cytoplasm_segmentation/mmdet_results/EXPERIMENTS/EXPERIMENTS_revityy_ext/Revityy/mask2former_r50_8xb2-lsj-50e_coco/job=52218543/results/coco_valid.segm.json",
+    "MaskDINO-R50": "/gpfs/helios/home/prytula/scripts/experimental_segmentation/MaskDINO/runs/revvity_25/maskdino_R50/[job=]-[2025-03-09_15-18-07]/inference/coco_instances_results.json",
+    "IAUNet-R50 (ours)": "temp/runs/benchmarks_v2/[Revvity_25]/[iaunet-r50]/coco.segm.json",
 }
-image_dir = "/project/project_465001327/datasets/Revvity-25/images"
+image_dir = "/gpfs/space/projects/PerkinElmer/cytoplasm_segmentation/datasets/Revvity-25/v2/images"
+
+
+# ISBI2014
+# gt_json_path = "/gpfs/space/projects/PerkinElmer/cytoplasm_segmentation/datasets/ISBI2014/coco/annotations/isbi_test.json"
+# pred_json_paths = {
+#     "MaskRCNN-R50": "/gpfs/space/home/prytula/scripts/experimental_segmentation/mmdetection/mmdetection/work_dirs/experiments/original_configs/ISBI2014/mask-rcnn_r50_fpn_1x_coco/[job=54056331]/results/coco_valid.segm.json",
+#     "PointRend-R50": "/gpfs/space/home/prytula/scripts/experimental_segmentation/mmdetection/mmdetection/work_dirs/experiments/original_configs/ISBI2014/point_rend_r50_fpn_1x_coco/[job=54055617]/results/coco_valid.segm.json",
+#     "Mask2Former-R50": "/gpfs/space/home/prytula/scripts/experimental_segmentation/mmdetection/mmdetection/work_dirs/experiments/original_configs/ISBI2014/mask2former_r50_8xb2-lsj-50e_coco/[job=54056352]/results/coco_valid.segm.json",
+#     "MaskDINO-R50": "/gpfs/helios/home/prytula/scripts/experimental_segmentation/MaskDINO/runs/isbi2014/maskdino_R50/[job=]-[2025-03-06_12-42-19]/inference/coco_instances_results.json",
+#     "IAUNet-R50 (ours)": "temp/runs/benchmarks_v2/[ISBI2014]/[iaunet-r50]/coco.segm.json",
+# }
+# image_dir = "/gpfs/space/projects/PerkinElmer/cytoplasm_segmentation/datasets/ISBI2014/coco/isbi_test"
+
+
+# ============================
+# specialized models - LiveCell
+# gt_json_path = "/gpfs/space/projects/PerkinElmer/cytoplasm_segmentation/datasets/LiveCell/crop_512x512/coco/annotations/livecell_coco_test.json"
+# pred_json_paths = {
+#     "CellPose": "/gpfs/space/home/prytula/scripts/experimental_segmentation/cellpose/runs/LiveCellCrop/[job=52054076]/results/coco_eval.segm.json",
+#     "CellPose + SM": "/gpfs/space/home/prytula/scripts/experimental_segmentation/cellpose/runs/LiveCellCrop/[job=52070100]/results/coco_eval.segm.json",
+#     "IAUNet-R50 (ours)": "temp/runs/benchmarks_v2/[LiveCellCrop]/[iaunet-r50]/coco.segm.json",
+# }
+# image_dir = "/gpfs/space/projects/PerkinElmer/cytoplasm_segmentation/datasets/LiveCell/crop_512x512/coco/images/livecell_test_images"
+
+
+# specialized models - ISBI2014
+# gt_json_path = "/gpfs/space/projects/PerkinElmer/cytoplasm_segmentation/datasets/ISBI2014/coco/annotations/isbi_test.json"
+# pred_json_paths = {
+#     "CellPose": "/gpfs/space/home/prytula/scripts/experimental_segmentation/cellpose/runs/ISBI2014_Cell/[job=54062579]/results/coco_eval_combined.segm.json",
+#     "CellPose + SM": "/gpfs/space/home/prytula/scripts/experimental_segmentation/cellpose/runs/ISBI2014_Cell/[job=54062579]/results/coco_eval_sm_combined.segm.json",
+#     "IAUNet-R50 (ours)": "temp/runs/benchmarks_v2/[ISBI2014]/[iaunet-r50]/coco.segm.json",
+# }
+# image_dir = "/gpfs/space/projects/PerkinElmer/cytoplasm_segmentation/datasets/ISBI2014/coco/isbi_test"
+
 
 visualize_multiple_models(gt_json_path, pred_json_paths, image_dir, 
-                          num_images=2, dpi=100,
-                          save_dir='./cvpr', save_name='multi_image_comparison_revvity_25')
+                          num_images=20, dpi=100,
+                          save_dir='./cvpr', 
+                        #   save_name='multi_model_comparison_isbi2014_v1_specialized_models',
+                        #   save_name='multi_model_comparison_livecell_crop_v2'
+                          save_name='multi_model_comparison_revvity_25_v3'
+                          )
+
