@@ -7,8 +7,8 @@ from ..base_evaluator import BaseEvaluator
 
 # coco_eval
 class COCOEvaluator(BaseEvaluator):
-    def __init__(self, cfg: cfg, model=None, **kwargs):
-        super().__init__(cfg, model, **kwargs)
+    def __init__(self, cfg: cfg, **kwargs):
+        super().__init__(cfg, **kwargs)
         self.gt_coco = {}
         self.pred_coco = {}
 

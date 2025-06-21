@@ -1,5 +1,5 @@
 wandb:
-  project: "IAUNet"
+  project: "IAUNet-v2"
   group: ${dataset.name}
   name: null
 

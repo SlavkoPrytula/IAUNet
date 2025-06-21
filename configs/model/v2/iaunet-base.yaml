@@ -4,7 +4,7 @@ defaults:
 
 model:
   model_name: iaunet-r50
-  type: iaunet_v2
+  type: iaunet
 
   # model params.
   encoder: null

@@ -5,6 +5,7 @@ visuals/*
 runs/*
 outputs/*
 runs
+benchmarks/
 
 tools/analysis/outputs
 

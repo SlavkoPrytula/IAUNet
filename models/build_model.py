@@ -1,4 +1,3 @@
-from torch.nn.parallel import DistributedDataParallel as DDP
 from configs import cfg
 from . import get_model, load_weights, save_model_files
 
