@@ -5,6 +5,4 @@ defaults:
   - attention_visualizer
   - _self_
 
-type: BaseVisualizer
-epoch_interval: 10
 

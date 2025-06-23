@@ -10,10 +10,15 @@ class PLLogger(Logger):
     All metrics and hyperparameters are logged to file and stdout using logger.info().
     """
 
-    def __init__(self, name="iaunet", log_files=None, level=logging.INFO):
+    def __init__(self, name="iaunet", log_files=None, save_dir=None, level=logging.INFO):
         super().__init__()
         self.logger = setup_logger(name=name, log_files=log_files, level=level)
         self._experiment = self.logger
+        self._save_dir = save_dir
+
+    @property
+    def save_dir(self):
+        return self._save_dir
 
     @property
     def name(self):

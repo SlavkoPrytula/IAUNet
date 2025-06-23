@@ -5,7 +5,6 @@ sys.path.append("./")
 
 from configs import cfg
 from models.build_model import get_model
-from thop import profile
 import torch
 from fvcore.nn import FlopCountAnalysis, flop_count_table
 
@@ -18,7 +17,7 @@ def get_flops_counter(model, input_tensor):
     flop_counter = FlopCountAnalysis(model, input_tensor)
     return flop_counter
 
-def compute_flops(model, input_tensor):
+def compute_flops(model, input_tensor, ):
     flop_counter = get_flops_counter(model, input_tensor)
     return flop_counter.total() * 2
 
@@ -36,15 +35,14 @@ def _profile(model, input, max_depth=2):
     return flops, params
 
 
-def get_flops(model, device="cuda:0"):
-    # get-flops
+def get_flops(model, device="cuda:0", input_size=(1, 3, 512, 512), max_depth=2):
     model.eval()
     
-    x = torch.randn(1, 3, 512, 512)
+    x = torch.randn(input_size)
     if torch.cuda.is_available():
         x = x.to(device)
-    # flops, params = profile(model, inputs=(x,), verbose=True)
-    flops, params = _profile(model, x)
+    batch = {"images": x, "targets": None}
+    flops, params = _profile(model, batch, max_depth=max_depth)
 
     gflops = flops / 1e9
     params = params / 1e6

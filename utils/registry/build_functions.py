@@ -83,21 +83,6 @@ def build_scheduler(cfg: cfg, registry: Registry=None) -> Any:
     return registry.get(name)()(**cfg)
 
 
-
-def build_visualizer(cfg: Visualizer, registry: Registry=None) -> Any:
-    name = cfg.get('type')
-
-    if isinstance(cfg, dict):
-        _cfg = cfg.copy()
-        _cfg.pop("type")
-        return registry.get(name)(**_cfg)
-    
-    _cfg = OmegaConf.to_container(cfg, resolve=True)
-    _cfg.pop("type", None)
-
-    return registry.get(name)(**_cfg)
-
-
 def build_callback(cfg, registry: Registry=None) -> Any:
     # scope switch
     if registry is None:
@@ -105,11 +90,13 @@ def build_callback(cfg, registry: Registry=None) -> Any:
         registry = CALLBACKS
 
     name = cfg.get('type')
-    # we are hacking...
-    if 'Visualizer' in name:
-        return build_visualizer(cfg, registry)
+    if isinstance(cfg, dict):
+        _cfg = cfg.copy()
+    elif isinstance(cfg, OmegaConf) or isinstance(cfg, DictConfig):
+        _cfg = OmegaConf.to_container(cfg, resolve=True)
     
-    return build_from_cfg(cfg, registry)
+    _cfg.pop("type", None)
+    return registry.get(name)(**_cfg)
 
 
 def build_decoder(cfg: cfg, registry: Registry=None, **kwargs) -> Any:

@@ -67,6 +67,7 @@ class MMDetDataloaderEvaluator(COCOEvaluator):
 
 
     def process(self, preds: dict):
+        # TODO: this should be handled in the model predicition head.
         scores_batch = preds['pred_logits'].softmax(-1)
         masks_pred_batch = preds['pred_instance_masks'].sigmoid()
         bboxes_pred_batch = preds['pred_bboxes']

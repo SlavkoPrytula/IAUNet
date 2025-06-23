@@ -11,14 +11,18 @@
 
 #SBATCH -A revvity
 
+module load any/python/3.8.3-conda
+conda activate iaunet
+
 nvidia-smi
 
-python main.py model=model/iaunet/iaunet-r50 \
-               model.decoder.instance_head.type=InstanceHead-v2.2.1-dual-update \
-               model.decoder.type=iadecoder_ml \
-               dataset=livecell_crop \
+DATASET="revvity_25"
+
+python main.py model=v2/iaunet-r50 \
+               model.decoder.type=iadecoder_ml_fpn_ds \
+               model.decoder.num_classes=1 \
+               model.decoder.dec_layers=3 \
+               model.decoder.num_queries=100 \
+               model.decoder.dim_feedforward=1024 \
+               dataset=$DATASET \
                job_id=$SLURM_JOB_ID
-# srun --partition=gpu --gres=gpu:tesla:1 --time=60 --exclude=falcon3 --pty /bin/bash
-# srun --partition=small-g --time=60 -A project_465001327 --pty singularity exec --bind /project/project_465001327 --bind /scratch/project_465001327 --bind /usr --bind /etc --bind /run/munge --bind /opt/cray/ --bind /etc/passwd --bind /etc/group --bind /run/netconfig/resolv.conf --bind /var /project/project_465001327/lumi_setup.sif /bin/bash
-
-

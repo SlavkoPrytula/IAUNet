@@ -2,7 +2,7 @@ import time
 import torch
 from torch.nn.parallel import DistributedDataParallel as DDP
 from utils.rank_zero import rank_zero_only
-from tools.get_flops import get_flops
+from utils.flops_utils import get_flops
 from configs import cfg
 
 from .base import BaseTrainer

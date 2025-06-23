@@ -104,11 +104,11 @@ def run(rank: int = 0, world_size: int = 1, cfg: cfg = None):
 
     # set logger.
     cfg.logger.log.log_files = [str(cfg.run.save_dir / log) for log in cfg.logger.log.log_files]
-    # logger = setup_logger(
-    #     name=cfg.logger.log.name, 
-    #     log_files=cfg.logger.log.log_files
-    #     )
-    logger = PLLogger(name="iaunet", log_files=cfg.logger.log.log_files)
+    logger = PLLogger(
+        name="iaunet", 
+        log_files=cfg.logger.log.log_files,
+        save_dir=cfg.run.save_dir,
+        )
 
     # wandb.
     if cfg.logger.get('wandb'):
@@ -166,34 +166,7 @@ def run(rank: int = 0, world_size: int = 1, cfg: cfg = None):
     # - build and prepare model
     # model = build_model(cfg)
     from models.lightning.models.iaunet import IAUNet
-    # model = IAUNet(cfg)
-
-    
-    # TODO: this needs to be refactored
-    # the evaluation should have information about the dataset
-    # evaluator = EVALUATORS.get(cfg.model.evaluator.type)(cfg=cfg.model.evaluator)
-    # potentially with this you can add multiple datasets.
-    # to fix: EVALUATORS.get(cfg.model.evaluator.type)(cfg=cfg, model=model, dataset=valid_dataset),
-    
-    
-    # from evaluation import OverlapIOUEvaluator, MMDetDataloaderEvaluator
-    # evaluators = {
-    #     "valid": {
-    #         "coco": MMDetDataloaderEvaluator(cfg=cfg, model=model, dataset=valid_dataset), 
-    #         # "overlap_iou": OverlapIOUEvaluator(cfg=cfg, model=model, dataset=valid_dataset)
-    #     },
-    #     "eval": {
-    #         "coco": MMDetDataloaderEvaluator(cfg=cfg, model=model, dataset=eval_dataset), 
-    #         # "overlap_iou": OverlapIOUEvaluator(cfg=cfg, model=model, dataset=eval_dataset)
-    #     },
-    # }
-
-    # # setup callbacks.
-    # callbacks = [CALLBACKS.build(cfg.callbacks[c]) for c in cfg.callbacks]
-
-
     from pytorch_lightning import Trainer
-    from pytorch_lightning.callbacks import ModelCheckpoint, ModelSummary
 
     evaluators = {
         "valid": {
@@ -204,21 +177,19 @@ def run(rank: int = 0, world_size: int = 1, cfg: cfg = None):
         },
     }
 
-    model = IAUNet(cfg, evaluators=evaluators)
+    model = IAUNet(cfg)
 
-    loss_logger_callback = LossLoggerCallback(log_every_n_steps=cfg.trainer.get('log_every_n_steps', 10))
+    callbacks = {c: CALLBACKS.build(cfg.callbacks[c]) for c in cfg.callbacks}
+    print(f"Using callbacks: {list(callbacks.keys())}")
 
-    checkpoint_callback = ModelCheckpoint(
-        dirpath=cfg.run.save_dir / 'checkpoints',
-        filename='best',
-        monitor='val/loss_total',
-        mode='min',
-        save_top_k=1,
-    )
+    # coco_eval_callback = CocoEval(cfg, save_coco_vis=False)
+    csv_logger_callback = CSVLogger(save_dir=cfg.run.save_dir)
 
-    model_summary = ModelSummary(max_depth=3)
+    callbacks['coco_eval'].evaluators = evaluators
+    # callbacks['coco_eval'] = coco_eval_callback
+    callbacks['csv_logger'] = csv_logger_callback
 
-    callbacks = [loss_logger_callback, checkpoint_callback, model_summary]
+    callbacks = list(callbacks.values())
 
 
     accelerator = cfg.trainer.accelerator
