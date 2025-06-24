@@ -1,11 +1,23 @@
 max_epochs: 2000
 
+strategy: auto
 accelerator: cpu
 devices: 1
-num_workers: 2
+num_nodes: 1
 
 check_val_every_n_epoch: 10
+log_every_n_steps: 10
 
-# set True to to ensure deterministic results
-# makes training slower but gives more reproducibility than just setting seeds
-deterministic: False
+deterministic: True
+benchmark: False
+
+# precision: 32-true
+precision: 16-mixed
+sync_batchnorm: False
+enable_progress_bar: True
+enable_model_summary: True
+enable_checkpointing: True
+profiler: None
+accumulate_grad_batches: 1
+gradient_clip_val: None
+gradient_clip_algorithm: None

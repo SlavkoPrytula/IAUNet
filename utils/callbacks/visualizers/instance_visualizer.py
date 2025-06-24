@@ -2,7 +2,7 @@ import logging
 import numpy as np
 import torch
 
-from models.seg.loss import box_cxcywh_to_xyxy
+from models.losses.loss import box_cxcywh_to_xyxy
 from utils.visualise import visualize_grid_v2
 
 from .base_visualizer import BaseVisualizer

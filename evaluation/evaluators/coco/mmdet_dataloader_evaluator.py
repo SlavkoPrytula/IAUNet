@@ -1,14 +1,10 @@
 import torch
 from os.path import join
 from configs import cfg
-from tqdm import tqdm
 import torch.nn.functional as F
 
 from .coco_evaluator import COCOEvaluator
-from utils.utils import nested_tensor_from_tensor_list
-from utils.opt.mask_nms import mask_nms
-from utils.box_ops import box_cxcywh_to_xyxy
-from utils.registry import EVALUATORS, DATASETS
+from utils.registry import EVALUATORS
 from evaluation.mmdet import CocoMetric
 
 from utils.common.decorators import timeit_evaluator, memory_evaluator
@@ -35,8 +31,6 @@ def remove_padding(mask, ori_shape, rescale=False):
         return mask
 
 
-@timeit_evaluator
-@memory_evaluator
 @EVALUATORS.register(name="MMDetDataloaderEvaluator")
 class MMDetDataloaderEvaluator(COCOEvaluator):
     # coco_eval
@@ -147,12 +141,20 @@ class MMDetDataloaderEvaluator(COCOEvaluator):
 
     def evaluate(self, verbose=False):
         key_mapping = {
-            'coco/segm_mAP': "mAP@0.5:0.95",
-            'coco/segm_mAP_50': "mAP@0.5",
-            'coco/segm_mAP_75': "mAP@0.75",
-            'coco/segm_mAP_s': "mAP(s)@0.5",
-            'coco/segm_mAP_m': "mAP(m)@0.5",
-            'coco/segm_mAP_l': "mAP(l)@0.5",
+            # segm metrics
+            'coco/segm_mAP': 'segm_mAP',
+            'coco/segm_mAP_50': 'segm_mAP_50',
+            'coco/segm_mAP_75': 'segm_mAP_75',
+            'coco/segm_mAP_s': 'segm_mAP_s',
+            'coco/segm_mAP_m': 'segm_mAP_m',
+            'coco/segm_mAP_l': 'segm_mAP_l',
+            # bbox metrics
+            'coco/bbox_mAP': 'bbox_mAP',
+            'coco/bbox_mAP_50': 'bbox_mAP_50',
+            'coco/bbox_mAP_75': 'bbox_mAP_75',
+            'coco/bbox_mAP_s': 'bbox_mAP_s',
+            'coco/bbox_mAP_m': 'bbox_mAP_m',
+            'coco/bbox_mAP_l': 'bbox_mAP_l',
         }
 
         # Compute metrics
@@ -160,8 +162,10 @@ class MMDetDataloaderEvaluator(COCOEvaluator):
         eval_results = self.metric.evaluate(size)
 
         # Update self.stats based on the mapping
+        self.stats = {}
         for key, value in eval_results.items():
             if key in key_mapping:
+                value if value != -1 else 0
                 self.stats[key_mapping[key]] = value
 
         self.gt_coco = self.metric._coco_api

@@ -1,9 +1,7 @@
 from torch import Tensor
 from typing import Optional, Union, List, Any, Sequence
 from abc import ABCMeta, abstractmethod
-
-# from .utils import collect_results, is_main_process, _to_cpu, broadcast_object_list
-from utils.dist import collect_results, is_main_process, broadcast_object_list, get_rank
+from utils.dist import collect_results, is_main_process, broadcast_object_list
 
 
 # modified from https://mmengine.readthedocs.io/en/stable/_modules/mmengine/evaluator/metric.html
@@ -48,6 +46,9 @@ class BaseMetric(metaclass=ABCMeta):
         self.prefix = prefix or self.default_prefix
         self.collect_dir = collect_dir
 
+        if self.prefix is None:
+            print('The prefix is not set in metric class 'f'{self.__class__.__name__}.')
+
     @property
     def dataset_meta(self) -> Optional[dict]:
         """Optional[dict]: Meta info of the dataset."""
@@ -83,8 +84,26 @@ class BaseMetric(metaclass=ABCMeta):
         """
 
     def evaluate(self, size: int) -> dict:
+        """Evaluate the model performance of the whole dataset after processing
+        all batches.
+
+        Args:
+            size (int): Length of the entire validation dataset. When batch
+                size > 1, the dataloader may pad some data samples to make
+                sure all ranks have the same length of dataset slice. The
+                ``collect_results`` function will drop the padded data based on
+                this size.
+
+        Returns:
+            dict: Evaluation metrics dict on the val dataset. The keys are the
+            names of the metrics, and the values are corresponding results.
+        """
         if len(self.results) == 0:
-            print('No results to evaluate.')
+            print(
+                f'{self.__class__.__name__} got empty `self.results`. Please '
+                'ensure that the processed results are properly added into '
+                '`self.results` in `process` method.'
+                )
 
         if self.collect_device == 'cpu':
             results = collect_results(
@@ -96,8 +115,10 @@ class BaseMetric(metaclass=ABCMeta):
             results = collect_results(self.results, size, self.collect_device)
 
         if is_main_process():
+            # cast all tensors in results list to cpu
             results = _to_cpu(results)
             _metrics = self.compute_metrics(results)  # type: ignore
+            # Add prefix to metric names
             if self.prefix:
                 _metrics = {
                     '/'.join((self.prefix, k)): v
@@ -109,6 +130,7 @@ class BaseMetric(metaclass=ABCMeta):
 
         broadcast_object_list(metrics)
 
+        # reset the results list
         self.results.clear()
         return metrics[0]
 

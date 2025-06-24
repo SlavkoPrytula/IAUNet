@@ -4,7 +4,7 @@ import hydra
 sys.path.append("./")
 
 from configs import cfg
-from models.build_model import get_model
+from models.factory import get_model
 import torch
 from fvcore.nn import FlopCountAnalysis, flop_count_table
 

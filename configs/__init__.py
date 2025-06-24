@@ -6,10 +6,10 @@ from os.path import join
 import re
 
 
-PROJECT_DIR = os.getcwd()
-MODEL_FILES = join(PROJECT_DIR, "models/seg")
-CONFIG_FILES = join(PROJECT_DIR, "configs")
-UTILS_FILES = join(PROJECT_DIR, "utils")
+PROJECT_ROOT = os.getcwd()
+MODEL_FILES = join(PROJECT_ROOT, "models")
+CONFIG_FILES = join(PROJECT_ROOT, "configs")
+UTILS_FILES = join(PROJECT_ROOT, "utils")
 
 
 def experiment_name(model_type):

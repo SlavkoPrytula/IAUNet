@@ -48,13 +48,24 @@ class Dataset:
 class Trainer:
     accelerator: Optional[str] = "gpu"
     devices: int = 1
-    num_workers: int = 2
+    num_workers: int = 4
     max_epochs: int = 250
     check_val_every_n_epoch: int = 10
-    deterministic: bool = False
-    strategy: Optional[str] = None
+    log_every_n_steps: int = 10
+    deterministic: bool = None
+    benchmark: bool = None
+    strategy: Optional[str] = "auto"
+    precision: Optional[str] = "32-true"
     num_nodes: Optional[int] = 1
     sync_batchnorm: Optional[bool] = False
+    enable_progress_bar: bool = True
+    enable_model_summary: bool = True
+    enable_checkpointing: bool = True
+    profiler: Optional[str] = None
+    accumulate_grad_batches: int = 1
+    gradient_clip_val: float = None
+    gradient_clip_algorithm: Optional[str] = None
+
 
 @dataclass
 class Visualizer:
@@ -66,11 +77,21 @@ class Callbacks:
     visualizer: Visualizer
 
 @dataclass
+class Matcher:
+    type: Optional[str] = "PointSampleHungarianMatcher"
+    cost_cls: float = 1.0
+    cost_mask: float = 5.0
+    cost_dice: float = 2.0
+    cost_bbox: float = 5.0
+    cost_giou: float = 2.0
+    num_points: int = 112 * 112
+    
+@dataclass
 class Criterion:
     type: Optional[str] = "SparseCriterion"
     losses: Optional[List[str]] = field(default_factory=lambda: ["labels", "masks"])
     weights: dict = field(default_factory=dict)
-    matcher: dict = field(default_factory=dict)
+    matcher: Optional[Matcher] = None
     num_classes: int = 1
 
 @dataclass
@@ -138,7 +159,7 @@ class Model:
     solver: Optional[Solver] = None
     scheduler: Optional[Scheduler] = None
     load_pretrained: bool = False
-    weights: str = ''
+    ckpt_path: Optional[str] = None
     save_checkpoint: bool = True
     save_model_files: bool = True
     load_from_files: bool = False

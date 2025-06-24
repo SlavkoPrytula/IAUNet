@@ -1,4 +1,3 @@
-import torch
 from torch import nn
 from configs import cfg
 from abc import ABC, abstractmethod

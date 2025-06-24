@@ -2,12 +2,8 @@
 from multiprocessing import Pool
 
 import numpy as np
-# from mmengine.logging import print_log
-# from mmengine.utils import is_str
 from terminaltables import AsciiTable
-
 from .bbox_overlaps import bbox_overlaps
-# from .class_names import get_classes
 
 
 def average_precision(recalls, precisions, mode='area'):

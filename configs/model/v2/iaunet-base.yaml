@@ -37,7 +37,7 @@ model:
 
   # model loading and saving.
   load_pretrained: false
-  weights: ''
+  ckpt_path: ''
   # TODO: to callbacks
   save_checkpoint: true
   save_model_files: true
@@ -83,6 +83,7 @@ model:
       cost_mask: 5.0
       cost_bbox: 5.0
       cost_giou: 2.0
+      num_points: 12544
     num_classes: 1
 
   evaluator:

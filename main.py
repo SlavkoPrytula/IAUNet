@@ -11,28 +11,19 @@ from configs import cfg
 from dataset.dataloaders import (build_loader, trivial_batch_collator)
 from utils.augmentations import train_transforms, valid_transforms
 
-from utils.seed import set_seed
-from utils.dist.comm import setup, cleanup
-# from utils.logging import setup_logger
-from utils.logging.lightning_logger import PLLogger
-
-import torch.multiprocessing as mp
-
 from utils.optimizers import *
 from utils.schedulers import *
 from utils.callbacks import *
 from evaluation import *
-# from models.seg.loss import *
-# from models.seg.matcher import *
-# from models.seg import *
-from models.lightning import *
+from models import *
 
 from utils.registry import build_from_cfg, build_criterion, build_matcher, build_optimizer, build_scheduler
 from utils.registry import DATASETS, OPTIMIZERS, SCHEDULERS, CRITERIONS, EVALUATORS, CALLBACKS, MODELS
 
-# from models.build_model import build_model
-from engine.trainer import Trainer
+from models.factory import build_model
 import pytorch_lightning as pl
+from pytorch_lightning import Trainer
+from utils.logging.lightning_logger import PLLogger
 
 TIME = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
 
@@ -75,9 +66,9 @@ def build_optimizer(cfg, model):
     return optimizer_cfg
 
 
-def run(rank: int = 0, world_size: int = 1, cfg: cfg = None):
-    distributed = cfg.trainer.get('strategy') == 'ddp'
-    setup(rank, world_size, distributed=distributed)
+def run(cfg: cfg):
+    # ============================================================
+    pl.seed_everything(cfg.seed, workers=True)
 
     if cfg.job_id and cfg.run_id:
         cfg.run.save_dir = join(cfg.run.save_dir, f"[job={cfg.job_id}]-[group_run]", f"run={cfg.run_id}")
@@ -122,52 +113,47 @@ def run(rank: int = 0, world_size: int = 1, cfg: cfg = None):
     # ============================================================
     # ============================================================
 
-    set_seed(cfg.seed)
-    pl.seed_everything(cfg.seed, workers=True)
-
     # - get dataloaders
     dataset = DATASETS.get(cfg.dataset.type)
 
     train_dataset = dataset(cfg, 
                             dataset_type="train", 
-                            transform=train_transforms(cfg)
-                            )
+                            transform=train_transforms(cfg))
     valid_dataset = dataset(cfg, 
                             dataset_type="valid",
-                            transform=valid_transforms(cfg)
-                            )
+                            transform=valid_transforms(cfg))
     eval_dataset = dataset(cfg, 
                             dataset_type="eval",
-                            transform=valid_transforms(cfg)
-                            )
+                            transform=valid_transforms(cfg))
 
     train_dataloader = build_loader(train_dataset, 
                                     batch_size=cfg.dataset.train_dataset.batch_size, 
                                     num_workers=4, #cfg.trainer.num_workers, 
                                     collate_fn=trivial_batch_collator, 
                                     seed=cfg.seed, 
-                                    shuffle=True,
-                                    distributed=distributed)
+                                    shuffle=True)
     valid_dataloader = build_loader(valid_dataset, 
                                     batch_size=cfg.dataset.valid_dataset.batch_size, 
                                     num_workers=4, #cfg.trainer.num_workers, 
                                     collate_fn=trivial_batch_collator, 
                                     seed=cfg.seed, 
-                                    shuffle=False,
-                                    distributed=distributed)
+                                    shuffle=False)
     eval_dataloader = build_loader(eval_dataset, 
                                     batch_size=cfg.dataset.eval_dataset.batch_size, 
                                     num_workers=4, #cfg.trainer.num_workers, 
                                     collate_fn=trivial_batch_collator, 
                                     seed=cfg.seed, 
-                                    shuffle=False,
-                                    distributed=distributed)
+                                    shuffle=False)
     
+    print(MODELS)
     # - build and prepare model
-    # model = build_model(cfg)
-    from models.lightning.models.iaunet import IAUNet
-    from pytorch_lightning import Trainer
+    model = build_model(cfg)
+    # model = IAUNet(cfg)
+    print(model)
 
+    print(train_dataset[0].labels)
+    raise
+    
     evaluators = {
         "valid": {
             "coco": MMDetDataloaderEvaluator(cfg=cfg, dataset=valid_dataset), 
@@ -177,102 +163,56 @@ def run(rank: int = 0, world_size: int = 1, cfg: cfg = None):
         },
     }
 
-    model = IAUNet(cfg)
-
     callbacks = {c: CALLBACKS.build(cfg.callbacks[c]) for c in cfg.callbacks}
-    print(f"Using callbacks: {list(callbacks.keys())}")
-
-    # coco_eval_callback = CocoEval(cfg, save_coco_vis=False)
     csv_logger_callback = CSVLogger(save_dir=cfg.run.save_dir)
-
-    callbacks['coco_eval'].evaluators = evaluators
-    # callbacks['coco_eval'] = coco_eval_callback
     callbacks['csv_logger'] = csv_logger_callback
 
+    coco_eval_callback = CocoEval(cfg, save_coco_vis=False)
+    coco_eval_callback.evaluators = evaluators
+    callbacks['coco_eval'] = coco_eval_callback
+    
+    print(f"Using callbacks: {list(callbacks.keys())}")
     callbacks = list(callbacks.values())
 
-
-    accelerator = cfg.trainer.accelerator
-    strategy = strategy=cfg.trainer.get('strategy', 'auto')
-    decvices = cfg.trainer.devices
-    max_epochs = cfg.trainer.max_epochs
-
-    enable_progress_bar = True
-    enable_model_summary = True
-    log_every_n_steps = 10
-    check_val_every_n_epoch = cfg.trainer.check_val_every_n_epoch
-
-    deterministic = cfg.trainer.deterministic
-    sync_batchnorm = cfg.trainer.get('sync_batchnorm', False)
-
+    # - trainer.
     trainer = Trainer(
-        accelerator=accelerator,
-        strategy=strategy,
-        devices=decvices,
-        max_epochs=max_epochs,
-        callbacks=callbacks,
+        accelerator=cfg.trainer.accelerator,
+        strategy=cfg.trainer.strategy,
+        devices=cfg.trainer.devices,
+        num_nodes=cfg.trainer.num_nodes,
+        max_epochs=cfg.trainer.max_epochs,
         logger=logger,
-        enable_progress_bar=enable_progress_bar,
-        enable_model_summary=enable_model_summary,
-        log_every_n_steps=log_every_n_steps,
-        check_val_every_n_epoch=check_val_every_n_epoch,
-        sync_batchnorm=sync_batchnorm,
-        deterministic=deterministic,
+        callbacks=callbacks,
+        log_every_n_steps=cfg.trainer.log_every_n_steps,
+        check_val_every_n_epoch=cfg.trainer.check_val_every_n_epoch,
+        deterministic=cfg.trainer.deterministic,
+        benchmark=cfg.trainer.benchmark,
+        precision=cfg.trainer.precision,
+        sync_batchnorm=cfg.trainer.sync_batchnorm,
+        enable_progress_bar=cfg.trainer.enable_progress_bar,
+        enable_model_summary=cfg.trainer.enable_model_summary,
+        enable_checkpointing=cfg.trainer.enable_checkpointing,
+        profiler=cfg.trainer.profiler,
+        accumulate_grad_batches=cfg.trainer.accumulate_grad_batches,
+        gradient_clip_val=cfg.trainer.gradient_clip_val,
+        gradient_clip_algorithm=cfg.trainer.gradient_clip_algorithm
     )
 
-    trainer.fit(model, train_dataloaders=train_dataloader, val_dataloaders=valid_dataloader,)
+    trainer.fit(
+        model, 
+        train_dataloaders=train_dataloader, 
+        val_dataloaders=valid_dataloader,
+        ckpt_path=cfg.model.ckpt_path
+    )
     
     if cfg.test:
         trainer.test(model, dataloaders=eval_dataloader)
 
 
-
-    # - run training.
-    # trainer = Trainer(cfg, model, 
-    #                   criterion=criterion, 
-    #                   train_dataloader=train_dataloader, 
-    #                   valid_dataloader=valid_dataloader,
-    #                   eval_dataloader=eval_dataloader,
-    #                   optimizer=optimizer, 
-    #                   scheduler=scheduler,
-    #                   evaluators=evaluators,
-    #                   callbacks=callbacks,
-    #                   logger=logger,
-    #                   rank=rank,
-    #                   strategy=cfg.trainer.get('strategy'),
-    #                   sync_batchnorm=cfg.trainer.get('sync_batchnorm')
-    #                 )
-    # trainer.train()
-
-    # if cfg.test:
-    #     # TODO: run testing on model
-    #     # UserWarning("Testing not implemented! Check main.py")
-    #     trainer.test()
-
-    # wandb.finish()
-
-    # if distributed:
-    #     cleanup()
-
-
 @hydra.main(version_base="1.3", config_path="configs", config_name="train")
 def main(cfg: cfg):
-    if cfg.trainer.get('strategy') == 'ddp':
-        world_size = cfg.trainer.devices
-        mp.spawn(run, args=(world_size, cfg), nprocs=world_size, join=True)
-    else:
-        run(cfg=cfg)
+    run(cfg=cfg)
 
 
 if __name__ == '__main__':
     main()
-
-
-# Examples:
-# # loss = CRITERIONS.build(cfg.model.criterion)
-# loss = build_criterion(cfg.model.criterion)
-# print(loss)
-
-# # matcher = MATCHERS.build(cfg.model.criterion.matcher)
-# matcher = build_matcher(cfg.model.criterion.matcher, MATCHERS)
-# print(matcher)

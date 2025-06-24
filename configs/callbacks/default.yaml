@@ -5,7 +5,7 @@ model_checkpoint:
   type: ModelCheckpoint
   dirpath: ./checkpoints
   filename: "best"
-  monitor: "metrics/valid/mAP@0.5:0.95"
+  monitor: "metrics/valid/mAP"
   mode: "max"
   save_last: True
   auto_insert_metric_name: False
@@ -24,7 +24,5 @@ flops:
   type: FlopsLogger
   input_size: [1, 3, 512, 512]
   max_depth: 2
-  
-coco_eval:
-  type: CocoEval
-  save_coco_vis: False
+
+
