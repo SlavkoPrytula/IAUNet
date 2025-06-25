@@ -11,18 +11,31 @@ dataset:
     ann_file: ${dataset.data_root}/annotations/EVICAN2/processed/instances_train2019_EVICAN2_cell.json
     size: [512, 512]
     batch_size: 8
+    augmentation: lsj
+    return_masks: true
+    return_bboxes: true
+    return_labels: true
+    filter_empty: true
+    min_bbox_size: 1.0
+    use_crowd: false
 
   valid_dataset:
     images: ${dataset.data_root}/images/EVICAN_val2019
     ann_file: ${dataset.data_root}/annotations/EVICAN2/processed/instances_val2019_EVICAN2_cell.json
     size: [512, 512]
     batch_size: 8
+    return_masks: true
+    return_bboxes: true
+    return_labels: true
 
   eval_dataset:
     images: ${dataset.data_root}/images/EVICAN_eval2019
     ann_file: ${dataset.data_root}/annotations/EVICAN2/processed/instances_eval2019_medium_EVICAN2_cell.json
     size: [512, 512]
     batch_size: 8
+    return_masks: true
+    return_bboxes: true
+    return_labels: true
 
   mean: [114.83, 114.83, 114.83]
   std: [15.455, 15.455, 15.455]

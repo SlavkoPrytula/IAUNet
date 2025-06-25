@@ -38,7 +38,6 @@ model:
   # model loading and saving.
   load_pretrained: false
   ckpt_path: ''
-  # TODO: to callbacks
   save_checkpoint: true
   save_model_files: true
   load_from_files: false

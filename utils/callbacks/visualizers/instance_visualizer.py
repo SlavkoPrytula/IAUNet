@@ -3,7 +3,7 @@ import numpy as np
 import torch
 
 from models.losses.loss import box_cxcywh_to_xyxy
-from utils.visualise import visualize_grid_v2
+from visualizations.visualise import visualize_grid_v2
 
 from .base_visualizer import BaseVisualizer
 from utils.registry import CALLBACKS

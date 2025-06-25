@@ -38,9 +38,7 @@ def _profile(model, input, max_depth=2):
 def get_flops(model, device="cuda:0", input_size=(1, 3, 512, 512), max_depth=2):
     model.eval()
     
-    x = torch.randn(input_size)
-    if torch.cuda.is_available():
-        x = x.to(device)
+    x = torch.randn(input_size).to(device)
     batch = {"images": x, "targets": None}
     flops, params = _profile(model, batch, max_depth=max_depth)
 

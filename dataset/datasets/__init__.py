@@ -1,5 +1,5 @@
 from .evican2 import EVICAN2
-from .livecell import LiveCell, LiveCell2Percent, LiveCell30Images
+from .livecell import LiveCell
 from .hubmap import HuBMAP
 
 from .neurlps22_cellseg import NeurlPS22_CellSeg
@@ -9,4 +9,5 @@ from .cellpainting_gallery import CellPaintingGallery
 
 
 __all__ = ['EVICAN2', 'LiveCell', 'HuBMAP',
-           'NeurlPS22_CellSeg', 'Revvity_25', 'ISBI2014', 'CellPaintingGallery']
+           'NeurlPS22_CellSeg', 'Revvity_25', 
+           'ISBI2014', 'CellPaintingGallery']

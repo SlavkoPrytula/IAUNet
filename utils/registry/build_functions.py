@@ -1,6 +1,6 @@
 from .registry import Registry
 from typing import Any
-from utils import visualise
+from visualizations import visualise
 
 from .registry import build_from_cfg
 from omegaconf import OmegaConf, DictConfig

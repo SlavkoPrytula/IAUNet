@@ -1,8 +1,7 @@
 import random
 import numpy as np
 import albumentations as A
-from skimage.filters._gaussian import gaussian
-
+from skimage.filters import gaussian
 
 def image_copy_paste(img, paste_img, alpha, blend=True, sigma=1):
     if alpha is not None:
@@ -16,107 +15,138 @@ def image_copy_paste(img, paste_img, alpha, blend=True, sigma=1):
 
     return img
 
-
 def mask_copy_paste(mask, paste_mask, alpha):
-    # raise NotImplementedError
-   return  masks_copy_paste(mask, paste_mask, alpha)
-
-
-# def masks_copy_paste(masks, paste_masks, alpha):
-#     if alpha is not None:
-#         #eliminate pixels that will be pasted over
-#         masks = [
-#             np.logical_and(mask, np.logical_xor(mask, alpha)).astype(np.uint8) 
-#             for mask in np.transpose(masks, (2, 0, 1))
-#         ]
-#         masks.extend(paste_masks)
-
-#     return np.array(masks).transpose(1, 2, 0)
-
+    raise NotImplementedError
 
 def masks_copy_paste(masks, paste_masks, alpha):
-    if alpha is not None:
-        if alpha.ndim == 3 and alpha.shape[-1] == 1:
-            alpha = alpha.squeeze(-1)
-
-        # Ensure the masks are in the correct dimension order for processing
-        masks = np.transpose(masks, (2, 0, 1))
-        updated_masks = []
-
-        # Use the alpha mask to update the existing masks
-        for mask in masks:
-            updated_mask = np.logical_and(mask, np.logical_not(alpha)).astype(np.uint8)
-            updated_masks.append(updated_mask)
-
-        # Extend the updated_masks list with paste_masks if they exist
-        if paste_masks is not None and len(paste_masks) > 0:
-            updated_masks.extend(paste_masks)
-
-        # Convert the list of masks back to a stacked numpy array
-        # Transpose it back to (height, width, channels)
-        updated_masks = np.stack(updated_masks, axis=0)
-        updated_masks = np.transpose(updated_masks, (1, 2, 0))
-
+    """Copy-paste masks with alpha blending."""
+    if alpha is None:
+        return masks
+    
+    # Convert masks to numpy array format for easier manipulation
+    if isinstance(masks, np.ndarray):
+        if masks.ndim == 3:  # (H, W, C) format
+            mask_array = masks.copy()
+        else:  # (H, W) format - single mask
+            mask_array = masks[..., np.newaxis].copy()
     else:
-        updated_masks = masks
-
-    return updated_masks
-
-
+        # Convert list to array
+        if len(masks) > 0:
+            mask_array = np.stack(masks, axis=-1)
+        else:
+            return masks
+    
+    # Apply alpha mask to existing masks (remove overlapping areas)
+    # Only remove significant overlaps to preserve original objects
+    alpha_3d = alpha[..., np.newaxis]  # Broadcast alpha to all channels
+    overlap_threshold = 0.5  # Only remove areas with significant overlap
+    
+    # Create a softer removal - only remove where alpha is strong
+    removal_mask = (alpha_3d > overlap_threshold).astype(np.float32)
+    mask_array = mask_array * (1 - removal_mask)  # Zero out areas with significant overlap
+    
+    # Add paste masks (these are the shifted versions)
+    if paste_masks is not None:
+        for paste_mask in paste_masks:
+            # Create a new channel for the pasted mask
+            paste_mask_3d = paste_mask[..., np.newaxis]
+            mask_array = np.concatenate([mask_array, paste_mask_3d], axis=-1)
+    
+    return mask_array
 
 def extract_bboxes(masks):
+    """Extract bounding boxes from masks in Pascal VOC format (x1, y1, x2, y2)."""
     bboxes = []
-    # allow for case of no masks
     if len(masks) == 0:
         return bboxes
     
-    h, w = masks[0].shape
     for mask in masks:
-        yindices = np.where(np.any(mask, axis=0))[0]
-        xindices = np.where(np.any(mask, axis=1))[0]
-        if yindices.shape[0]:
-            y1, y2 = yindices[[0, -1]]
-            x1, x2 = xindices[[0, -1]]
-            y2 += 1
-            x2 += 1
-            y1 /= w
-            y2 /= w
-            x1 /= h
-            x2 /= h
+        if isinstance(mask, np.ndarray):
+            if mask.ndim == 3:
+                mask = mask.squeeze()
+            
+            # Find non-zero pixels
+            rows = np.any(mask, axis=1)
+            cols = np.any(mask, axis=0)
+            
+            if rows.any() and cols.any():
+                y_indices = np.where(rows)[0]
+                x_indices = np.where(cols)[0]
+                
+                x1, x2 = x_indices[[0, -1]]
+                y1, y2 = y_indices[[0, -1]]
+                
+                # Convert to Pascal VOC format (x1, y1, x2, y2)
+                bboxes.append([x1, y1, x2 + 1, y2 + 1])
+            else:
+                # Empty mask
+                bboxes.append([0, 0, 0, 0])
         else:
-            y1, x1, y2, x2 = 0, 0, 0, 0
-
-        bboxes.append((y1, x1, y2, x2))
+            bboxes.append([0, 0, 0, 0])
 
     return bboxes
 
 def bboxes_copy_paste(bboxes, paste_bboxes, masks, paste_masks, alpha, key):
-    if key == 'paste_bboxes':
+    """Handle bbox updates after copy-paste operation."""
+    if alpha is None:
         return bboxes
-    elif paste_bboxes is not None:
-        masks = masks_copy_paste(masks, paste_masks=[], alpha=alpha)
-        adjusted_bboxes = extract_bboxes(masks)
-
-        #only keep the bounding boxes for objects listed in bboxes
-        mask_indices = [box[-1] for box in bboxes]
-        adjusted_bboxes = [adjusted_bboxes[idx] for idx in mask_indices]
-        #append bbox tails (classes, etc.)
-        adjusted_bboxes = [bbox + tail[4:] for bbox, tail in zip(adjusted_bboxes, bboxes)]
-
-        #adjust paste_bboxes mask indices to avoid overlap
-        if len(masks) > 0:
-            max_mask_index = len(masks)
+    
+    # Convert masks to list format if needed
+    if masks is not None:
+        if isinstance(masks, np.ndarray):
+            if masks.ndim == 3:  # (H, W, C) format
+                masks_list = [masks[..., i] for i in range(masks.shape[-1])]
+            else:  # (H, W) format - single mask
+                masks_list = [masks]
         else:
-            max_mask_index = 0
-
-        paste_mask_indices = [max_mask_index + ix for ix in range(len(paste_bboxes))]
-        paste_bboxes = [pbox[:-1] + (pmi,) for pbox, pmi in zip(paste_bboxes, paste_mask_indices)]
-        adjusted_paste_bboxes = extract_bboxes(paste_masks)
-        adjusted_paste_bboxes = [apbox + tail[4:] for apbox, tail in zip(adjusted_paste_bboxes, paste_bboxes)]
-
-        bboxes = adjusted_bboxes + adjusted_paste_bboxes
-
-    return bboxes
+            masks_list = masks
+    else:
+        masks_list = []
+    
+    # Apply alpha mask to existing masks and extract new bboxes
+    updated_bboxes = []
+    for i, mask in enumerate(masks_list):
+        # Remove areas that will be pasted over
+        updated_mask = np.logical_and(mask, np.logical_not(alpha)).astype(np.uint8)
+        
+        # Extract bbox from updated mask
+        rows = np.any(updated_mask, axis=1)
+        cols = np.any(updated_mask, axis=0)
+        
+        if rows.any() and cols.any():
+            y_indices = np.where(rows)[0]
+            x_indices = np.where(cols)[0]
+            
+            x1, x2 = x_indices[[0, -1]]
+            y1, y2 = y_indices[[0, -1]]
+            
+            # Create new bbox, preserving labels from original
+            new_bbox = [x1, y1, x2 + 1, y2 + 1]
+            if i < len(bboxes) and len(bboxes[i]) > 4:
+                new_bbox.extend(bboxes[i][4:])  # Preserve labels
+            elif i < len(bboxes):
+                # If original bbox doesn't have extra fields, preserve what we can
+                new_bbox.append(bboxes[i][-1] if len(bboxes[i]) > 4 else 1)  # Default label
+            updated_bboxes.append(new_bbox)
+    
+    # Add bboxes from paste masks
+    if paste_masks is not None:
+        if isinstance(paste_masks, np.ndarray):
+            if paste_masks.ndim == 3:  # (H, W, C) format
+                paste_masks_list = [paste_masks[..., i] for i in range(paste_masks.shape[-1])]
+            else:  # (H, W) format - single mask
+                paste_masks_list = [paste_masks]
+        else:
+            paste_masks_list = paste_masks
+        
+        paste_bboxes_extracted = extract_bboxes(paste_masks_list)
+        for i, paste_bbox in enumerate(paste_bboxes_extracted):
+            if paste_bbox != [0, 0, 0, 0]:  # Non-empty bbox
+                # Add a default label for pasted objects
+                paste_bbox.append(2)  # Default label for pasted objects
+                updated_bboxes.append(paste_bbox)
+    
+    return updated_bboxes
 
 def keypoints_copy_paste(keypoints, paste_keypoints, alpha):
     #remove occluded keypoints
@@ -133,11 +163,17 @@ def keypoints_copy_paste(keypoints, paste_keypoints, alpha):
     return keypoints
 
 class CopyPaste(A.DualTransform):
+    """Copy-Paste augmentation that works out of the box with standard Albumentations data.
+    
+    This implementation performs copy-paste by randomly selecting objects from the current
+    image/masks and duplicating them to different locations within the same image.
+    """
+    
     def __init__(
         self,
         blend=True,
         sigma=3,
-        pct_objects_paste=0.1,
+        pct_objects_paste=0.3,
         max_paste_objects=None,
         p=0.5,
         always_apply=False
@@ -147,133 +183,309 @@ class CopyPaste(A.DualTransform):
         self.sigma = sigma
         self.pct_objects_paste = pct_objects_paste
         self.max_paste_objects = max_paste_objects
-        self.p = p
-        self.always_apply = always_apply
 
-    @staticmethod
-    def get_class_fullname():
-        return 'copypaste.CopyPaste'
+    @property
+    def targets(self):
+        return {"image": self.apply, "mask": self.apply_to_mask, "bboxes": self.apply_to_bboxes, "labels": self.apply_to_labels}
 
     @property
     def targets_as_params(self):
-        return [
-            "mask",
-            # "paste_image",
-            #"paste_mask",
-            # "paste_masks",
-            # "paste_bboxes",
-            #"paste_keypoints"
-        ]
+        return ["mask"]
 
     def get_params_dependent_on_targets(self, params):
-        # image = params["paste_image"]
-        # masks = None
-        # if "paste_mask" in params:
-        #     #handle a single segmentation mask with
-        #     #multiple targets
-        #     #nothing for now.
-        #     raise NotImplementedError
-        # elif "paste_masks" in params:
-        #     masks = params["paste_masks"]
-
-        image = params.get("paste_image", None)
-        masks = params["mask"]
-
-        assert(masks is not None), "Masks cannot be None!"
-
-        bboxes = params.get("paste_bboxes", None)
-        keypoints = params.get("paste_keypoints", None)
-
-        #number of objects: n_bboxes <= n_masks because of automatic removal
-        n_objects = masks.shape[-1]
-
-        #paste all objects if no restrictions
-        n_select = n_objects
-        if self.pct_objects_paste:
-            n_select = int(n_select * self.pct_objects_paste)
+        """Generate parameters for copy-paste augmentation."""
+        masks = params.get("mask", None)
+        
+        # Handle different mask formats
+        if masks is None:
+            return self._get_empty_params()
+        
+        # Convert masks to list format
+        if isinstance(masks, np.ndarray):
+            if masks.ndim == 3:  # (H, W, C) format
+                masks_list = [masks[..., i] for i in range(masks.shape[-1])]
+            elif masks.ndim == 2:  # (H, W) format - single mask
+                masks_list = [masks]
+            else:
+                return self._get_empty_params()
+        else:
+            masks_list = masks
+        
+        if len(masks_list) == 0:
+            return self._get_empty_params()
+        
+        # Number of objects available
+        n_objects = len(masks_list)
+        
+        # Calculate number of objects to paste
+        n_select = max(1, int(n_objects * self.pct_objects_paste))
         if self.max_paste_objects:
-            n_select = min(n_select, self.max_paste_objects)
-
-        #no objects condition
-        if n_select == 0:
-            return {
-                "param_masks": params["mask"],
-                "paste_img": None,
-                "alpha": None,
-                "paste_mask": None,
-                "paste_masks": None,
-                "paste_bboxes": None,
-                "paste_keypoints": None,
-                "objs_to_paste": []
-            }
-
-        #select objects
+            # n_select = min(n_select, self.max_paste_objects)
+            n_select = np.random.randint(1, self.max_paste_objects)
+        
+        # For copy-paste to be meaningful, we need at least one object
+        if n_objects < 1:
+            return self._get_empty_params()
+        
+        # Select random objects to paste
+        available_indices = list(range(n_objects))
+        # n_select = min(n_select, n_objects)
+        if n_select <= 0:
+            return self._get_empty_params()
+            
         objs_to_paste = np.random.choice(
-            range(0, n_objects), size=n_select, replace=False
+            available_indices, size=n_select, replace=True
         )
-
-        #create alpha by combining all the objects into
-        #a single binary mask
-        masks = [masks[..., idx] for idx in objs_to_paste]
-
-        alpha = masks[0] > 0
-        for mask in masks[1:]:
-            alpha += mask > 0
-
+        
+        # Get the selected masks
+        selected_masks = [masks_list[idx] for idx in objs_to_paste]
+        
+        # Generate separate shifts for each object to avoid overlap
+        h, w = selected_masks[0].shape
+        max_shift_x = w // 3  # Allow shifting up to 1/3 of width
+        max_shift_y = h // 3  # Allow shifting up to 1/3 of height
+        min_shift = min(w, h) // 8  # Minimum shift to make copy-paste visible
+        
+        # Store individual object info
+        paste_objects = []
+        combined_alpha = np.zeros((h, w), dtype=np.float32)
+        
+        for i, mask in enumerate(selected_masks):
+            # Generate unique shift for each object
+            shift_x = np.random.randint(-max_shift_x, max_shift_x + 1)
+            shift_y = np.random.randint(-max_shift_y, max_shift_y + 1)
+            
+            # If shift is too small, make it bigger
+            if abs(shift_x) < min_shift and abs(shift_y) < min_shift:
+                if np.random.random() > 0.5:
+                    shift_x = min_shift if np.random.random() > 0.5 else -min_shift
+                else:
+                    shift_y = min_shift if np.random.random() > 0.5 else -min_shift
+            
+            # Create alpha mask for this object
+            object_alpha = (mask > 0).astype(np.float32)
+            
+            # Apply shift to this object's alpha mask
+            alpha_shifted = np.zeros_like(object_alpha)
+            
+            if shift_x != 0 or shift_y != 0:
+                # Calculate source and destination bounds
+                src_y_start = max(0, -shift_y)
+                src_y_end = min(h, h - shift_y)
+                src_x_start = max(0, -shift_x)
+                src_x_end = min(w, w - shift_x)
+                
+                dst_y_start = max(0, shift_y)
+                dst_y_end = dst_y_start + (src_y_end - src_y_start)
+                dst_x_start = max(0, shift_x)
+                dst_x_end = dst_x_start + (src_x_end - src_x_start)
+                
+                # Copy the shifted region
+                alpha_shifted[dst_y_start:dst_y_end, dst_x_start:dst_x_end] = \
+                    object_alpha[src_y_start:src_y_end, src_x_start:src_x_end]
+            else:
+                alpha_shifted = object_alpha.copy()
+            
+            # Store object info
+            paste_objects.append({
+                'mask': mask,
+                'alpha': alpha_shifted,
+                'shift_x': shift_x,
+                'shift_y': shift_y
+            })
+            
+            # Add to combined alpha (for removing from original masks)
+            combined_alpha = np.logical_or(combined_alpha, alpha_shifted).astype(np.float32)
+        
         return {
-            "param_masks": params["mask"],
-            "paste_img": image,
-            "alpha": alpha,
-            "paste_mask": masks,
-            "paste_masks": masks,
-            "paste_bboxes": bboxes,
-            "paste_keypoints": keypoints
+            "alpha": combined_alpha,
+            "paste_objects": paste_objects,
+            "objs_to_paste": objs_to_paste
+        }
+    
+    def _get_empty_params(self):
+        """Return empty parameters when no copy-paste should be applied."""
+        return {
+            "alpha": None,
+            "paste_objects": [],
+            "objs_to_paste": []
         }
 
-    @property
-    def ignore_kwargs(self):
-        return [
-            "paste_image",
-            "paste_mask",
-            "paste_masks"
-        ]
-
-    def apply_with_params(self, params, force_apply=False, **kwargs):  # skipcq: PYL-W0613
-        if params is None:
-            return kwargs
-        params = self.update_params(params, **kwargs)
-        res = {}
-        for key, arg in kwargs.items():
-            if arg is not None and key not in self.ignore_kwargs:
-                target_function = self._get_target_function(key)
-                target_dependencies = {k: kwargs[k] for k in self.target_dependence.get(key, [])}
-                target_dependencies['key'] = key
-                res[key] = target_function(arg, **dict(params, **target_dependencies))
+    def apply(self, img, alpha, paste_objects, **params):
+        """Apply copy-paste to image."""
+        if alpha is None or len(paste_objects) == 0:
+            return img
+        
+        result_img = img.copy()
+        h, w = img.shape[:2]
+        
+        # Apply each paste object separately
+        for paste_obj in paste_objects:
+            object_alpha = paste_obj['alpha']
+            shift_x = paste_obj['shift_x']
+            shift_y = paste_obj['shift_y']
+            
+            # Create shifted version of the image for this object
+            paste_img = np.zeros_like(img)
+            
+            if shift_x != 0 or shift_y != 0:
+                # Calculate source and destination bounds
+                src_y_start = max(0, -shift_y)
+                src_y_end = min(h, h - shift_y)
+                src_x_start = max(0, -shift_x)
+                src_x_end = min(w, w - shift_x)
+                
+                dst_y_start = max(0, shift_y)
+                dst_y_end = dst_y_start + (src_y_end - src_y_start)
+                dst_x_start = max(0, shift_x)
+                dst_x_end = dst_x_start + (src_x_end - src_x_start)
+                
+                # Copy the shifted region
+                paste_img[dst_y_start:dst_y_end, dst_x_start:dst_x_end] = \
+                    img[src_y_start:src_y_end, src_x_start:src_x_end]
             else:
-                res[key] = None
-        return res
+                paste_img = img.copy()
+            
+            # Apply this object's paste
+            result_img = image_copy_paste(
+                result_img, paste_img, object_alpha, blend=self.blend, sigma=self.sigma
+            )
+        
+        return result_img
 
-    def apply(self, img, paste_img, alpha, **params):
-        # return image_copy_paste(
-        #     img, paste_img, alpha, blend=self.blend, sigma=self.sigma
-        # )
+    def apply_to_mask(self, masks, alpha, paste_objects, **params):
+        """Apply copy-paste to masks."""
+        if alpha is None or len(paste_objects) == 0:
+            return masks
+        
+        # Create shifted paste masks for each object
+        shifted_paste_masks = []
+        for paste_obj in paste_objects:
+            paste_mask = paste_obj['mask']
+            shift_x = paste_obj['shift_x']
+            shift_y = paste_obj['shift_y']
+            
+            h, w = paste_mask.shape
+            shifted_mask = np.zeros_like(paste_mask)
+            
+            if shift_x != 0 or shift_y != 0:
+                # Calculate source and destination bounds
+                src_y_start = max(0, -shift_y)
+                src_y_end = min(h, h - shift_y)
+                src_x_start = max(0, -shift_x)
+                src_x_end = min(w, w - shift_x)
+                
+                dst_y_start = max(0, shift_y)
+                dst_y_end = dst_y_start + (src_y_end - src_y_start)
+                dst_x_start = max(0, shift_x)
+                dst_x_end = dst_x_start + (src_x_end - src_x_start)
+                
+                # Copy the shifted region
+                shifted_mask[dst_y_start:dst_y_end, dst_x_start:dst_x_end] = \
+                    paste_mask[src_y_start:src_y_end, src_x_start:src_x_end]
+            else:
+                shifted_mask = paste_mask.copy()
+            
+            shifted_paste_masks.append(shifted_mask)
+        
+        result_masks = masks_copy_paste(masks, shifted_paste_masks, alpha)
+        
+        # Convert back to original format
+        if isinstance(masks, np.ndarray) and masks.ndim == 3:
+            # Return the result as-is (this includes new objects, so more channels)
+            return result_masks
+        elif isinstance(masks, np.ndarray) and masks.ndim == 2:
+            # For single mask, return the first channel if available
+            if isinstance(result_masks, np.ndarray) and result_masks.ndim == 3:
+                return result_masks[..., 0]
+            return result_masks
+        
+        return result_masks
 
-        return image_copy_paste(
-            img, img, alpha, blend=self.blend, sigma=self.sigma
-        )
+    def apply_to_bboxes(self, bboxes, alpha, paste_objects, **params):
+        """Apply copy-paste to bounding boxes."""
+        if alpha is None or len(paste_objects) == 0:
+            return bboxes
+        
+        # Since the original mask is not available in params, we need to reconstruct
+        # the bounding boxes from the paste_objects directly
+        updated_bboxes = []
+        
+        # Add original bboxes first (assume they're still valid for now)
+        # In a more sophisticated implementation, we'd check overlap with alpha mask
+        for bbox in bboxes:
+            updated_bboxes.append(bbox)
+        
+        # Extract bboxes from the paste objects directly
+        for i, paste_obj in enumerate(paste_objects):
+            paste_mask = paste_obj['mask']
+            shift_x = paste_obj['shift_x']
+            shift_y = paste_obj['shift_y']
+            
+            # Apply the shift to get the final position
+            h, w = paste_mask.shape
+            shifted_mask = np.zeros_like(paste_mask)
+            
+            if shift_x != 0 or shift_y != 0:
+                # Calculate source and destination bounds
+                src_y_start = max(0, -shift_y)
+                src_y_end = min(h, h - shift_y)
+                src_x_start = max(0, -shift_x)
+                src_x_end = min(w, w - shift_x)
+                
+                dst_y_start = max(0, shift_y)
+                dst_y_end = dst_y_start + (src_y_end - src_y_start)
+                dst_x_start = max(0, shift_x)
+                dst_x_end = dst_x_start + (src_x_end - src_x_start)
+                
+                # Copy the shifted region
+                shifted_mask[dst_y_start:dst_y_end, dst_x_start:dst_x_end] = \
+                    paste_mask[src_y_start:src_y_end, src_x_start:src_x_end]
+            else:
+                shifted_mask = paste_mask.copy()
+            
+            # Extract bbox from the shifted mask
+            rows = np.any(shifted_mask, axis=1)
+            cols = np.any(shifted_mask, axis=0)
+            
+            if rows.any() and cols.any():
+                y_indices = np.where(rows)[0]
+                x_indices = np.where(cols)[0]
+                
+                x1, x2 = x_indices[[0, -1]]
+                y1, y2 = y_indices[[0, -1]]
+                
+                # Ensure bbox is within image bounds and valid
+                h, w = shifted_mask.shape
+                x1 = max(0, min(x1, w-1))
+                y1 = max(0, min(y1, h-1))
+                x2 = max(x1+1, min(x2 + 1, w))
+                y2 = max(y1+1, min(y2 + 1, h))
+                
+                # Create new bbox for pasted object (ensure it's a list, not tuple)
+                # Format: [x1, y1, x2, y2] for pascal_voc (labels handled separately)
+                new_bbox = [float(x1), float(y1), float(x2), float(y2)]
+                updated_bboxes.append(new_bbox)
+                print(f"DEBUG: Added pasted bbox: {new_bbox}")
+        
+        print(f"DEBUG: Returning {len(updated_bboxes)} bboxes to Albumentations")
+        return updated_bboxes
 
-    def apply_to_mask(self, mask, paste_mask, alpha, **params):
-        return mask_copy_paste(mask, paste_mask, alpha)
-
-    def apply_to_masks(self, masks, paste_masks, alpha, **params):
-        return masks_copy_paste(masks, paste_masks, alpha)
-
-    def apply_to_bboxes(self, bboxes, paste_bboxes, param_masks, paste_masks, alpha, key, **params):
-        return bboxes_copy_paste(bboxes, paste_bboxes, param_masks, paste_masks, alpha, key)
-
-    def apply_to_keypoints(self, keypoints, paste_keypoints, alpha, **params):
-        raise NotImplementedError
-        #return keypoints_copy_paste(keypoints, paste_keypoints, alpha)
+    def apply_to_labels(self, labels, alpha, paste_objects, **params):
+        """Apply copy-paste to labels - add labels for pasted objects."""
+        if alpha is None or len(paste_objects) == 0:
+            return labels
+        
+        # Start with original labels
+        updated_labels = list(labels)
+        
+        # Add labels for each pasted object
+        for paste_obj in paste_objects:
+            # Add label 2 for pasted objects (you can modify this logic)
+            updated_labels.append(2)
+        
+        print(f"DEBUG: Original labels: {labels}, Updated labels: {updated_labels}")
+        return updated_labels
 
     def get_transform_init_args_names(self):
         return (
@@ -283,69 +495,5 @@ class CopyPaste(A.DualTransform):
             "max_paste_objects"
         )
 
-def copy_paste_class(dataset_class):
-    def _split_transforms(self):
-        split_index = None
-        for ix, tf in enumerate(list(self.transforms.transforms)):
-            if tf.get_class_fullname() == 'copypaste.CopyPaste':
-                split_index = ix
-
-        if split_index is not None:
-            tfs = list(self.transforms.transforms)
-            pre_copy = tfs[:split_index]
-            copy_paste = tfs[split_index]
-            post_copy = tfs[split_index+1:]
-
-            #replicate the other augmentation parameters
-            bbox_params = None
-            keypoint_params = None
-            paste_additional_targets = {}
-            if 'bboxes' in self.transforms.processors:
-                bbox_params = self.transforms.processors['bboxes'].params
-                paste_additional_targets['paste_bboxes'] = 'bboxes'
-                if self.transforms.processors['bboxes'].params.label_fields:
-                    msg = "Copy-paste does not support bbox label_fields! "
-                    msg += "Expected bbox format is (a, b, c, d, label_field)"
-                    raise Exception(msg)
-            if 'keypoints' in self.transforms.processors:
-                keypoint_params = self.transforms.processors['keypoints'].params
-                paste_additional_targets['paste_keypoints'] = 'keypoints'
-                if keypoint_params.label_fields:
-                    raise Exception('Copy-paste does not support keypoint label fields!')
-
-            if self.transforms.additional_targets:
-                raise Exception('Copy-paste does not support additional_targets!')
-
-            #recreate transforms
-            self.transforms = A.Compose(pre_copy, bbox_params, keypoint_params, additional_targets=None)
-            self.post_transforms = A.Compose(post_copy, bbox_params, keypoint_params, additional_targets=None)
-            self.copy_paste = A.Compose(
-                [copy_paste], bbox_params, keypoint_params, additional_targets=paste_additional_targets
-            )
-        else:
-            self.copy_paste = None
-            self.post_transforms = None
-
-    def __getitem__(self, idx):
-        #split transforms if it hasn't been done already
-        if not hasattr(self, 'post_transforms'):
-            self._split_transforms()
-
-        img_data = self.load_example(idx)
-        if self.copy_paste is not None:
-            paste_idx = random.randint(0, self.__len__() - 1)
-            paste_img_data = self.load_example(paste_idx)
-            for k in list(paste_img_data.keys()):
-                paste_img_data['paste_' + k] = paste_img_data[k]
-                del paste_img_data[k]
-
-            img_data = self.copy_paste(**img_data, **paste_img_data)
-            img_data = self.post_transforms(**img_data)
-            img_data['paste_index'] = paste_idx
-
-        return img_data
-
-    setattr(dataset_class, '_split_transforms', _split_transforms)
-    setattr(dataset_class, '__getitem__', __getitem__)
-
-    return dataset_class
+# Note: The copy_paste_class decorator is no longer needed as this implementation
+# works out of the box with standard Albumentations data format.

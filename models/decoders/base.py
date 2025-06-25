@@ -18,11 +18,10 @@ class BaseDecoder(nn.Module, ABC):
         h, w = x.size(2), x.size(3)
         x_loc = torch.linspace(-1, 1, h, device=x.device)
         y_loc = torch.linspace(-1, 1, w, device=x.device)
-        y_loc, x_loc = torch.meshgrid(y_loc, x_loc)
+        y_loc, x_loc = torch.meshgrid(y_loc, x_loc, indexing='ij')
         y_loc = y_loc.expand([x.shape[0], 1, -1, -1])
         x_loc = x_loc.expand([x.shape[0], 1, -1, -1])
         coord_feat = torch.cat([x_loc, y_loc], 1)
-
         return coord_feat
 
     def forward(self, skips, ori_shape):

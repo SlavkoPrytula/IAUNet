@@ -11,10 +11,18 @@ from visualizations.coco_vis import save_coco_vis
 
 @CALLBACKS.register(name="CocoEval")
 class CocoEval(Callback):
-    def __init__(self, save_coco_vis=False, save_dir=None):
+    def __init__(self, save_coco_vis=False, alpha=0.65,
+                 draw_border=True, border_size=15, border_color='same', 
+                 static_color=False, show_img=False, save_dir=None):
         super().__init__()
         self.save_coco_vis = save_coco_vis
         self.save_dir = save_dir
+        self.alpha = alpha
+        self.draw_border = draw_border
+        self.border_size = border_size
+        self.border_color = border_color
+        self.static_color = static_color
+        self.show_img = show_img
         self._evaluators = None
 
     def setup(self, trainer, pl_module, stage=None):
@@ -56,8 +64,6 @@ class CocoEval(Callback):
 
     def _run_eval(self, evaluators, pl_module, dataloader, phase):
         epoch = pl_module.current_epoch if hasattr(pl_module, 'current_epoch') else None
-        save_dir = join(self.save_dir, f"{phase}_visuals", f"epoch_{epoch}", "results")
-        os.makedirs(save_dir, exist_ok=True)
 
         for name, evaluator in evaluators.items():
             print(f"Evaluating {name}...")
@@ -71,6 +77,9 @@ class CocoEval(Callback):
 
             # Save COCO visualizations
             if self.save_coco_vis and "coco" in name:
+                save_dir = join(self.save_dir, f"{phase}_visuals", f"epoch_{epoch}", "results")
+                os.makedirs(save_dir, exist_ok=True)
+                
                 gt_coco = evaluator.gt_coco
                 pred_coco = evaluator.pred_coco
 
@@ -82,7 +91,11 @@ class CocoEval(Callback):
                     H, W = targets["ori_shape"]
 
                     vis_path = f"{save_dir}/pred_{name}_{fname}.jpg"
-                    save_coco_vis(img, gt_coco, pred_coco, idx, shape=[H, W], path=vis_path)
+                    save_coco_vis(img, gt_coco, pred_coco, idx, shape=[H, W], 
+                                  alpha=self.alpha, draw_border=self.draw_border, 
+                                  border_size=self.border_size, border_color=self.border_color, 
+                                  static_color=self.static_color, show_img=self.show_img,
+                                  path=vis_path)
 
 
     def on_validation_epoch_end(self, trainer, pl_module):

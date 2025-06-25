@@ -6,7 +6,7 @@ from os.path import join
 import sys
 sys.path.append("./")
 
-from utils.visualise import visualize, visualize_grid, visualize_grid_v2
+from visualizations.visualise import visualize, visualize_grid, visualize_grid_v2
 from .base_visualizer import BaseVisualizer
 from utils.registry import CALLBACKS
 

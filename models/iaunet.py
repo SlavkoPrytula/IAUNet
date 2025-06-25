@@ -27,7 +27,8 @@ class IAUNet(pl.LightningModule):
         
         max_shape = x.shape[-2:]
         skips = self.encoder(x)
-        return self.decoder(skips, max_shape)
+        out = self.decoder(skips, max_shape)
+        return out
     
     def _prepare_batch(self, batch):
         """Utility to extract images and process targets."""

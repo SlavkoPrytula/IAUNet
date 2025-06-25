@@ -3,41 +3,26 @@ sys.path.append('.')
 
 import hydra
 from configs import cfg
-
 from dataset.datasets.base_coco_dataset import BaseCOCODataset
 from utils.registry import DATASETS
 
 
 @DATASETS.register(name="LiveCell")
 class LiveCell(BaseCOCODataset):
-    def __init__(self, cfg: cfg, dataset_type="train", normalization=None, transform=None):
-        super().__init__(cfg, dataset_type, normalization, transform)
+    def __init__(self, cfg: cfg, dataset_type="train", transform=None, **kwargs):
+        super().__init__(cfg, dataset_type=dataset_type, transform=transform, **kwargs)
 
 
 @DATASETS.register(name="LiveCellCrop")
 class LiveCellCrop(LiveCell):
-    def __init__(self, cfg: cfg, dataset_type="train", normalization=None, transform=None):
-        super().__init__(cfg, dataset_type, normalization, transform)
+    def __init__(self, cfg: cfg, dataset_type="train", transform=None, **kwargs):
+        super().__init__(cfg, dataset_type=dataset_type, transform=transform, **kwargs)
 
 
-@DATASETS.register(name="LiveCell2Percent")
-class LiveCell2Percent(LiveCell):
-    def __init__(self, cfg: cfg, dataset_type="train", normalization=None, transform=None):
-        super().__init__(cfg, dataset_type, normalization, transform)
-        self.total_size = 100 if dataset_type == "valid" else self.total_size
-
-
-@DATASETS.register(name="LiveCell30Images")
-class LiveCell30Images(LiveCell):
-    def __init__(self, cfg: cfg, dataset_type="train", normalization=None, transform=None):
-        super().__init__(cfg, dataset_type, normalization, transform)
-        self.total_size = 50 if dataset_type == "train" else 10
-
-        
 
 @hydra.main(version_base="1.3", config_path="../../configs", config_name="train")
 def main(cfg: cfg):
-    from utils.visualise import visualize, visualize_grid_v2
+    from visualizations.visualise import visualize, visualize_grid_v2
     from visualizations import visualize_masks
     from utils.utils import flatten_mask
     from utils.augmentations import normalize

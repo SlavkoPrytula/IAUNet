@@ -4,7 +4,7 @@ sys.path.append("./")
 import matplotlib.pyplot as plt
 import numpy as np
 
-from utils.visualise import visualize, visualize_grid_v2
+from visualizations.visualise import visualize, visualize_grid_v2
 from .base_visualizer import BaseVisualizer
 from utils.registry import CALLBACKS
 

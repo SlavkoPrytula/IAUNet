@@ -10,13 +10,13 @@ from utils.registry import DATASETS
 
 @DATASETS.register(name="Revvity_25")
 class Revvity_25(BaseCOCODataset):
-    def __init__(self, cfg: cfg, dataset_type="train", normalization=None, transform=None):
-        super().__init__(cfg, dataset_type, normalization, transform)
+    def __init__(self, cfg: cfg, dataset_type="train", transform=None, **kwargs):
+        super().__init__(cfg, dataset_type=dataset_type, transform=transform, **kwargs)
         
 
 @hydra.main(version_base="1.3", config_path="../../configs", config_name="train")
 def main(cfg: cfg):
-    from utils.visualise import visualize, visualize_grid_v2
+    from visualizations.visualise import visualize, visualize_grid_v2
     from visualizations import visualize_masks
     from utils.augmentations import train_transforms, valid_transforms
     import time

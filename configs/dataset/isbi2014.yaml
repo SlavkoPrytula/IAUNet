@@ -11,6 +11,13 @@ dataset:
     ann_file: ${dataset.data_root}/annotations/isbi_train.json
     size: [512, 512]
     batch_size: 8
+    augmentation: lsj
+    return_masks: true
+    return_bboxes: true
+    return_labels: true
+    filter_empty: true
+    min_bbox_size: 1.0
+    use_crowd: false
 
   # valid_dataset:
   #   images: ${dataset.data_root}/isbi_val
@@ -23,12 +30,18 @@ dataset:
     ann_file: ${dataset.data_root}/annotations/isbi_test.json
     size: [512, 512]
     batch_size: 8
+    return_masks: true
+    return_bboxes: true
+    return_labels: true
 
   eval_dataset:
     images: ${dataset.data_root}/isbi_test
     ann_file: ${dataset.data_root}/annotations/isbi_test.json
     size: [512, 512]
     batch_size: 8
+    return_masks: true
+    return_bboxes: true
+    return_labels: true
 
   mean: [221.65, 221.65, 221.65]
   std: [25.28, 25.28, 25.28]

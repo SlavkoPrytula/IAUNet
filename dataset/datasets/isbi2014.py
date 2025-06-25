@@ -1,32 +1,21 @@
 import sys
 sys.path.append('.')
 
-import numpy as np
 import hydra
 from configs import cfg
-
 from dataset.datasets.base_coco_dataset import BaseCOCODataset
 from utils.registry import DATASETS
 
 
 @DATASETS.register(name="ISBI2014")
 class ISBI2014(BaseCOCODataset):
-    def __init__(self, cfg: cfg, dataset_type="train", normalization=None, transform=None):
-        super().__init__(cfg, dataset_type, normalization, transform)
-
-    def get_labels(self, img_id: int, cat_id: list=[], iscrowd=None):
-        img_id = self.image_ids[img_id]
-        annIds = self.coco.getAnnIds(imgIds=[img_id], catIds=cat_id, iscrowd=iscrowd)
-        anns = self.coco.loadAnns(annIds)
-
-        labels = np.array([ann['category_id'] for ann in anns])
-        return labels
-
+    def __init__(self, cfg: cfg, dataset_type="train", transform=None, **kwargs):
+        super().__init__(cfg, dataset_type=dataset_type, transform=transform, **kwargs)
 
 
 @hydra.main(version_base="1.3", config_path="../../configs", config_name="train")
 def main(cfg: cfg):
-    from utils.visualise import visualize, visualize_grid_v2
+    from visualizations.visualise import visualize, visualize_grid_v2
     from visualizations import visualize_masks
     from utils.augmentations import train_transforms, valid_transforms
     import time

@@ -14,6 +14,7 @@ sys.path.append("./")
 from utils.files import _copy_folder
 from configs import cfg, MODEL_FILES, CONFIG_FILES, UTILS_FILES, PROJECT_ROOT
 from utils.registry import MODELS, DECODERS, HEADS
+from configs.structure import Model 
 
 
 __all__ = ["get_model", "load_weights", "save_model_files"]
@@ -40,10 +41,20 @@ def import_from_file(file_path, clear_cache=False) -> Type[ModuleType]:
     return module
 
 
-def find_module_dependencies(module_file, base_dir):
+def find_module_dependencies(module_file: str, base_dir: str) -> set:
+    """
+    Find all files that the given module depends on, starting from the base directory.
+    
+    :param module_file: path to the module file
+    :param base_dir: base directory to search for dependencies
+    :return: set of dependent file paths
+    """
+    if not isfile(module_file):
+        raise FileNotFoundError(f"Module file not found: {module_file}")
+    
     import sys
-    from configs import PROJECT_DIR
-    sys.path.append(PROJECT_DIR)
+    from configs import PROJECT_ROOT
+    sys.path.append(PROJECT_ROOT)
 
     finder = modulefinder.ModuleFinder()
     finder.run_script(module_file)
@@ -57,6 +68,12 @@ def find_module_dependencies(module_file, base_dir):
 
 
 def get_model(cfg: cfg):
+    """
+    Get model instance based on the configuration.
+
+    :param cfg: configuration object
+    :return: model instance
+    """
     if cfg.model.load_from_files:
         model = get_model_from_path(cfg)
     else:
@@ -65,7 +82,14 @@ def get_model(cfg: cfg):
     return model
 
 
-def load_weights(model, ckpt_path):
+def load_weights(model: Type[ModuleType], ckpt_path: str = None):
+    """
+    Load pretrained weights into the model.
+
+    :param model: model to load weights into
+    :param ckpt_path: path to the checkpoint file
+    :return: model with loaded weights
+    """
     print(f"- Loading pretrained weights:\n[{ckpt_path}]")
 
     current_model_dict = model.state_dict()
@@ -99,6 +123,14 @@ def load_weights(model, ckpt_path):
 
 
 def get_model_from_path(cfg: cfg):
+    """
+    Get model instance from the specified path in the configuration.
+    This function imports the model module dynamically from the specified path
+    under `cfg.model.model_files` and initializes the model.
+
+    :param cfg: configuration object
+    :return: model instance
+    """
     # runs/.../iaunet.py
     model_file = f"{cfg.model.model_files}/__init__.py"
     assert isfile(model_file), FileNotFoundError(f"Model file not found: {model_file}")
@@ -116,9 +148,13 @@ def get_model_from_path(cfg: cfg):
 
 
 
-def save_model_files(model_cfg, save_dir):
+def save_model_files(model_cfg: Model, save_dir: str):
     """
     Save all relevant model, augmentation, and config files for reproducibility.
+
+    :param model_cfg: model configuration object
+    :param save_dir: directory to save the files
+    :return: None
     """
     # Define what to copy: (source, destination_subdir, base_dir)
     utils_save_dir = save_dir / "utils"

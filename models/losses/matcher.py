@@ -366,7 +366,7 @@ def _get_tgt_permutation_idx(indices):
 
 
 if __name__ == "__main__":
-    from utils.visualise import visualize_grid_v2
+    from visualizations.visualise import visualize_grid_v2
 
     mask1 = torch.zeros(2, 5, 10, 10)
     mask1[0, 0, :5, :5] = 1

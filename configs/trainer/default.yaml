@@ -8,7 +8,7 @@ num_nodes: 1
 check_val_every_n_epoch: 10
 log_every_n_steps: 10
 
-deterministic: True
+deterministic: False
 benchmark: False
 
 # precision: 32-true
@@ -17,7 +17,7 @@ sync_batchnorm: False
 enable_progress_bar: True
 enable_model_summary: True
 enable_checkpointing: True
-profiler: None
+profiler: 
 accumulate_grad_batches: 1
-gradient_clip_val: None
-gradient_clip_algorithm: None
+gradient_clip_val: 
+gradient_clip_algorithm: 

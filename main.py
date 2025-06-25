@@ -9,7 +9,7 @@ from omegaconf import OmegaConf
 from configs import cfg
 
 from dataset.dataloaders import (build_loader, trivial_batch_collator)
-from utils.augmentations import train_transforms, valid_transforms
+from utils.augmentations import get_train_transforms, get_valid_transforms
 
 from utils.optimizers import *
 from utils.schedulers import *
@@ -20,6 +20,7 @@ from models import *
 from utils.registry import build_from_cfg, build_criterion, build_matcher, build_optimizer, build_scheduler
 from utils.registry import DATASETS, OPTIMIZERS, SCHEDULERS, CRITERIONS, EVALUATORS, CALLBACKS, MODELS
 
+from utils.seed import set_seed
 from models.factory import build_model
 import pytorch_lightning as pl
 from pytorch_lightning import Trainer
@@ -66,9 +67,20 @@ def build_optimizer(cfg, model):
     return optimizer_cfg
 
 
+def build_dataset(cfg: cfg, split="train"):
+    data_cfg = getattr(cfg.dataset, f"{split}_dataset")
+    dataset = DATASETS.get(cfg.dataset.type)
+    transform = get_train_transforms(cfg) if split == "train" else get_valid_transforms(cfg)
+
+    kwargs = dict(data_cfg)
+    kwargs["transform"] = transform
+    return dataset(cfg, dataset_type=split, **kwargs)
+
+
 def run(cfg: cfg):
     # ============================================================
     pl.seed_everything(cfg.seed, workers=True)
+    set_seed(cfg.seed)
 
     if cfg.job_id and cfg.run_id:
         cfg.run.save_dir = join(cfg.run.save_dir, f"[job={cfg.job_id}]-[group_run]", f"run={cfg.run_id}")
@@ -114,17 +126,9 @@ def run(cfg: cfg):
     # ============================================================
 
     # - get dataloaders
-    dataset = DATASETS.get(cfg.dataset.type)
-
-    train_dataset = dataset(cfg, 
-                            dataset_type="train", 
-                            transform=train_transforms(cfg))
-    valid_dataset = dataset(cfg, 
-                            dataset_type="valid",
-                            transform=valid_transforms(cfg))
-    eval_dataset = dataset(cfg, 
-                            dataset_type="eval",
-                            transform=valid_transforms(cfg))
+    train_dataset = build_dataset(cfg, "train")
+    valid_dataset = build_dataset(cfg, "valid")
+    eval_dataset = build_dataset(cfg, "eval")
 
     train_dataloader = build_loader(train_dataset, 
                                     batch_size=cfg.dataset.train_dataset.batch_size, 
@@ -145,14 +149,8 @@ def run(cfg: cfg):
                                     seed=cfg.seed, 
                                     shuffle=False)
     
-    print(MODELS)
     # - build and prepare model
-    model = build_model(cfg)
-    # model = IAUNet(cfg)
-    print(model)
-
-    print(train_dataset[0].labels)
-    raise
+    model = build_model(cfg)    
     
     evaluators = {
         "valid": {
@@ -167,7 +165,15 @@ def run(cfg: cfg):
     csv_logger_callback = CSVLogger(save_dir=cfg.run.save_dir)
     callbacks['csv_logger'] = csv_logger_callback
 
-    coco_eval_callback = CocoEval(cfg, save_coco_vis=False)
+    coco_eval_callback = CocoEval(save_coco_vis=True,
+                                  alpha=0.65, 
+                                  draw_border=True, 
+                                  border_size=5, 
+                                  border_color='white',
+                                  static_color=False, 
+                                  show_img=False,
+                                  save_dir=cfg.run.save_dir
+                                  )
     coco_eval_callback.evaluators = evaluators
     callbacks['coco_eval'] = coco_eval_callback
     
@@ -202,7 +208,7 @@ def run(cfg: cfg):
         model, 
         train_dataloaders=train_dataloader, 
         val_dataloaders=valid_dataloader,
-        ckpt_path=cfg.model.ckpt_path
+        ckpt_path=cfg.model.ckpt_path if cfg.model.ckpt_path else None
     )
     
     if cfg.test:

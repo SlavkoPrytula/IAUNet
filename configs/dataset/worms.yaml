@@ -11,6 +11,13 @@ dataset:
     ann_file: ${dataset.data_root}/worms_[train]_[max_s=5]_[min_l=0.01_max_l=1.0]_[min_t=10_max_t=50]_[n=4000]_[R_min=10_R_max=35]_[14.08.24].json
     size: [512, 512]
     batch_size: 32
+    augmentation: lsj
+    return_masks: true
+    return_bboxes: true
+    return_labels: true
+    filter_empty: true
+    min_bbox_size: 1.0
+    use_crowd: false
 
   valid_dataset:
     images: None
@@ -18,6 +25,9 @@ dataset:
     ann_file: ${dataset.data_root}/worms_[valid]_[max_s=5]_[min_l=0.01_max_l=1.0]_[min_t=10_max_t=50]_[n=4000]_[R_min=10_R_max=35]_[14.08.24].json
     size: [512, 512]
     batch_size: 32
+    return_masks: true
+    return_bboxes: true
+    return_labels: true
 
   eval_dataset:
     images: None
@@ -25,6 +35,9 @@ dataset:
     ann_file: ${dataset.data_root}/worms_[valid]_[max_s=5]_[min_l=0.01_max_l=1.0]_[min_t=10_max_t=50]_[n=4000]_[R_min=10_R_max=35]_[14.08.24].json
     size: [512, 512]
     batch_size: 32
+    return_masks: true
+    return_bboxes: true
+    return_labels: true
 
   mean: [0.5, 0.5, 0.5]
   std: [0.5, 0.5, 0.5]

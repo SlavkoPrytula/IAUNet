@@ -10,18 +10,31 @@ dataset:
     ann_file: ${dataset.data_root}/annotations/train_cell.json
     size: [512, 512]
     batch_size: 4
+    augmentation: lsj
+    return_masks: true
+    return_bboxes: true
+    return_labels: true
+    filter_empty: true
+    min_bbox_size: 1.0
+    use_crowd: false
 
   valid_dataset:
     images: ${dataset.data_root}/images
     ann_file: ${dataset.data_root}/annotations/val_cell.json
     size: [512, 512]
     batch_size: 4
+    return_masks: true
+    return_bboxes: true
+    return_labels: true
 
   eval_dataset:
     images: ${dataset.data_root}/images
     ann_file: ${dataset.data_root}/annotations/test_cell.json
     size: [512, 512]
     batch_size: 4
+    return_masks: true
+    return_bboxes: true
+    return_labels: true
 
   mean: [133.488, 133.488, 133.488]
   std: [26.903, 26.903, 26.903]

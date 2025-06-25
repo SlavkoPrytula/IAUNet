@@ -5,7 +5,7 @@ model_checkpoint:
   type: ModelCheckpoint
   dirpath: ./checkpoints
   filename: "best"
-  monitor: "metrics/valid/mAP"
+  monitor: "metrics/valid/segm_mAP"
   mode: "max"
   save_last: True
   auto_insert_metric_name: False

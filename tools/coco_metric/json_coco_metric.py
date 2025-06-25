@@ -16,7 +16,7 @@ from utils.coco.api_wrappers import COCO
 from utils.coco.api_wrappers import COCOeval 
 
 from visualizations import save_coco_vis
-from utils.visualise import visualize
+from visualizations.visualise import visualize
 
 
 def load_coco_json(json_file_path):
