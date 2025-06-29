@@ -1,1 +1,0 @@
-from .iaunet import IAUNet

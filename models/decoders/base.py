@@ -1,10 +1,6 @@
 import torch
 from torch import nn
 from abc import ABC
-
-import sys
-sys.path.append("./")
-
 from configs.structure import Decoder
 
 

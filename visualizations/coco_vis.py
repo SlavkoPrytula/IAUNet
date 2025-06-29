@@ -171,15 +171,16 @@ def visualize_masks(img, masks, bboxes=None, shape=(512, 512),
     Args:
         img (torch.Tensor or np.ndarray): Input image tensor or numpy array in shape (H, W) or (H, W, C).
         masks (torch.Tensor): Tensor of masks in shape (N, H, W) or numpy array.
-        bboxes (torch.Tensor or np.ndarray, optional): Bounding boxes in cxcywh format, shape (N, 4).
+        bboxes (torch.Tensor or np.ndarray, optional): Normalized `(0 to 1)` bounding boxes in cxcywh format, shape (N, 4).
+            If provided, these will be drawn on the image.
         shape (tuple): Target shape for resizing the image and masks. Default is (512, 512).
-        alpha (float): Opacity level for the masks (0 to 1). Default is 1 (fully opaque).
-        border_size (int): Thickness of the border around masks if draw_border is True. Default is 5.
-        border_color (str): Color of the border. Accepts ['same', 'white']. Default is 'same'.
+        alpha (float): Opacity level for the masks `(0 to 1)`. Default is 1 (fully opaque).
+        border_size (int): Thickness of the border around masks if draw_border is `True`. Default is 5.
+        border_color (str): Color of the border. Accepts `['same', 'white']`. Default is `'same'`.
         bbox_linewidth (int): Line width for bounding boxes. Default is 2.
-        draw_border (bool): Whether to draw borders around masks. Default is False. Default is False.
-        static_color (bool): If True, uses a static color for masks; otherwise, uses random colors. Default is False.
-        show_img (bool): If True, shows the image alongside the masks. Default is False.
+        draw_border (bool): Whether to draw borders around masks. Default is `False`. Default is `False`.
+        static_color (bool): If `True`, uses a static color for masks; otherwise, uses random colors. Default is `False`.
+        show_img (bool): If `True`, shows the image alongside the masks. Default is `False`.
         path (str, optional): Path to save the visualization. If None, does not save.
         figsize (list): Size of the figure for visualization.
         dpi (int): Dots per inch for the saved figure.
@@ -191,10 +192,11 @@ def visualize_masks(img, masks, bboxes=None, shape=(512, 512),
                         mode="bilinear", align_corners=False).squeeze(0).squeeze(0)
     masks = F.interpolate(masks.unsqueeze(0), size=shape, 
                             mode="bilinear", align_corners=False).squeeze(0)
-    
-    H, W = img.shape[-2:]
-    bboxes = bboxes * torch.tensor([W, H, W, H], dtype=torch.float32)
-    bboxes = box_cxcywh_to_xyxy(bboxes)
+
+    if bboxes is not None:
+        H, W = img.shape[-2:]
+        bboxes = bboxes * torch.tensor([W, H, W, H], dtype=torch.float32)
+        bboxes = box_cxcywh_to_xyxy(bboxes)
     
     masks_np, colors = getNPMasks(masks, shape, alpha=alpha, static_color=static_color)
 

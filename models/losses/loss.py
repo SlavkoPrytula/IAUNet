@@ -112,9 +112,12 @@ class SparseInstCriterion(nn.Module):
         self.num_points = 112 * 112
         self.oversample_ratio = 3.0
         self.importance_sample_ratio = 0.75
+        # self.num_points = matcher.num_points
+        # self.oversample_ratio = matcher.oversample_ratio
+        # self.importance_sample_ratio = matcher.importance_sample_ratio
 
         self.focal_alpha = 0.25
-        self.semantic_ce_loss = True
+        self.semantic_ce_loss = True #False
 
         print(self)
 
@@ -171,12 +174,9 @@ class SparseInstCriterion(nn.Module):
         )
         target_classes[idx] = target_classes_o
 
-        self.empty_weight = self.empty_weight.to(src_logits.device)
-
         loss_ce = F.cross_entropy(src_logits.transpose(1, 2), target_classes, self.empty_weight)
         losses = {"loss_ce": loss_ce}
         return losses
-
 
     def loss_labels(self, outputs, targets, indices, num_masks, **kwargs):
         """Classification loss (Binary focal loss)
@@ -431,7 +431,9 @@ class SparseInstCriterion(nn.Module):
 
         # Compute the average number of target masks accross all nodes, for normalization purposes
         num_masks = sum(len(t["labels"]) for t in targets)
-        num_masks = torch.as_tensor([num_masks], dtype=torch.float, device=next(iter(outputs.values())).device)
+        num_masks = torch.as_tensor(
+            [num_masks], dtype=torch.float, device=next(iter(outputs.values())).device
+        )
         
         if is_dist_avail_and_initialized():
             torch.distributed.all_reduce(num_masks)

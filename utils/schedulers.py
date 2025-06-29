@@ -23,5 +23,5 @@ def ExponentialLR():
 
 
 @SCHEDULERS.register(name="MultiStepLR")
-def ExponentialLR():
+def MultiStepLR():
     return lr_scheduler.MultiStepLR

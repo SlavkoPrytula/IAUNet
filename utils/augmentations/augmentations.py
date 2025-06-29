@@ -8,31 +8,33 @@ from configs import cfg
 def lsj_transforms(cfg: cfg):
     """Large Scale Jittering (LSJ) augmentation pipeline."""
     size = cfg.dataset.train_dataset.size
+    seed = cfg.seed
     return A.Compose([
         A.LongestMaxSize(max_size=max(size)),
-        A.PadIfNeeded(*size, border_mode=cv2.BORDER_CONSTANT, value=0),
-        A.RandomScale(scale_limit=(0.1, 1), p=1, interpolation=1),  # scale 0.1x to 2.0x
-        A.PadIfNeeded(*size, border_mode=cv2.BORDER_CONSTANT, value=0),
-        A.RandomCrop(*size),
+        A.RandomScale(scale_limit=(-0.9, 1), p=1, interpolation=1),  # scale 0.1x to 2.0x
+        A.RandomCrop(*size, pad_if_needed=True, pad_position='bottom_right'),
         A.VerticalFlip(p=0.5),
         A.HorizontalFlip(p=0.5),
-        A.RandomRotate90(p=1),
-    ], bbox_params=A.BboxParams(format='pascal_voc', label_fields=['labels', 'indices']))
+    ], 
+    bbox_params=A.BboxParams(format='pascal_voc', label_fields=['labels', 'indices']), 
+    )
 
 
 def ssj_transforms(cfg: cfg):
-    """Small Scale Jittering (SSJ) augmentation pipeline (milder scale jitter)."""
+    """Small Scale Jittering (SSJ) augmentation pipeline."""
     size = cfg.dataset.train_dataset.size
+    seed = cfg.seed
     return A.Compose([
-        A.LongestMaxSize(max_size=max(size)),
-        A.PadIfNeeded(*size, border_mode=cv2.BORDER_CONSTANT, value=0),
-        A.RandomScale(scale_limit=(-0.2, 0.5), p=1, interpolation=1),  # scale 0.8x to 1.5x
-        A.PadIfNeeded(*size, border_mode=cv2.BORDER_CONSTANT, value=0),
-        A.RandomCrop(*size),
         A.VerticalFlip(p=0.5),
         A.HorizontalFlip(p=0.5),
         A.RandomRotate90(p=0.5),
-    ], bbox_params=A.BboxParams(format='pascal_voc', label_fields=['labels', 'indices']))
+
+        A.LongestMaxSize(max_size=max(size)),
+        A.RandomScale(scale_limit=(-0.2, 0.5), p=1, interpolation=1),  # scale 0.8x to 1.5x
+        A.RandomCrop(*size, pad_if_needed=True, pad_position='bottom_right'),
+    ], 
+    bbox_params=A.BboxParams(format='pascal_voc', label_fields=['labels', 'indices']),
+    )
 
 
 # --- augmentation registry ---
@@ -51,13 +53,14 @@ def get_train_transforms(cfg: cfg):
         raise ValueError(f"Unknown augmentation type: '{aug_type}'. Available: {available}")
     return AUGMENTATIONS[aug_type](cfg)
 
-
+from utils.augmentations.transforms.resize import Resize
 def get_valid_transforms(cfg: cfg):
     """Minimal validation transforms (no augmentation)."""
     size = cfg.dataset.valid_dataset.size
     return A.Compose([
-        A.LongestMaxSize(max_size=max(size)),
-        A.PadIfNeeded(*size, border_mode=cv2.BORDER_CONSTANT, value=0),
+        # A.LongestMaxSize(max_size=max(size)),
+        # A.PadIfNeeded(*size, position='top_left', fill=0),
+        Resize(size)
     ], bbox_params=A.BboxParams(format='pascal_voc', label_fields=['labels', 'indices']))
 
 

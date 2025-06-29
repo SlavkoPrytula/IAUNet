@@ -1,9 +1,4 @@
-import os
-from os.path import join
-from itertools import islice
-import wandb
 from pytorch_lightning import Callback
-from configs import cfg as _cfg
 import re
 from utils.registry import CALLBACKS
 
@@ -22,7 +17,7 @@ class CSVLogger(Callback):
                 self.save_dir = trainer.logger.save_dir
             else:
                 self.save_dir = trainer.default_root_dir
-        pl_module.logger .info(f"CSVLogger save_dir: {self.save_dir}")
+        pl_module.logger.info(f"CSVLogger save_dir: {self.save_dir}")
 
     def on_validation_epoch_end(self, trainer, pl_module):
         current_epoch = trainer.current_epoch
@@ -31,12 +26,30 @@ class CSVLogger(Callback):
         results = {k: v for k, v in results.items() if "step" not in k}
 
         metrics_items = [(k, v) for k, v in results.items() if k.startswith("metrics/")]
-        other_items = [(k, v) for k, v in results.items() if not k.startswith("metrics/")]
-        ordered_items = metrics_items + other_items
-
+        # other_items = [(k, v) for k, v in results.items() if not k.startswith("metrics/")]
+        # ordered_items = metrics_items + other_items
+        ordered_items = metrics_items
+    
         metrics = ['epoch'] + [k.replace("metrics/", "") for k, v in ordered_items]
         vals = [current_epoch] + [self._format_value(k, v) for k, v in ordered_items]
-        self._save_results_csv(metrics, vals)
+        csv_path = self.save_dir / "results.csv"
+        self._save_results_csv(metrics, vals, csv_path)
+
+    def on_test_epoch_end(self, trainer, pl_module):
+        current_epoch = trainer.current_epoch
+        results = trainer.callback_metrics
+
+        results = {k: v for k, v in results.items() if "step" not in k}
+
+        metrics_items = [(k, v) for k, v in results.items() if k.startswith("metrics/")]
+        # other_items = [(k, v) for k, v in results.items() if not k.startswith("metrics/")]
+        # ordered_items = metrics_items + other_items
+        ordered_items = metrics_items
+    
+        metrics = ['epoch'] + [k.replace("metrics/", "") for k, v in ordered_items]
+        vals = [current_epoch] + [self._format_value(k, v) for k, v in ordered_items]
+        csv_path = self.save_dir / "test_results.csv"
+        self._save_results_csv(metrics, vals, csv_path)
 
     def _format_value(self, key, value):
         if re.search(r"loss", key, re.IGNORECASE):
@@ -49,8 +62,7 @@ class CSVLogger(Callback):
         except Exception:
             return str(value)
 
-    def _save_results_csv(self, metrics, vals):
-        csv_path = self.save_dir / 'results.csv'
+    def _save_results_csv(self, metrics, vals, csv_path):
         col_widths = [max(len(str(m)), len(str(v))) + 2 for m, v in zip(metrics, vals)]
         header = "\t".join(f"{m:<{w}}" for m, w in zip(metrics, col_widths))
         row = "\t".join(f"{v:<{w}}" for v, w in zip(vals, col_widths))

@@ -27,7 +27,7 @@ dataset:
     return_bboxes: true
     return_labels: true
 
-  eval_dataset:
+  test_dataset:
     images: ${dataset.data_root}/images
     ann_file: ${dataset.data_root}/annotations/test_cell.json
     size: [512, 512]

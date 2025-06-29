@@ -25,3 +25,5 @@ class ModelCheckpoint(_ModelCheckpoint):
         else:
             self.dirpath = trainer.default_root_dir
         self.dirpath = os.path.join(self.dirpath, "checkpoints")
+
+        print(f"ModelCheckpoint save_path: {self.dirpath}")

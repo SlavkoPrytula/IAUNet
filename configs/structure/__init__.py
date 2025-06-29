@@ -39,8 +39,8 @@ class Dataset:
     type: str
     data_root: str
     train_dataset: COCODataset
-    eval_dataset: COCODataset
     valid_dataset: COCODataset
+    test_dataset: COCODataset
     mean: List[float]
     std: List[float]
 
@@ -52,6 +52,7 @@ class Trainer:
     max_epochs: int = 250
     check_val_every_n_epoch: int = 10
     log_every_n_steps: int = 10
+    num_sanity_val_steps: int = 1
     deterministic: bool = None
     benchmark: bool = None
     strategy: Optional[str] = "auto"
@@ -143,6 +144,13 @@ class Decoder:
     instance_branch: Optional[dict] = None
     instance_head: Optional[dict] = None
     num_classes: int = 1
+    dec_layers: int = 6
+    hidden_dim: int = 256
+    num_queries: int = 100
+    dim_feedforward: int = 2048
+    nheads: int = 8
+    dropout: float = 0.1
+    pre_norm: bool = True
 
 
 @dataclass

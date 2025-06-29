@@ -1,2 +1,2 @@
-from .coco import *
-from .base_evaluator import BaseEvaluator
+from .coco_evaluator import CocoEvaluator
+from .amodal_coco_evaluator import AmodalCocoEvaluator

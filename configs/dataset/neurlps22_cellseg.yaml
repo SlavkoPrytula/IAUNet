@@ -18,7 +18,7 @@ dataset:
     size: [512, 512]
     batch_size: 8
 
-  eval_dataset:
+  test_dataset:
     images: ${dataset.data_root}/images
     ann_file: ${dataset.data_root}/annotations/test.json
     size: [512, 512]

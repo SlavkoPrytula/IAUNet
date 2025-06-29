@@ -20,14 +20,13 @@ class IAUNet(pl.LightningModule):
         self.criterion = self.configure_criterion()
         self.results = {}
 
-
     def forward(self, batch):
         x = batch["images"]
         tgt = batch["targets"]
         
-        max_shape = x.shape[-2:]
+        max_shape = x.shape[-2:] # (img_h, img_w)
         skips = self.encoder(x)
-        out = self.decoder(skips, max_shape)
+        out = self.decoder(skips, max_shape) 
         return out
     
     def _prepare_batch(self, batch):
@@ -36,7 +35,7 @@ class IAUNet(pl.LightningModule):
         targets = []
 
         for sample in batch:
-            ignore = ["img_id", "img_path", "ori_shape", "file_name", "coco_id"]
+            ignore = ["img_id", "img_path", "ori_shape", "file_name", "coco_id", "resized_shape"]
             sample = {k: v.to(self.device) if k not in ignore else v for k, v in sample.items()}
             images.append(sample["image"])
             targets.append(sample)

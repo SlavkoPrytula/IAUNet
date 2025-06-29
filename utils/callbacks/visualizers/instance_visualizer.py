@@ -80,7 +80,8 @@ class InstanceVisualizer(BaseVisualizer):
         Plot grid of masks and bboxes.
         """
         nrows = ncols = self.ncols
-        num_masks = masks.shape[0]
+        # num_masks = masks.shape[0]
+        num_masks = 25
         num_grids = (num_masks + nrows * ncols - 1) // (nrows * ncols)
         
         for grid_idx in range(num_grids):

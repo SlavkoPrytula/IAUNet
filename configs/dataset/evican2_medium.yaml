@@ -28,7 +28,7 @@ dataset:
     return_bboxes: true
     return_labels: true
 
-  eval_dataset:
+  test_dataset:
     images: ${dataset.data_root}/images/EVICAN_eval2019
     ann_file: ${dataset.data_root}/annotations/EVICAN2/processed/instances_eval2019_medium_EVICAN2_cell.json
     size: [512, 512]

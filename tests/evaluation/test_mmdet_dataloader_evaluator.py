@@ -10,7 +10,7 @@ import pycocotools.mask as mask_util
 import random
 
 from unittest import TestCase
-from evaluation.mmdet import CocoMetric
+from evaluation.mmdet import CocoMetric, AmodalCocoMetric
 from pycocotools.coco import COCO
 from pycocotools.cocoeval import COCOeval
 
@@ -134,7 +134,12 @@ class TestMMDetDataloaderEvaluator(TestCase):
         coco_eval.summarize()
 
         # CocoMetric
-        coco_metric = CocoMetric(ann_file=gt_path, metric=metric, classwise=True)
+        # coco_metric = CocoMetric(ann_file=gt_path, metric=metric, classwise=True)
+        coco_metric = AmodalCocoMetric(
+            ann_file=gt_path, 
+            metric=metric, 
+            classwise=True, 
+        )
         categories = coco_metric._coco_api.loadCats(coco_metric._coco_api.getCatIds())
         class_names = [category['name'] for category in categories]
         coco_metric.dataset_meta = dict(classes=class_names)
@@ -168,6 +173,8 @@ class TestMMDetDataloaderEvaluator(TestCase):
             coco_metric.process({}, data_samples)
 
         eval_results = coco_metric.evaluate(len(images))
+        print(eval_results)
+        raise
 
         assert abs(coco_eval.stats[0] - eval_results[f'coco/{metric}_mAP']) < 1e-3, \
             f"COCOeval: {coco_eval.stats[0]}, CocoMetric: {eval_results[f'coco/{metric}_mAP']}"
@@ -179,7 +186,7 @@ class TestMMDetDataloaderEvaluator(TestCase):
 
     def _test_segm_mmdet(self, gt_path, pred_path, images, pred_masks, h, w, preds, metric='segm'):
         # MMDet evaluator
-        from evaluation.evaluators.coco.mmdet_dataloader_evaluator import MMDetDataloaderEvaluator
+        from evaluation import CocoEvaluator, AmodalCocoEvaluator
         class DummyDataset:
             def __init__(self, ann_file):
                 self.ann_file = ann_file
@@ -188,7 +195,7 @@ class TestMMDetDataloaderEvaluator(TestCase):
         cfg = DummyCfg()
         cfg.model.evaluator.metric = metric
         dataset = DummyDataset(gt_path)
-        evaluator = MMDetDataloaderEvaluator(cfg, dataset)
+        evaluator = AmodalCocoEvaluator(cfg, dataset)
      
         for img in images:
             img_id = img['id']

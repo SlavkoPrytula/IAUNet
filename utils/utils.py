@@ -4,9 +4,7 @@ import torch
 from torch import Tensor
 import torch.nn.functional as F
 import torchvision
-
 import numpy as np
-
 
 
 def flatten_mask(mask, axis=-1):

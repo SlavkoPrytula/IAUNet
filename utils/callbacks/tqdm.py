@@ -10,6 +10,7 @@ class ProgressBar(TQDMProgressBar):
     def __init__(self, refresh_rate=10):
         super().__init__(refresh_rate=refresh_rate)
         self.start_time = None
+        self.total_steps = None
 
     def on_train_epoch_start(self, trainer, pl_module):
         super().on_train_epoch_start(trainer, pl_module)
@@ -32,7 +33,9 @@ class ProgressBar(TQDMProgressBar):
         if self.start_time is not None:
             elapsed = time.time() - self.start_time
             steps_done = trainer.global_step
-            total_steps = trainer.estimated_stepping_batches
+            if self.total_steps is None:
+                self.total_steps = trainer.estimated_stepping_batches
+            total_steps = self.total_steps
             if steps_done > 0:
                 eta = (elapsed / steps_done) * (total_steps - steps_done)
                 h = int(eta // 3600)

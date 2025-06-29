@@ -8,6 +8,8 @@ class BaseEvaluator(nn.Module, ABC):
         super(BaseEvaluator, self).__init__()
         self.cfg = cfg
         self.stats = None
+        self.gt_coco = None
+        self.pred_coco = None
 
     @abstractmethod
     def process(self, preds: dict):

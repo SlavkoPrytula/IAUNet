@@ -30,7 +30,7 @@ model:
     hidden_dim: 256
     nheads: 8
     dec_layers: 1   # transfomer decoder layers per model decoder layer.
-    dropout: 0.1
+    dropout: 0.0
     pre_norm: false
     dim_feedforward: 2048
 
@@ -65,7 +65,6 @@ model:
     losses:
       - labels
       - masks
-      # - activations
       # - bboxes
     weights:
       labels: 1.0
@@ -90,6 +89,8 @@ model:
     mask_thr: 0.5
     score_thr: 0.01
     nms_thr: 0.8
-    metric: segm
+    metric: 
+      - segm 
+      # - bbox
     classwise: true
     outfile_prefix: results/coco

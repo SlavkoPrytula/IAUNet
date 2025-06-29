@@ -9,30 +9,30 @@ dataset:
   train_dataset:
     images: ${dataset.data_root}/images
     ann_file: ${dataset.data_root}/annotations/train.json
+    # size: [1024, 1024]
     size: [512, 512]
-    batch_size: 8
-    augmentation: lsj
+    batch_size: 4
+    augmentation: ssj
     return_masks: true
     return_bboxes: true
     return_labels: true
-    filter_empty: true 
-    min_bbox_size: 1.0 
-    use_crowd: false  
 
   valid_dataset:
     images: ${dataset.data_root}/images
     ann_file: ${dataset.data_root}/annotations/valid.json
+    # size: [800, 1333]
     size: [512, 512]
-    batch_size: 8
+    batch_size: 4
     return_masks: true
     return_bboxes: true
     return_labels: true
 
-  eval_dataset:
+  test_dataset:
     images: ${dataset.data_root}/images
     ann_file: ${dataset.data_root}/annotations/valid.json
+    # size: [800, 1333]
     size: [512, 512]
-    batch_size: 8
+    batch_size: 4
     return_masks: true
     return_bboxes: true
     return_labels: true

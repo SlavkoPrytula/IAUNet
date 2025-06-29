@@ -34,7 +34,7 @@ dataset:
     return_bboxes: true
     return_labels: true
 
-  eval_dataset:
+  test_dataset:
     images: ${dataset.data_root}/images/livecell_test_images
     ann_file: ${dataset.data_root}/annotations/livecell_coco_test.json
     size: [512, 512]

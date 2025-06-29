@@ -1,5 +1,5 @@
 from os import makedirs
-from os.path import join
+from os.path import join, isfile
 from pathlib import Path
 from datetime import datetime
 import wandb
@@ -77,6 +77,7 @@ def build_dataset(cfg: cfg, split="train"):
     return dataset(cfg, dataset_type=split, **kwargs)
 
 
+@hydra.main(version_base="1.3", config_path="configs", config_name="train")
 def run(cfg: cfg):
     # ============================================================
     pl.seed_everything(cfg.seed, workers=True)
@@ -95,7 +96,6 @@ def run(cfg: cfg):
 
     # create directories.
     makedirs(cfg.run.save_dir, exist_ok=True)
-    makedirs(cfg.run.save_dir / 'train_visuals', exist_ok=True)
     makedirs(cfg.run.save_dir / 'checkpoints', exist_ok=True)
     makedirs(cfg.run.save_dir / 'results', exist_ok=True)
     makedirs(cfg.run.save_dir / 'config_files', exist_ok=True)
@@ -128,7 +128,7 @@ def run(cfg: cfg):
     # - get dataloaders
     train_dataset = build_dataset(cfg, "train")
     valid_dataset = build_dataset(cfg, "valid")
-    eval_dataset = build_dataset(cfg, "eval")
+    test_dataset = build_dataset(cfg, "test")
 
     train_dataloader = build_loader(train_dataset, 
                                     batch_size=cfg.dataset.train_dataset.batch_size, 
@@ -142,8 +142,8 @@ def run(cfg: cfg):
                                     collate_fn=trivial_batch_collator, 
                                     seed=cfg.seed, 
                                     shuffle=False)
-    eval_dataloader = build_loader(eval_dataset, 
-                                    batch_size=cfg.dataset.eval_dataset.batch_size, 
+    test_dataloader = build_loader(test_dataset, 
+                                    batch_size=cfg.dataset.test_dataset.batch_size, 
                                     num_workers=4, #cfg.trainer.num_workers, 
                                     collate_fn=trivial_batch_collator, 
                                     seed=cfg.seed, 
@@ -154,21 +154,19 @@ def run(cfg: cfg):
     
     evaluators = {
         "valid": {
-            "coco": MMDetDataloaderEvaluator(cfg=cfg, dataset=valid_dataset), 
+            "coco": CocoEvaluator(cfg=cfg, dataset=valid_dataset), 
         },
-        "eval": {
-            "coco": MMDetDataloaderEvaluator(cfg=cfg, dataset=eval_dataset), 
+        "test": {
+            "coco": CocoEvaluator(cfg=cfg, dataset=test_dataset), 
         },
     }
 
     callbacks = {c: CALLBACKS.build(cfg.callbacks[c]) for c in cfg.callbacks}
-    csv_logger_callback = CSVLogger(save_dir=cfg.run.save_dir)
-    callbacks['csv_logger'] = csv_logger_callback
-
+    # add coco evaluation callback
     coco_eval_callback = CocoEval(save_coco_vis=True,
                                   alpha=0.65, 
                                   draw_border=True, 
-                                  border_size=5, 
+                                  border_size=3, 
                                   border_color='white',
                                   static_color=False, 
                                   show_img=False,
@@ -176,6 +174,10 @@ def run(cfg: cfg):
                                   )
     coco_eval_callback.evaluators = evaluators
     callbacks['coco_eval'] = coco_eval_callback
+
+    # add csv writer callback
+    csv_logger_callback = CSVLogger(save_dir=cfg.run.save_dir)
+    callbacks['csv_logger'] = csv_logger_callback
     
     print(f"Using callbacks: {list(callbacks.keys())}")
     callbacks = list(callbacks.values())
@@ -191,17 +193,12 @@ def run(cfg: cfg):
         callbacks=callbacks,
         log_every_n_steps=cfg.trainer.log_every_n_steps,
         check_val_every_n_epoch=cfg.trainer.check_val_every_n_epoch,
-        deterministic=cfg.trainer.deterministic,
-        benchmark=cfg.trainer.benchmark,
+        num_sanity_val_steps=cfg.trainer.num_sanity_val_steps,
         precision=cfg.trainer.precision,
         sync_batchnorm=cfg.trainer.sync_batchnorm,
         enable_progress_bar=cfg.trainer.enable_progress_bar,
         enable_model_summary=cfg.trainer.enable_model_summary,
         enable_checkpointing=cfg.trainer.enable_checkpointing,
-        profiler=cfg.trainer.profiler,
-        accumulate_grad_batches=cfg.trainer.accumulate_grad_batches,
-        gradient_clip_val=cfg.trainer.gradient_clip_val,
-        gradient_clip_algorithm=cfg.trainer.gradient_clip_algorithm
     )
 
     trainer.fit(
@@ -212,13 +209,11 @@ def run(cfg: cfg):
     )
     
     if cfg.test:
-        trainer.test(model, dataloaders=eval_dataloader)
-
-
-@hydra.main(version_base="1.3", config_path="configs", config_name="train")
-def main(cfg: cfg):
-    run(cfg=cfg)
+        ckpt_path = None
+        if trainer.checkpoint_callback and isfile(trainer.checkpoint_callback.best_model_path):
+            ckpt_path = trainer.checkpoint_callback.best_model_path
+        trainer.test(model, dataloaders=test_dataloader, ckpt_path=ckpt_path)
 
 
 if __name__ == '__main__':
-    main()
+    run()

@@ -8,6 +8,7 @@ import warnings
 sys.path.append('.')
 
 import torch
+import torch.nn.functional as F
 from utils.box_ops import box_cxcywh_to_xyxy, box_xyxy_to_cxcywh
 from torch.utils.data import Dataset
 from pycocotools.coco import COCO
@@ -96,13 +97,10 @@ class COCOAnnotationParser:
             return self._get_empty_annotations(img_info, return_masks, return_bboxes, return_labels)
         
         results = {}
-        
         if return_bboxes:
             results['bboxes'] = self._extract_bboxes(valid_anns, img_info)
-            
         if return_masks:
             results['masks'] = self._extract_masks(valid_anns, img_info)
-            
         if return_labels:
             results['labels'] = self._extract_labels(valid_anns)
             
@@ -125,10 +123,8 @@ class COCOAnnotationParser:
                 if x < 0 or y < 0 or x + w > img_w or y + h > img_h:
                     warnings.warn(f"Bbox {ann['bbox']} is outside image bounds {img_w}x{img_h}")
                     continue
-                    
                 if w < self.min_bbox_size or h < self.min_bbox_size:
                     continue
-                    
                 if ann.get('area', 0) <= 0:
                     continue
                     
@@ -137,7 +133,6 @@ class COCOAnnotationParser:
                     continue
             else:
                 continue
-                
             valid_anns.append(ann)
             
         return valid_anns
@@ -244,7 +239,7 @@ class BaseCOCODataset(Dataset):
     def __init__(self, cfg: cfg, dataset_type="train", transform=None, 
                  return_masks=True, return_bboxes=True, return_labels=True,
                  bbox_format='xyxy', filter_empty=True, min_bbox_size=1.0, 
-                 use_crowd=False, **kwargs):
+                 use_crowd=False, size_divisibility=32, **kwargs):
         """
         Flexible COCO dataset with configurable parameters.
         
@@ -258,6 +253,7 @@ class BaseCOCODataset(Dataset):
             filter_empty: Whether to filter empty annotations
             min_bbox_size: Minimum bbox size for filtering
             use_crowd: Whether to include crowd annotations
+            size_divisibility: Size divisibility for image dimensions
             **kwargs: Additional parameters for future extensibility
         """
         if dataset_type == "train":
@@ -266,9 +262,9 @@ class BaseCOCODataset(Dataset):
         elif dataset_type == "valid":
             self.img_folder = cfg.dataset.valid_dataset.images
             self.ann_file = cfg.dataset.valid_dataset.ann_file
-        elif dataset_type == "eval":
-            self.img_folder = cfg.dataset.eval_dataset.images
-            self.ann_file = cfg.dataset.eval_dataset.ann_file
+        elif dataset_type == "test":
+            self.img_folder = cfg.dataset.test_dataset.images
+            self.ann_file = cfg.dataset.test_dataset.ann_file
         elif dataset_type == "occ":
             raise NotImplementedError
 
@@ -288,10 +284,11 @@ class BaseCOCODataset(Dataset):
         self.return_masks = return_masks
         self.return_bboxes = return_bboxes
         self.return_labels = return_labels
+        self.size_divisibility = size_divisibility
         self.extra_config = kwargs
         
-        self.mean = np.array(cfg.dataset.mean).reshape(1, 1, 3)
-        self.std = np.array(cfg.dataset.std).reshape(1, 1, 3)
+        self.mean = torch.Tensor(cfg.dataset.mean).view(-1, 1, 1)
+        self.std = torch.Tensor(cfg.dataset.std).view(-1, 1, 1)
         self.total_size = len(self.image_ids)
 
     def __len__(self):
@@ -304,7 +301,6 @@ class BaseCOCODataset(Dataset):
         anns = self.coco.loadAnns(annIds)
 
         image = self.get_image(img_info)
-        image = (image - self.mean) / self.std
 
         parsed = self.parser.parse_annotations(
             anns, img_info,
@@ -315,6 +311,7 @@ class BaseCOCODataset(Dataset):
         masks = parsed.get('masks')
         bboxes = parsed.get('bboxes')
         labels = parsed.get('labels')
+        # TODO: add padding_mask
 
         assert not (self.return_masks == False and self.return_bboxes == False), \
             "At least one of return_masks or return_bboxes must be True."
@@ -349,10 +346,13 @@ class BaseCOCODataset(Dataset):
         if bboxes is not None:
             bboxes = torch.tensor(bboxes, dtype=torch.float32)
             h, w = image.shape[-2:]
-            if self.parser.bbox_format == 'xyxy':
-                bboxes = box_xyxy_to_cxcywh(bboxes) / torch.tensor([w, h, w, h], dtype=torch.float32)
+            if bboxes.numel() > 0:
+                if self.parser.bbox_format == 'xyxy':
+                    bboxes = box_xyxy_to_cxcywh(bboxes) / torch.tensor([w, h, w, h], dtype=torch.float32)
+                else:
+                    bboxes = bboxes / torch.tensor([w, h, w, h], dtype=torch.float32)
             else:
-                bboxes = bboxes / torch.tensor([w, h, w, h], dtype=torch.float32)
+                bboxes = torch.zeros((0, 4), dtype=torch.float32)
 
         if labels is not None:
             labels = torch.tensor(labels, dtype=torch.int64)
@@ -360,11 +360,29 @@ class BaseCOCODataset(Dataset):
             if self.return_bboxes == False:
                 labels = labels[keep]
 
+        resized_shape = image.shape[-2:]
+
+        # normalize image.
+        image = (image - self.mean) / self.std
+
+        # pad images and segmentations here.
+        if self.size_divisibility > 1:
+            image_size = (image.shape[-2], image.shape[-1])
+            pad_h = (self.size_divisibility - image_size[0] % self.size_divisibility) % self.size_divisibility
+            pad_w = (self.size_divisibility - image_size[1] % self.size_divisibility) % self.size_divisibility
+            padding_size = (0, pad_w, 0, pad_h)  # (left, right, top, bottom)
+            # pad image
+            image = F.pad(image, padding_size, value=0)
+            # pad masks
+            if masks is not None:
+                masks = F.pad(masks, padding_size, value=0)
+
         datasample = {
             "image": image, # (H, W)
             "instance_masks": masks, # (N, H, W)
             "labels": labels, # (N)
             "bboxes": bboxes, # (N, 4)
+            "resized_shape": resized_shape, # (res_h, res_w)
         }
         metadata = self.img_infos(img_info, img_id)
         datasample.update(metadata)

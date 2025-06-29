@@ -51,6 +51,7 @@ class CocoEval(Callback):
         # TODO: this should be handled in the model
         preds["img_id"] = [targets[i]["img_id"] for i in range(len(targets))]
         preds["ori_shape"] = [targets[i]["ori_shape"] for i in range(len(targets))]
+        preds["resized_shape"] = [targets[i]["resized_shape"] for i in range(len(targets))]
 
         for name, evaluator in self.evaluators[phase].items():
             evaluator.process(preds)
@@ -59,7 +60,7 @@ class CocoEval(Callback):
         self._run_process(outputs, phase="valid")
 
     def on_test_batch_end(self, trainer, pl_module, outputs, batch, batch_idx, dataloader_idx=0):
-        self._run_process(outputs, phase="eval")
+        self._run_process(outputs, phase="test")
 
 
     def _run_eval(self, evaluators, pl_module, dataloader, phase):
@@ -83,7 +84,7 @@ class CocoEval(Callback):
                 gt_coco = evaluator.gt_coco
                 pred_coco = evaluator.pred_coco
 
-                for batch in islice(dataloader, 2):
+                for batch in islice(dataloader, 1):
                     targets = batch[0]
                     img = targets["image"][0]
                     fname = targets["file_name"]
@@ -108,4 +109,4 @@ class CocoEval(Callback):
         test_loader = trainer.test_dataloaders
         if isinstance(test_loader, (list, tuple)):
             test_loader = test_loader[0]
-        self._run_eval(self.evaluators["eval"], pl_module, test_loader, phase="eval")
+        self._run_eval(self.evaluators["test"], pl_module, test_loader, phase="test")
