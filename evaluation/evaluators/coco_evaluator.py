@@ -50,7 +50,8 @@ class CocoEvaluator(BaseEvaluator):
         outfile_prefix = join(cfg.run.save_dir, cfg.model.evaluator.outfile_prefix) \
             if (cfg.model.evaluator.outfile_prefix and cfg.run.get("save_dir")) else None
         classwise = cfg.model.evaluator.classwise
-        metric = list(cfg.model.evaluator.metric)
+        metric = cfg.model.evaluator.metric \
+            if isinstance(cfg.model.evaluator.metric, str) else list(cfg.model.evaluator.metric)
         self.num_classes = cfg.model.decoder.num_classes
 
         print(f"Doing evaluation on dataset.ann_file: {dataset.ann_file}")
@@ -75,13 +76,15 @@ class CocoEvaluator(BaseEvaluator):
         # TODO: this should be handled in the model predicition head.
         scores_batch = preds['pred_logits'].softmax(-1)
         # scores_batch = preds['pred_logits'].sigmoid()
-        masks_pred_batch = preds['pred_instance_masks']
+        masks_pred_batch = preds['pred_instance_masks'].sigmoid()
         bboxes_pred_batch = preds['pred_bboxes']
 
         for batch_idx, (scores, masks_pred, bboxes_pred) in enumerate(zip(
             scores_batch, masks_pred_batch, bboxes_pred_batch)):
             ori_shape = preds["ori_shape"][batch_idx]
-            
+
+            scores = scores[:, :-1]
+
             # postprocessing.
             if masks_pred.shape[0]:
                 masks_pred = remove_padding(
@@ -91,13 +94,6 @@ class CocoEvaluator(BaseEvaluator):
                     output_width=ori_shape[1],
                     rescale=True
                 )
-                # masks_pred = remove_padding(
-                #     masks_pred,
-                #     ori_shape=ori_shape,
-                #     rescale=True
-                # )
-
-            scores = scores[:, :-1]
 
             labels = torch.arange(self.num_classes, device=scores.device).unsqueeze(0).repeat(masks_pred.shape[0], 1).flatten(0, 1)
             scores, topk_indices = scores.flatten(0, 1).topk(masks_pred.shape[0], sorted=False)
@@ -112,14 +108,15 @@ class CocoEvaluator(BaseEvaluator):
             bboxes_pred = bboxes_pred * torch.tensor([img_h, img_w, img_h, img_w], dtype=torch.float32, device=masks_pred.device)
 
             # maskness scores.
-            pred_masks = (masks_pred > 0).float()
-            maskness_scores = (masks_pred.sigmoid().flatten(1) * pred_masks.flatten(1)).sum(1) / (pred_masks.flatten(1).sum(1) + 1e-6)
+            seg_masks = masks_pred > self.mask_threshold
+            sum_masks = seg_masks.sum((1, 2)).float()
+            maskness_scores = (masks_pred * seg_masks.float()).sum((1, 2)) / (sum_masks + 1e-6)
             scores = scores * maskness_scores
 
             # ========== CLS Score ==========
             # score filtering.
             keep = scores > self.score_threshold
-            pred_masks = pred_masks[keep]
+            masks_pred = masks_pred[keep]
             scores = scores[keep]
             labels = labels[keep]
             bboxes_pred = bboxes_pred[keep]
@@ -143,13 +140,14 @@ class CocoEvaluator(BaseEvaluator):
             # # iou_scores = iou_scores[keep]
             # bboxes_pred = bboxes_pred[keep]
 
+            masks_pred = masks_pred > self.mask_threshold
             # ================================================
 
             results = dict()
             results["img_id"] = preds["img_id"][batch_idx]
             results["ori_shape"] = preds["ori_shape"][batch_idx]
             results["pred_instances"] = {
-                "masks": pred_masks,
+                "masks": masks_pred,
                 "labels": labels,
                 "scores": scores,
                 "mask_scores": scores,

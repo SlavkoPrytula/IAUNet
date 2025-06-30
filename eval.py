@@ -7,85 +7,93 @@ from omegaconf import OmegaConf
 from configs import cfg, experiment_name
 
 from configs import cfg as _cfg
-from models.factory import build_model
-from engine.trainer import Trainer
 from utils.seed import set_seed
-from utils.logging import setup_logger
-from utils.augmentations import train_transforms, valid_transforms
+from models.factory import build_model
+import pytorch_lightning as pl
+from pytorch_lightning import Trainer
+from utils.logging.lightning_logger import PLLogger
 
-from evaluation import *
+from utils.callbacks import *
 from utils.optimizers import *
 from utils.schedulers import *
+from evaluation import *
 from models.losses import *
 
 from dataset.dataloaders import build_loader, trivial_batch_collator
-from utils.registry import DATASETS, EVALUATORS
-
+from main import build_dataset
 
 
 def run(cfg: _cfg):
+    pl.seed_everything(cfg.seed, workers=True)
+    set_seed(cfg.seed)
+
     # create directories.
     cfg.run.save_dir = Path(cfg.run.save_dir)
 
     # set logger.
-    logger = setup_logger(
-        name=cfg.logger.log.name, 
-        log_files=cfg.logger.log.log_files
+    cfg.logger.log.log_files = [str(cfg.run.save_dir / log) for log in cfg.logger.log.log_files]
+    logger = PLLogger(
+        name="iaunet", 
+        log_files=cfg.logger.log.log_files,
+        save_dir=cfg.run.save_dir,
         )
 
-    # set seed for reproducibility.
-    set_seed(cfg.seed)
-
     # get dataloaders
-    dataset = DATASETS.get(cfg.dataset.type)
-    print()
+    test_dataset = build_dataset(cfg, "test")
 
-    eval_dataset = dataset(cfg, 
-                           dataset_type="eval",
-                           transform=valid_transforms(cfg))
-    
-    eval_dataloader = build_loader(eval_dataset, 
-                                   batch_size=cfg.dataset.eval_dataset.batch_size, 
-                                   num_workers=cfg.trainer.num_workers, 
-                                   collate_fn=trivial_batch_collator, 
-                                   seed=cfg.seed)
+    test_dataloader = build_loader(test_dataset, 
+                                    batch_size=cfg.dataset.test_dataset.batch_size, 
+                                    num_workers=4, #cfg.trainer.num_workers, 
+                                    collate_fn=trivial_batch_collator, 
+                                    seed=cfg.seed, 
+                                    shuffle=False)
 
     # build and prepare model.
     model = build_model(cfg)
-    model.eval()
 
-    if cfg.trainer.accelerator == 'gpu' and torch.cuda.is_available():
-        device = torch.device('cuda')
-    else:
-        device = torch.device('cpu')
-    model.to(device)
-
-
-    from evaluation import OverlapIOUEvaluator, MMDetDataloaderEvaluator, AnalysisMMDetDataloaderEvaluator
     evaluators = {
-        "eval": {
-            # "coco": AnalysisMMDetDataloaderEvaluator(cfg=cfg, model=model, dataset=eval_dataset), 
-            "coco": MMDetDataloaderEvaluator(cfg=cfg, model=model, dataset=eval_dataset), 
-            # "overlap_iou": OverlapIOUEvaluator(cfg=cfg, model=model, dataset=eval_dataset)
+        "test": {
+            "coco": CocoEvaluator(cfg=cfg, dataset=test_dataset), 
         },
     }
 
-    trainer = Trainer(cfg, model, 
-                      criterion=None, 
-                      train_dataloader=None, 
-                      valid_dataloader=None,
-                      eval_dataloader=eval_dataloader,
-                      optimizer=None, 
-                      scheduler=None,
-                      evaluators=evaluators,
-                      callbacks=None,
-                      logger=logger,
-                      rank=None,
-                      strategy=cfg.trainer.get('strategy'),
-                      sync_batchnorm=cfg.trainer.get('sync_batchnorm')
-                    )
+    callbacks = {}
+    # add coco evaluation callback
+    coco_eval_callback = CocoEval(save_coco_vis=True,
+                                  alpha=0.65, 
+                                  draw_border=True, 
+                                  border_size=3, 
+                                  border_color='white',
+                                  static_color=False, 
+                                  show_img=False,
+                                  save_dir=cfg.run.save_dir
+                                  )
+    coco_eval_callback.evaluators = evaluators
+    callbacks['coco_eval'] = coco_eval_callback
 
-    trainer.test()
+    print(f"Using callbacks: {list(callbacks.keys())}")
+    callbacks = list(callbacks.values())
+
+    trainer = Trainer(
+        accelerator=cfg.trainer.accelerator,
+        strategy=cfg.trainer.strategy,
+        devices=cfg.trainer.devices,
+        num_nodes=cfg.trainer.num_nodes,
+        max_epochs=cfg.trainer.max_epochs,
+        logger=logger,
+        callbacks=callbacks,
+        log_every_n_steps=cfg.trainer.log_every_n_steps,
+        check_val_every_n_epoch=cfg.trainer.check_val_every_n_epoch,
+        num_sanity_val_steps=cfg.trainer.num_sanity_val_steps,
+        precision=cfg.trainer.precision,
+        sync_batchnorm=cfg.trainer.sync_batchnorm,
+        enable_progress_bar=cfg.trainer.enable_progress_bar,
+        enable_model_summary=cfg.trainer.enable_model_summary,
+        enable_checkpointing=cfg.trainer.enable_checkpointing,
+    )
+    
+    ckpt_path = cfg.model.ckpt_path
+    trainer.test(model, dataloaders=test_dataloader, ckpt_path=ckpt_path)
     
 
 def get_config_from_path(path: str) -> _cfg:
@@ -110,68 +118,12 @@ if __name__ == '__main__':
     sys.path.append("./")
     args = parse_args()
 
-    # pixel decoder.
-    # --------------
-    # [iadecoder_ml]
-    # experiment_path = Path("runs/ablations/[LiveCellCrop]/[iaunet-r50]/[iadecoder_ml]/[InstanceHead-v2.2.1-dual-update]/[job=52560796]-[2024-11-06 12:18:01]")
-    # [iadecoder_ml_fpn]
-    # experiment_path = Path("runs/ablations/[LiveCellCrop]/[iaunet-r50]/[iadecoder_ml_fpn]/[InstanceHead-v2.2.1-dual-update]/[job=52560797]-[2024-11-06 12:18:01]")
-    # [iadecoder_ml_fpn_add_skip]
-    # experiment_path = Path("runs/ablations/[LiveCellCrop]/[iaunet-r50]/[iadecoder_ml_fpn_add_skip]/[InstanceHead-v2.2.1-dual-update]/[job=52560798]-[2024-11-06 12:18:01]")
-
-    # [iadecoder_ml_fpn_no_mask_branch]
-    # experiment_path = Path("runs/ablations/[LiveCellCrop]/[iaunet-r50]/[iadecoder_ml_fpn_no_mask_branch]/[InstanceHead-v2.2.1-dual-update]/[job=52577561]-[2024-11-10 01:10:08]")
-    # [iadecoder_ml_fpn_no_inst_branch]
-    # experiment_path = Path("runs/ablations/[LiveCellCrop]/[iaunet-r50]/[iadecoder_ml_fpn_no_inst_branch]/[InstanceHead-v2.2.1-dual-update]/[job=52577560]-[2024-11-10 01:11:42]")
-
-
-    # transformer decoder.
-    # --------------
-    # [removed-mask-feats]
-    # experiment_path = Path("runs/ablations/[LiveCellCrop]/[iaunet-r50]/[iadecoder_ml_fpn]/[InstanceHead-v2.2.a-removed-mask-feats]/[job=52560800]-[2024-11-06 12:17:46]")
-    # [removed-inst-feats]
-    # experiment_path = Path("runs/ablations/[LiveCellCrop]/[iaunet-r50]/[iadecoder_ml_fpn]/[InstanceHead-v2.2.a-removed-inst-feats]/[job=52560799]-[2024-11-06 12:18:01]")
-    
-    # [no-guided-query]
-    # experiment_path = Path("runs/ablations/[LiveCellCrop]/[iaunet-r50]/[iadecoder_ml_fpn]/[InstanceHead-v2.2.a-no-guided-query]/[job=52577565]-[2024-11-10 01:31:45]")
-    # [no-support-query]
-    # experiment_path = Path("runs/ablations/[LiveCellCrop]/[iaunet-r50]/[iadecoder_ml_fpn]/[InstanceHead-v2.2.a-no-support-query]/[job=52577562]-[2024-11-10 01:10:08]")
-
-    # [swin]
-    # experiment_path = Path("runs/experiments_v2/[ISBI2014]/[iaunet-r50]/[iadecoder_ml_fpn]/[job=53670380]-[2025-02-09 14:23:05]")
-    # experiment_path = Path("runs/benchmarks_v2/[EVICAN2_Easy]/[iaunet-swin-b-p4-w12-384]/[iadecoder_ml_fpn]/[experimental]/[deep_supervision]/[job=9865344]-[2025-03-10 20:19:35]")
-
-
+    experiment_path = Path("runs/benchmarks_v2/[Revvity_25]/[iaunet-r50]/[iadecoder_ml_fpn_ds]/[job=58307933]-[2025-06-29 16:43:03]")
 
     if args.experiment_path:
         experiment_path = Path(args.experiment_path)
 
     cfg = get_config_from_path(experiment_path)
-    old_dataset = cfg.dataset.name
-    
-    # cfg.dataset = "rectangle"
-    # cfg.dataset.name = "worms"
-    # cfg.dataset = "brightfield"
-    # cfg.dataset = "brightfield_coco"
-    # cfg.dataset = "brightfield_coco_v2.0"
-    
-    # cfg.dataset.name = "EVICAN2_Easy"
-    # cfg.dataset.name = "EVICAN2_Medium"
-    # cfg.dataset.name = "EVICAN2_Difficult"
-
-    # cfg.dataset = "LiveCell"
-    # cfg.dataset.name = "LiveCellCrop"
-
-    # cfg.dataset.name = "ISBI2014"
-
-    # cfg.dataset.name = "Revvity_25"
-    
-    # cfg.dataset.name = "NeurlPS22_CellSeg"
-    # cfg.dataset.name = "YeastNet"
-    # cfg.dataset.name = "HuBMAP"
-
-    # cfg.dataset.name = "cellpainting_gallery"
-
     print(f'>>> {cfg.dataset.name}')
 
     eval_cfg = OmegaConf.create({
@@ -183,24 +135,16 @@ if __name__ == '__main__':
                 'nms_thr': 0.8,
                 'metric': 'segm',
                 'classwise': True,
-                'outfile_prefix': "eval/results/coco",
+                'outfile_prefix': "results/coco_test",
             },
-            'criterion': {
-                'matcher': {
-                    'type': 'HungarianMatcher',
-                    'cost_dice': 2.0,
-                    'cost_cls': 1.0,
-                    'cost_mask': 5.0,
-                }
-            },
-            'weights': experiment_path / "checkpoints/best.pth",
+            'ckpt_path': experiment_path / "checkpoints/last.ckpt",
             'load_pretrained': False,
             'save_model_files': False,
             'load_from_files': True,
             'model_files': experiment_path / "model_files",
         },
         'run': {
-            'run_name': join(cfg.run.run_name.replace(old_dataset, cfg.dataset.name)),
+            'run_name': cfg.run.run_name,
             'save_dir': experiment_path,
         },
         'dataset': {
@@ -220,13 +164,9 @@ if __name__ == '__main__':
             "accelerator": "gpu",
             "devices": 1,
             "num_workers": 4,
-            "strategy": None,
+            "strategy": "auto",
         }
     })
-    cfg: _cfg = OmegaConf.merge(cfg, trainer_cfg)
+    cfg = OmegaConf.merge(cfg, trainer_cfg)
 
     run(cfg)
-
-
-
-# python eval.py e

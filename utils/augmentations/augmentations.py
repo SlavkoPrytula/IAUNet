@@ -61,7 +61,9 @@ def get_valid_transforms(cfg: cfg):
         # A.LongestMaxSize(max_size=max(size)),
         # A.PadIfNeeded(*size, position='top_left', fill=0),
         Resize(size)
-    ], bbox_params=A.BboxParams(format='pascal_voc', label_fields=['labels', 'indices']))
+    ], 
+    bbox_params=A.BboxParams(format='pascal_voc', label_fields=['labels', 'indices'])
+    )
 
 
 # --- legacy functions ---

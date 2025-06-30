@@ -287,8 +287,10 @@ class BaseCOCODataset(Dataset):
         self.size_divisibility = size_divisibility
         self.extra_config = kwargs
         
-        self.mean = torch.Tensor(cfg.dataset.mean).view(-1, 1, 1)
-        self.std = torch.Tensor(cfg.dataset.std).view(-1, 1, 1)
+        # self.mean = torch.Tensor(cfg.dataset.mean).view(-1, 1, 1)
+        # self.std = torch.Tensor(cfg.dataset.std).view(-1, 1, 1)
+        self.mean = np.array(cfg.dataset.mean).reshape(1, 1, 3)
+        self.std = np.array(cfg.dataset.std).reshape(1, 1, 3)
         self.total_size = len(self.image_ids)
 
     def __len__(self):
@@ -301,6 +303,9 @@ class BaseCOCODataset(Dataset):
         anns = self.coco.loadAnns(annIds)
 
         image = self.get_image(img_info)
+
+        # # normalize image.
+        # image = (image - self.mean) / self.std
 
         parsed = self.parser.parse_annotations(
             anns, img_info,

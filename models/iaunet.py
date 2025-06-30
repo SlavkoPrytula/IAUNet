@@ -20,6 +20,9 @@ class IAUNet(pl.LightningModule):
         self.criterion = self.configure_criterion()
         self.results = {}
 
+        # self.register_buffer("pixel_mean", torch.Tensor(cfg.dataset.mean).view(-1, 1, 1), False)
+        # self.register_buffer("pixel_std", torch.Tensor(cfg.dataset.std).view(-1, 1, 1), False)
+
     def forward(self, batch):
         x = batch["images"]
         tgt = batch["targets"]

@@ -16,6 +16,7 @@ todo.md
 TODO.md
 pyrightconfig.json
 .pytest_cache/
+.github/
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

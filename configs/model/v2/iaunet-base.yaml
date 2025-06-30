@@ -30,7 +30,7 @@ model:
     hidden_dim: 256
     nheads: 8
     dec_layers: 1   # transfomer decoder layers per model decoder layer.
-    dropout: 0.0
+    dropout: 0.1
     pre_norm: false
     dim_feedforward: 2048
 

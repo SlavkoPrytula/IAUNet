@@ -163,7 +163,7 @@ def run(cfg: cfg):
 
     callbacks = {c: CALLBACKS.build(cfg.callbacks[c]) for c in cfg.callbacks}
     # add coco evaluation callback
-    coco_eval_callback = CocoEval(save_coco_vis=True,
+    coco_eval_callback = CocoEval(save_coco_vis=False,
                                   alpha=0.65, 
                                   draw_border=True, 
                                   border_size=3, 
