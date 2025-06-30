@@ -6,6 +6,7 @@ from configs import cfg as _cfg
 from utils.registry import MODELS, DECODERS, OPTIMIZERS, SCHEDULERS, CRITERIONS
 from utils.utils import nested_tensor_from_tensor_list
 from configs import cfg as _cfg
+import wandb
 
 
 @MODELS.register(name="iaunet")
@@ -18,18 +19,15 @@ class IAUNet(pl.LightningModule):
         embed_dims = self.encoder.embed_dims
         self.decoder = DECODERS.build(cfg.model.decoder, embed_dims=embed_dims)
         self.criterion = self.configure_criterion()
-        self.results = {}
 
-        # self.register_buffer("pixel_mean", torch.Tensor(cfg.dataset.mean).view(-1, 1, 1), False)
-        # self.register_buffer("pixel_std", torch.Tensor(cfg.dataset.std).view(-1, 1, 1), False)
 
     def forward(self, batch):
         x = batch["images"]
         tgt = batch["targets"]
         
-        max_shape = x.shape[-2:] # (img_h, img_w)
+        max_shape = x.shape[-2:]
         skips = self.encoder(x)
-        out = self.decoder(skips, max_shape) 
+        out = self.decoder(skips, max_shape)
         return out
     
     def _prepare_batch(self, batch):
@@ -46,32 +44,69 @@ class IAUNet(pl.LightningModule):
         images = nested_tensor_from_tensor_list(images)
         return images, targets
 
-    def _shared_step(self, batch, batch_idx, prefix):
+    def _shared_step(self, batch):
+        """Shared step logic for forward pass and loss computation."""
         images, targets = self._prepare_batch(batch)
-        batch = {"images": images.tensors, "targets": targets}
-        preds = self(batch)
+        batch_data = {"images": images.tensors, "targets": targets}
+        preds = self(batch_data)
         loss_dict, _ = self.criterion(preds, targets, return_matches=True, epoch=self.current_epoch)
-        loss = sum(loss_dict.values())
-        batch_size = images.tensors.size(0)
-
-        self.log(f"{prefix}/loss_total", loss, on_step=False, on_epoch=True, prog_bar=True, batch_size=batch_size)
-        for k, v in loss_dict.items():
-            self.log(f"{prefix}/{k}", v, on_step=False, on_epoch=True, prog_bar=True, batch_size=batch_size)
-
-        return {"loss": loss, "preds": preds, "targets": targets}
+        total_loss = sum(loss_dict.values())
+        
+        return total_loss, loss_dict, preds, targets, images.tensors.size(0)
 
 
     def training_step(self, batch, batch_idx):
-        """Training step."""
-        return self._shared_step(batch, batch_idx, prefix="train")
+        """Training step - returns loss for backpropagation."""
+        total_loss, loss_dict, preds, targets, batch_size = self._shared_step(batch)
+        
+        self.log("train/loss_total", total_loss, on_step=False, on_epoch=True, prog_bar=True, batch_size=batch_size)
+        for k, v in loss_dict.items():
+            self.log(f"train/{k}", v, 
+                    on_step=False, on_epoch=True, prog_bar=False, batch_size=batch_size)
+        
+        if wandb.run:
+            wandb.log({
+                "train/loss_total": total_loss.item(),
+                **{f"train/{k}": v.item() for k, v in loss_dict.items()},
+            }, step=self.global_step)
+        
+        return total_loss
 
+    @torch.no_grad()
     def validation_step(self, batch, batch_idx):
-        """Validation step."""
-        return self._shared_step(batch, batch_idx, prefix="valid")
+        """Validation step - no gradients needed."""
+        total_loss, loss_dict, preds, targets, batch_size = self._shared_step(batch)
+        
+        self.log("valid/loss_total", total_loss, on_step=False, on_epoch=True, prog_bar=True, batch_size=batch_size)
+        for k, v in loss_dict.items():
+            self.log(f"valid/{k}", v, 
+                    on_step=False, on_epoch=True, prog_bar=False, batch_size=batch_size)
+            
+        if wandb.run:
+            wandb.log({
+                "valid/loss_total": total_loss.item(),
+                **{f"valid/{k}": v.item() for k, v in loss_dict.items()},
+            }, step=self.global_step)
+        
+        return {"loss": total_loss, "preds": preds, "targets": targets}
 
+    @torch.no_grad()
     def test_step(self, batch, batch_idx):
-        """Test step."""
-        return self._shared_step(batch, batch_idx, prefix="test")
+        """Test step - no gradients needed."""
+        total_loss, loss_dict, preds, targets, batch_size = self._shared_step(batch)
+        
+        self.log("test/loss_total", total_loss, on_step=False, on_epoch=True, prog_bar=True, batch_size=batch_size)
+        for k, v in loss_dict.items():
+            self.log(f"test/{k}", v, 
+                    on_step=False, on_epoch=True, prog_bar=False, batch_size=batch_size)
+
+        if wandb.run:
+            wandb.log({
+                "test/loss_total": total_loss.item(),
+                **{f"test/{k}": v.item() for k, v in loss_dict.items()},
+            }, step=self.global_step)
+        
+        return {"loss": total_loss, "preds": preds, "targets": targets}
 
     def configure_optimizers(self):
         _optimizer = self.configure_optimizer()
@@ -98,4 +133,3 @@ class IAUNet(pl.LightningModule):
     def configure_criterion(self):
         self.cfg.model.criterion.num_classes = self.cfg.model.decoder.num_classes
         return CRITERIONS.build(self.cfg.model.criterion)
-

@@ -85,16 +85,6 @@ class CocoEvaluator(BaseEvaluator):
 
             scores = scores[:, :-1]
 
-            # postprocessing.
-            if masks_pred.shape[0]:
-                masks_pred = remove_padding(
-                    masks_pred,
-                    img_size=preds['resized_shape'][batch_idx],
-                    output_height=ori_shape[0],
-                    output_width=ori_shape[1],
-                    rescale=True
-                )
-
             labels = torch.arange(self.num_classes, device=scores.device).unsqueeze(0).repeat(masks_pred.shape[0], 1).flatten(0, 1)
             scores, topk_indices = scores.flatten(0, 1).topk(masks_pred.shape[0], sorted=False)
             labels = labels[topk_indices]
@@ -103,9 +93,9 @@ class CocoEvaluator(BaseEvaluator):
             masks_pred = masks_pred[topk_indices]
             bboxes_pred = bboxes_pred[topk_indices]
 
-            img_h, img_w = ori_shape
-            bboxes_pred = box_cxcywh_to_xyxy(bboxes_pred)
-            bboxes_pred = bboxes_pred * torch.tensor([img_h, img_w, img_h, img_w], dtype=torch.float32, device=masks_pred.device)
+            # img_h, img_w = ori_shape
+            # bboxes_pred = box_cxcywh_to_xyxy(bboxes_pred)
+            # bboxes_pred = bboxes_pred * torch.tensor([img_h, img_w, img_h, img_w], dtype=torch.float32, device=masks_pred.device)
 
             # maskness scores.
             seg_masks = masks_pred > self.mask_threshold
@@ -139,6 +129,16 @@ class CocoEvaluator(BaseEvaluator):
             # labels = labels[keep]
             # # iou_scores = iou_scores[keep]
             # bboxes_pred = bboxes_pred[keep]
+
+            # postprocessing.
+            if masks_pred.shape[0]:
+                masks_pred = remove_padding(
+                    masks_pred,
+                    img_size=preds['resized_shape'][batch_idx],
+                    output_height=ori_shape[0],
+                    output_width=ori_shape[1],
+                    rescale=True
+                )
 
             masks_pred = masks_pred > self.mask_threshold
             # ================================================

@@ -50,7 +50,7 @@ class ProgressBar(TQDMProgressBar):
             ordered['lr'] = f"{lr:.6f}"
         
         # losses.
-        for k, v in trainer.logged_metrics.items():
+        for k, v in trainer.progress_bar_metrics.items():
             if 'loss' in k:
                 ordered[k] = f"{v:.4f}"
 

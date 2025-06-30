@@ -116,10 +116,11 @@ def run(cfg: cfg):
     # wandb.
     if cfg.logger.get('wandb'):
         wandb.init(
-            project='IAUNet', 
+            project='IAUNet-v2', 
             group=cfg.logger.wandb.group,
             name=f'job_id={cfg.job_id}',
-            dir=cfg.run.save_dir
+            dir=cfg.run.save_dir,
+            config=OmegaConf.to_container(cfg, resolve=True),
             )
 
     # ============================================================

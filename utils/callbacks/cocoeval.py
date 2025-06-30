@@ -76,6 +76,10 @@ class CocoEval(Callback):
             for key, val in stats.items():
                 pl_module.log(f"metrics/{phase}/{key}", val, on_step=False, on_epoch=True, prog_bar=True, logger=True)
 
+            if wandb.run is not None:
+                for key, val in stats.items():
+                    wandb.log({f"metrics/{phase}/{key}": val}, step=pl_module.global_step)
+
             # Save COCO visualizations
             if self.save_coco_vis and "coco" in name:
                 save_dir = join(self.save_dir, f"{phase}_visuals", f"epoch_{epoch}", "results")
