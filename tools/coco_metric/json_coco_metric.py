@@ -10,7 +10,7 @@ sys.path.append(".")
 # from pycocotools.cocoeval import COCOeval
 
 # from utils.coco.coco import COCO 
-# from utils.coco.cocoeval import COCOeval 
+from utils.coco.cocoeval import COCOeval 
 
 from utils.coco.api_wrappers import COCO 
 from utils.coco.api_wrappers import COCOeval 
@@ -114,14 +114,14 @@ if __name__ == "__main__":
     # image_dir = "/gpfs/space/projects/PerkinElmer/cytoplasm_segmentation/datasets/EVICAN2/coco/images/EVICAN_eval2019"
 
     
-    gt_json_path = "/project/project_465001327/datasets/LiveCell/crop_512x512/coco/annotations/livecell_coco_test.json"
-    pred_json_path = '/gpfs/helios/home/prytula/scripts/experimental_segmentation/MaskDINO/runs/livecell_crop/maskdino_R50/[job=]-[2025-02-17_15-57-40]/inference/coco_instances_results.json'
-    image_dir = "/project/project_465001327/datasets/LiveCell/crop_512x512/coco/images/livecell_test_images"
+    # gt_json_path = "/project/project_465001327/datasets/LiveCell/crop_512x512/coco/annotations/livecell_coco_test.json"
+    # pred_json_path = '/gpfs/helios/home/prytula/scripts/experimental_segmentation/MaskDINO/runs/livecell_crop/maskdino_R50/[job=]-[2025-02-17_15-57-40]/inference/coco_instances_results.json'
+    # image_dir = "/project/project_465001327/datasets/LiveCell/crop_512x512/coco/images/livecell_test_images"
     
     # Revvity-25
-    # gt_json_path = "/gpfs/space/projects/PerkinElmer/cytoplasm_segmentation/datasets/Revvity-25/v2/annotations/valid.json"
-    # pred_json_path = '/gpfs/helios/home/prytula/scripts/experimental_segmentation/Cell-DETR/runs/[job=53581992]-[2025-02-05 20:22:55]/results/coco_eval.segm.json'
-    # image_dir = "/gpfs/space/projects/PerkinElmer/cytoplasm_segmentation/datasets/Revvity-25/v2/images"
+    gt_json_path = "/gpfs/space/projects/PerkinElmer/cytoplasm_segmentation/datasets/Revvity-25/v2/annotations/valid.json"
+    pred_json_path = 'runs/benchmarks_v2/[Revvity_25]/[iaunet-r50]/[iadecoder_ml_fpn_ds]/[job=58335579]-[2025-06-30 19:13:04]/results/coco_test.segm.json'
+    image_dir = "/gpfs/space/projects/PerkinElmer/cytoplasm_segmentation/datasets/Revvity-25/v2/images"
 
     # ISBI2014
     # gt_json_path = "/gpfs/space/projects/PerkinElmer/cytoplasm_segmentation/datasets/ISBI2014/coco/annotations/isbi_test.json"
@@ -131,23 +131,23 @@ if __name__ == "__main__":
     gt_coco, pred_coco, _ = json_coco_evaluation(gt_json_path, pred_json_path)
 
 
-    # idx = 101438
-    image_ids = gt_coco.getImgIds()
+    # # idx = 101438
+    # image_ids = gt_coco.getImgIds()
     
-    for idx in range(2, 8):
-        img_id = image_ids[idx]
-        img_info = gt_coco.loadImgs(ids=[img_id])[0]
-        img_name = img_info['file_name']
-        base_name = img_name.split(".")[0]
-        img_path = join(image_dir, img_name)
+    # for idx in range(2, 8):
+    #     img_id = image_ids[idx]
+    #     img_info = gt_coco.loadImgs(ids=[img_id])[0]
+    #     img_name = img_info['file_name']
+    #     base_name = img_name.split(".")[0]
+    #     img_path = join(image_dir, img_name)
 
-        img = cv2.imread(img_path, -1)
-        img = img / img.max()
+    #     img = cv2.imread(img_path, -1)
+    #     img = img / img.max()
 
-        if len(img.shape) == 3:
-            img = img[..., 0]
+    #     if len(img.shape) == 3:
+    #         img = img[..., 0]
 
-        H, W = img_info["height"], img_info["width"]
-        save_coco_vis(img, gt_coco, pred_coco, img_id, shape=[H, W], 
-                      path=f"./tools/coco_metric/results/maskdino/livecell_crop/{base_name}.jpg")
+    #     H, W = img_info["height"], img_info["width"]
+    #     save_coco_vis(img, gt_coco, pred_coco, img_id, shape=[H, W], 
+    #                   path=f"./tools/coco_metric/results/maskdino/livecell_crop/{base_name}.jpg")
     

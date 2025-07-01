@@ -80,7 +80,7 @@ def build_dataset(cfg: cfg, split="train"):
 @hydra.main(version_base="1.3", config_path="configs", config_name="train")
 def run(cfg: cfg):
     # ============================================================
-    pl.seed_everything(cfg.seed, workers=True)
+    # pl.seed_everything(cfg.seed, workers=True)
     set_seed(cfg.seed)
 
     if cfg.job_id and cfg.run_id:

@@ -25,6 +25,6 @@ python main.py model=v2/iaunet-r50 \
                model.decoder.num_queries=100 \
                model.decoder.dim_feedforward=1024 \
                callbacks.progress_bar.refresh_rate=0 \
-               logger=group_logger \
+            #    logger=group_logger \
                dataset=$DATASET \
                job_id=$SLURM_JOB_ID

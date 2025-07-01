@@ -118,7 +118,7 @@ if __name__ == '__main__':
     sys.path.append("./")
     args = parse_args()
 
-    experiment_path = Path("runs/benchmarks_v2/[Revvity_25]/[iaunet-r50]/[iadecoder_ml_fpn_ds]/[job=58307933]-[2025-06-29 16:43:03]")
+    experiment_path = Path("runs/benchmarks_v2/[Revvity_25]/[iaunet-r50]/[iadecoder_ml_fpn_ds]/[job=58335579]-[2025-06-30 19:13:04]")
 
     if args.experiment_path:
         experiment_path = Path(args.experiment_path)
@@ -137,7 +137,7 @@ if __name__ == '__main__':
                 'classwise': True,
                 'outfile_prefix': "results/coco_test",
             },
-            'ckpt_path': experiment_path / "checkpoints/last.ckpt",
+            'ckpt_path': experiment_path / "checkpoints/best.ckpt",
             'load_pretrained': False,
             'save_model_files': False,
             'load_from_files': True,
