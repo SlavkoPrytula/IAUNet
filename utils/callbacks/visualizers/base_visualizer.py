@@ -36,7 +36,7 @@ class BaseVisualizer(Callback):
             model.eval()
 
         with torch.no_grad():
-            images, targets = model._prepare_batch(batch)
+            images, targets = model.prepare_batch(batch)
             batch = {"images": images.tensors, "targets": targets}
             output = model(batch)
 

@@ -8,13 +8,13 @@ from ..nn.blocks import (SE_block, DoubleConv_v2)
 from ..heads.mask_head import MaskBranch
 from models.decoders.base import BaseDecoder
 from configs.structure import Decoder
-from utils.registry import DECODERS
+from utils.registry import DECODERS, HEADS
 
 from ..nn.transformer import MLP, FFNLayer
 from ..nn.transformer import CrossAttentionLayer, SelfAttentionLayer, PositionEmbeddingSine
 
 
-@DECODERS.register(name='iadecoder_ml_fpn_ds')
+@DECODERS.register(name='iadecoder_ml_fpn/experimental/deep_supervision')
 class IADecoder(BaseDecoder):
     def __init__(self, 
                  cfg: Decoder, 
@@ -37,7 +37,7 @@ class IADecoder(BaseDecoder):
         self.num_layers = cfg.dec_layers * self.n_levels
         self.dec_layers = cfg.dec_layers
         self.embed_dims = embed_dims
-        self.semantic_ce_loss = True #False
+        self.semantic_ce_loss = True
 
         embed_dims = self.embed_dims[::-1]
 
@@ -62,8 +62,9 @@ class IADecoder(BaseDecoder):
 
         # mask branch.
         self.mask_branch = nn.ModuleList([])
+        mask_branch_layer = HEADS.get(cfg.mask_branch.type)
         for i in range(self.n_levels):
-            mask_branch = MaskBranch(
+            mask_branch = mask_branch_layer(
                     in_channels=hidden_dim, 
                     out_channels=mask_dim, 
                     num_convs=num_convs
@@ -326,7 +327,7 @@ class IADecoder(BaseDecoder):
                 predictions_class.append(outputs_class)
                 predictions_boxes.append(outputs_boxes)
 
-                # predictions_attn.append(attn)
+                predictions_attn.append(attn)
         
 
         results = {
@@ -354,6 +355,10 @@ class IADecoder(BaseDecoder):
         pred_bboxes = self.bbox_pred(decoder_output)
     
         # instance masks.
+        # N = mask_embed.shape[1]
+        # B, C, H, W = mask_features.shape
+        # outputs_mask = torch.bmm(mask_embed, mask_features.view(B, C, H * W))
+        # outputs_mask = outputs_mask.view(B, N, H, W)
         outputs_mask = torch.einsum("bqc,bchw->bqhw", mask_embed, mask_features)
 
         outputs_boxes = pred_bboxes.sigmoid()
@@ -380,8 +385,8 @@ class IADecoder(BaseDecoder):
         aux_outputs = results.get('aux_outputs')
         
         # instance masks.
-        inst_masks = F.interpolate(inst_masks, size=ori_shape, 
-                                   mode="bilinear", align_corners=False)
+        # inst_masks = F.interpolate(inst_masks, size=ori_shape, 
+        #                            mode="bilinear", align_corners=False)
 
         output = {
             'pred_logits': logits,
@@ -397,4 +402,3 @@ class IADecoder(BaseDecoder):
         }
     
         return output
-

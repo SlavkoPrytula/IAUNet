@@ -9,10 +9,11 @@ dataset:
   train_dataset:
     images: ${dataset.data_root}/images
     ann_file: ${dataset.data_root}/annotations/train.json
-    # size: [1024, 1024]
-    size: [512, 512]
+    size: [1024, 1024]
+    # size: [512, 512]
     batch_size: 8
-    augmentation: ssj
+    # augmentation: ssj
+    augmentation: lsj 
     return_masks: true
     return_bboxes: true
     return_labels: true
@@ -20,8 +21,8 @@ dataset:
   valid_dataset:
     images: ${dataset.data_root}/images
     ann_file: ${dataset.data_root}/annotations/valid.json
-    # size: [800, 1333]
-    size: [512, 512]
+    size: [800, 1333]
+    # size: [512, 512]
     batch_size: 8
     return_masks: true
     return_bboxes: true
@@ -30,8 +31,8 @@ dataset:
   test_dataset:
     images: ${dataset.data_root}/images
     ann_file: ${dataset.data_root}/annotations/valid.json
-    # size: [800, 1333]
-    size: [512, 512]
+    size: [800, 1333]
+    # size: [512, 512]
     batch_size: 8
     return_masks: true
     return_bboxes: true

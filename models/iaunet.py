@@ -2,6 +2,7 @@ import torch
 import pytorch_lightning as pl
 from omegaconf import OmegaConf
 from configs import cfg as _cfg
+import torch.nn.functional as F
 
 from utils.registry import MODELS, DECODERS, OPTIMIZERS, SCHEDULERS, CRITERIONS
 from utils.utils import nested_tensor_from_tensor_list
@@ -20,6 +21,9 @@ class IAUNet(pl.LightningModule):
         self.decoder = DECODERS.build(cfg.model.decoder, embed_dims=embed_dims)
         self.criterion = self.configure_criterion()
 
+        self.register_buffer("pixel_mean", torch.tensor(cfg.dataset.mean).view(-1, 1, 1), False)
+        self.register_buffer("pixel_std", torch.tensor(cfg.dataset.std).view(-1, 1, 1), False)
+        self.size_divisibility = 32
 
     def forward(self, batch):
         x = batch["images"]
@@ -30,7 +34,7 @@ class IAUNet(pl.LightningModule):
         out = self.decoder(skips, max_shape)
         return out
     
-    def _prepare_batch(self, batch):
+    def prepare_batch(self, batch):
         """Utility to extract images and process targets."""
         images = []
         targets = []
@@ -41,12 +45,38 @@ class IAUNet(pl.LightningModule):
             images.append(sample["image"])
             targets.append(sample)
 
+        # images = [(x - self.pixel_mean) / self.pixel_std for x in images]
+        # images = nested_tensor_from_tensor_list(images)
+
+        # # pad images and segmentations here.
+        # if self.size_divisibility > 1:
+        #     image_size = images.tensors.shape[-2:]
+        #     pad_h = (self.size_divisibility - image_size[0] % self.size_divisibility) % self.size_divisibility
+        #     pad_w = (self.size_divisibility - image_size[1] % self.size_divisibility) % self.size_divisibility
+        #     padding_size = (0, pad_w, 0, pad_h)  # (left, right, top, bottom)
+        #     # pad image
+        #     images.tensors = F.pad(images.tensors, padding_size, value=0)
+
+        # # prepare targets.
+        # targets = self.prepare_targets(targets, images)
+
         images = nested_tensor_from_tensor_list(images)
+
         return images, targets
+    
+    def prepare_targets(self, targets, images):
+        h_pad, w_pad = images.tensors.shape[-2:]
+        for targets_per_image in targets:
+            # pad gt
+            gt_masks = targets_per_image.get("instance_masks")
+            padded_masks = torch.zeros((gt_masks.shape[0], h_pad, w_pad), dtype=gt_masks.dtype, device=gt_masks.device)
+            padded_masks[:, :gt_masks.shape[1], :gt_masks.shape[2]] = gt_masks
+            targets_per_image["instance_masks"] = padded_masks
+        return targets
 
     def _shared_step(self, batch):
         """Shared step logic for forward pass and loss computation."""
-        images, targets = self._prepare_batch(batch)
+        images, targets = self.prepare_batch(batch)
         batch_data = {"images": images.tensors, "targets": targets}
         preds = self(batch_data)
         loss_dict, _ = self.criterion(preds, targets, return_matches=True, epoch=self.current_epoch)
@@ -116,6 +146,8 @@ class IAUNet(pl.LightningModule):
             "optimizer": _optimizer,
             "lr_scheduler": {
                 "scheduler": _scheduler,
+                "interval": "step",
+                "frequency": 1,
             },
         }
 
@@ -126,7 +158,9 @@ class IAUNet(pl.LightningModule):
         return OPTIMIZERS.build(optimizer_cfg)
 
     def configure_scheduler(self, optimizer):
+        max_steps = self.trainer.estimated_stepping_batches
         scheduler_cfg = OmegaConf.to_container(self.cfg.model.scheduler, resolve=True)
+        scheduler_cfg["T_max"] = max_steps
         scheduler_cfg["optimizer"] = optimizer
         return SCHEDULERS.build(scheduler_cfg)
 

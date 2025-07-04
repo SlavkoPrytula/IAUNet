@@ -12,7 +12,6 @@ from utils.losses import sigmoid_ce_loss_jit, dice_loss_jit, sigmoid_focal_loss
 from utils.box_ops import box_cxcywh_to_xyxy, generalized_box_iou
 
 from configs import cfg
-from configs.structure import Criterion
 from utils.registry import CRITERIONS
 from .matcher import point_sample
 
@@ -94,7 +93,7 @@ def calculate_uncertainty(logits):
 @CRITERIONS.register(name="SparseCriterion")
 class SparseInstCriterion(nn.Module):
     # This part is partially derivated from: https://github.com/facebookresearch/detr/blob/main/models/detr.py
-    def __init__(self, cfg: Criterion, matcher):
+    def __init__(self, cfg: cfg, matcher):
         super().__init__()
         self.matcher = matcher
 
@@ -116,6 +115,9 @@ class SparseInstCriterion(nn.Module):
         self.focal_alpha = 0.25
         self.semantic_ce_loss = True
 
+        # print(self.matcher)
+        # print(self.weight_dict)
+        # print(f'\ncomputing loss for {self.num_classes} classes\n')
         print(self)
 
 
@@ -241,70 +243,7 @@ class SparseInstCriterion(nn.Module):
         return losses
     
 
-    # def _loss_masks(self, outputs, targets, indices, num_masks, name, loss_type="bce"):
-    #     assert f"pred_{name}" in outputs, f"{name} not found in losses."
-
-    #     src_idx = self._get_src_permutation_idx(indices)
-    #     tgt_idx = self._get_tgt_permutation_idx(indices)
-    #     src_masks = outputs[f"pred_{name}"]
-    #     src_masks = src_masks[src_idx]
-
-    #     masks = [t[f"{name}"] for t in targets]
-    #     # TODO use valid to mask invalid areas due to padding in loss
-    #     target_masks, valid = nested_tensor_from_tensor_list(masks).decompose()
-    #     target_masks = target_masks.to(src_masks)
-    #     target_masks = target_masks[tgt_idx]
-
-    #     # No need to upsample predictions as we are using normalized coordinates :)
-    #     # N x 1 x H x W
-    #     src_masks = src_masks[:, None]
-    #     target_masks = target_masks[:, None]
-
-    #     with torch.no_grad():
-    #         # sample point_coords
-    #         point_coords = get_uncertain_point_coords_with_randomness(
-    #             src_masks,
-    #             lambda logits: calculate_uncertainty(logits),
-    #             self.num_points,
-    #             self.oversample_ratio,
-    #             self.importance_sample_ratio,
-    #         )
-    #         # get gt labels
-    #         target_masks = point_sample(
-    #             target_masks,
-    #             point_coords,
-    #             align_corners=False,
-    #         ).squeeze(1)
-
-    #     src_masks = point_sample(
-    #         src_masks,
-    #         point_coords,
-    #         align_corners=False,
-    #     ).squeeze(1)
-
-    #     if loss_type == "focal":
-    #         loss_mask = sigmoid_focal_loss(src_masks, target_masks, num_masks)
-    #         loss_name = f"loss_focal_{name}"
-    #     elif loss_type == "bce":
-    #         loss_mask = sigmoid_ce_loss_jit(src_masks, target_masks, num_masks)
-    #         loss_name = f"loss_bce_{name}"
-
-    #     losses = {
-    #         loss_name: loss_mask,
-    #         f"loss_dice_{name}": dice_loss_jit(src_masks, target_masks, num_masks),
-    #     }
-
-    #     del src_masks
-    #     del target_masks
-
-    #     return losses
-
-
     def _loss_masks(self, outputs, targets, indices, num_masks, name, loss_type="bce"):
-        """
-        Compute the losses related to the masks: the focal loss and the dice loss.
-        targets dicts must contain the key "masks" containing a tensor of dim [nb_target_boxes, h, w]
-        """
         assert f"pred_{name}" in outputs, f"{name} not found in losses."
 
         src_idx = self._get_src_permutation_idx(indices)
@@ -318,24 +257,87 @@ class SparseInstCriterion(nn.Module):
         target_masks = target_masks.to(src_masks)
         target_masks = target_masks[tgt_idx]
 
-        # upsample predictions to the target size
-        src_masks = F.interpolate(src_masks[:, None], size=target_masks.shape[-2:],
-                                    mode="bilinear", align_corners=False)
+        # No need to upsample predictions as we are using normalized coordinates :)
+        # N x 1 x H x W
+        src_masks = src_masks[:, None]
+        target_masks = target_masks[:, None]
 
-        src_masks = src_masks.squeeze(1)
-        target_masks = target_masks.squeeze(1)
-        src_masks = src_masks.flatten(1)
-        target_masks = target_masks.flatten(1)
+        with torch.no_grad():
+            # sample point_coords
+            point_coords = get_uncertain_point_coords_with_randomness(
+                src_masks,
+                lambda logits: calculate_uncertainty(logits),
+                self.num_points,
+                self.oversample_ratio,
+                self.importance_sample_ratio,
+            )
+            # get gt labels
+            target_masks = point_sample(
+                target_masks,
+                point_coords,
+                align_corners=False,
+            ).squeeze(1)
+
+        src_masks = point_sample(
+            src_masks,
+            point_coords,
+            align_corners=False,
+        ).squeeze(1)
+
+        if loss_type == "focal":
+            loss_mask = sigmoid_focal_loss(src_masks, target_masks, num_masks)
+            loss_name = f"loss_focal_{name}"
+        elif loss_type == "bce":
+            loss_mask = sigmoid_ce_loss_jit(src_masks, target_masks, num_masks)
+            loss_name = f"loss_bce_{name}"
 
         losses = {
-            "loss_bce_masks": sigmoid_ce_loss_jit(src_masks, target_masks, num_masks),
-            "loss_dice_masks": dice_loss_jit(src_masks, target_masks, num_masks),
+            loss_name: loss_mask,
+            f"loss_dice_{name}": dice_loss_jit(src_masks, target_masks, num_masks),
         }
 
         del src_masks
         del target_masks
 
         return losses
+
+
+    # def _loss_masks(self, outputs, targets, indices, num_masks, name, loss_type="bce"):
+    #     """
+    #     Compute the losses related to the masks: the focal loss and the dice loss.
+    #     targets dicts must contain the key "masks" containing a tensor of dim [nb_target_boxes, h, w]
+    #     """
+    #     assert f"pred_{name}" in outputs, f"{name} not found in losses."
+
+    #     src_idx = self._get_src_permutation_idx(indices)
+    #     tgt_idx = self._get_tgt_permutation_idx(indices)
+    #     src_masks = outputs[f"pred_{name}"]
+    #     src_masks = src_masks[src_idx]
+
+    #     masks = [t[f"{name}"] for t in targets]
+    #     # TODO use valid to mask invalid areas due to padding in loss
+    #     target_masks, valid = nested_tensor_from_tensor_list(masks).decompose()
+    #     target_masks = target_masks.to(src_masks)
+    #     target_masks = target_masks[tgt_idx]
+
+    #     # upsample predictions to the target size
+    #     src_masks = F.interpolate(src_masks[:, None], size=target_masks.shape[-2:],
+    #                                 mode="bilinear", align_corners=False)
+
+    #     src_masks = src_masks.squeeze(1)
+    #     target_masks = target_masks.squeeze(1)
+    #     src_masks = src_masks.flatten(1)
+    #     target_masks = target_masks.flatten(1)
+
+    #     losses = {
+    #         "loss_bce_masks": sigmoid_ce_loss_jit(src_masks, target_masks, num_masks),
+    #         "loss_dice_masks": dice_loss_jit(src_masks, target_masks, num_masks),
+    #     }
+
+    #     del src_masks
+    #     del target_masks
+
+    #     return losses
 
 
     def loss_masks(self, outputs, targets, indices, num_masks, **kwargs):
@@ -474,6 +476,13 @@ class SparseInstCriterion(nn.Module):
 
     def __repr__(self, _repr_indent=4):
         head = "Criterion " + self.__class__.__name__
+        # body = [
+        #     f"{k}: {v}" for k, v in self.weight_dict
+        # ]
+        # lines = [head] + [" " * _repr_indent + line for line in body]
+        # lines += [f"num_classes: {self.num_classes}"]
+        # lines += [f"losses: {self.losses}"]
+        # lines += [f"semantic_ce_loss: {self.semantic_ce_loss}"]
 
         body = [
             "losses: {}".format(self.losses),
@@ -484,7 +493,6 @@ class SparseInstCriterion(nn.Module):
             "oversample_ratio: {}".format(self.oversample_ratio),
             "importance_sample_ratio: {}".format(self.importance_sample_ratio),
             "semantic_ce_loss: {}".format(self.semantic_ce_loss),
-            "matcher: {}".format(self.matcher),
         ]
         _repr_indent = 4
         lines = [head] + [" " * _repr_indent + line for line in body]
@@ -510,14 +518,3 @@ def accuracy(output, target, topk=(1,)):
         res.append(correct_k.mul_(100.0 / batch_size))
     return res
 
-
-if __name__ == "__main__":
-    # import sys
-    # sys.path.append("./")
-
-    from models.losses.matcher import HungarianMatcher
-    from utils.registry import MATCHERS
-    print(MATCHERS)
-
-    criterion = CRITERIONS.build(cfg.model.criterion)
-    print(criterion)

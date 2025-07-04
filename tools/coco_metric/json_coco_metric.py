@@ -120,7 +120,7 @@ if __name__ == "__main__":
     
     # Revvity-25
     gt_json_path = "/gpfs/space/projects/PerkinElmer/cytoplasm_segmentation/datasets/Revvity-25/v2/annotations/valid.json"
-    pred_json_path = 'runs/benchmarks_v2/[Revvity_25]/[iaunet-r50]/[iadecoder_ml_fpn_ds]/[job=58335579]-[2025-06-30 19:13:04]/results/coco_test.segm.json'
+    pred_json_path = 'runs/benchmarks_v2/[Revvity_25]/[iaunet-r50]/[iadecoder_ml_fpn]/[experimental]/[deep_supervision]/[job=58402719]-[2025-07-04 00:23:25]/results/coco.segm.json'
     image_dir = "/gpfs/space/projects/PerkinElmer/cytoplasm_segmentation/datasets/Revvity-25/v2/images"
 
     # ISBI2014
@@ -132,22 +132,24 @@ if __name__ == "__main__":
 
 
     # # idx = 101438
-    # image_ids = gt_coco.getImgIds()
+    image_ids = gt_coco.getImgIds()
     
-    # for idx in range(2, 8):
-    #     img_id = image_ids[idx]
-    #     img_info = gt_coco.loadImgs(ids=[img_id])[0]
-    #     img_name = img_info['file_name']
-    #     base_name = img_name.split(".")[0]
-    #     img_path = join(image_dir, img_name)
+    for idx in range(2, 8):
+        img_id = image_ids[idx]
+        img_info = gt_coco.loadImgs(ids=[img_id])[0]
+        img_name = img_info['file_name']
+        base_name = img_name.split(".")[0]
+        img_path = join(image_dir, img_name)
 
-    #     img = cv2.imread(img_path, -1)
-    #     img = img / img.max()
+        img = cv2.imread(img_path, -1)
+        img = img / img.max()
 
-    #     if len(img.shape) == 3:
-    #         img = img[..., 0]
+        if len(img.shape) == 3:
+            img = img[..., 0]
 
-    #     H, W = img_info["height"], img_info["width"]
-    #     save_coco_vis(img, gt_coco, pred_coco, img_id, shape=[H, W], 
-    #                   path=f"./tools/coco_metric/results/maskdino/livecell_crop/{base_name}.jpg")
-    
+        H, W = img_info["height"], img_info["width"]
+        save_coco_vis(img, gt_coco, pred_coco, img_id, shape=[H, W],
+                      alpha=0.65, draw_border=True, border_size=5, border_color='same',
+                      static_color=False, show_img=False, 
+                      path=f"./tools/coco_metric/results/{base_name}.jpg")
+                      

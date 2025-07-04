@@ -134,19 +134,19 @@ def run(cfg: cfg):
     dataset = DATASETS.get(cfg.dataset.type)
 
     train_dataset = dataset(cfg, 
-                            dataset_type="train", transform=get_train_transforms, 
+                            dataset_type="train", transform=get_train_transforms(cfg), 
                             return_masks=True, return_bboxes=True, return_labels=True,
                             bbox_format='xyxy', filter_empty=True, min_bbox_size=1.0, 
                             use_crowd=False, size_divisibility=32)
     
     valid_dataset = dataset(cfg, 
-                            dataset_type="valid", transform=get_valid_transforms, 
+                            dataset_type="valid", transform=get_valid_transforms(cfg), 
                             return_masks=True, return_bboxes=True, return_labels=True,
                             bbox_format='xyxy', filter_empty=True, min_bbox_size=1.0, 
                             use_crowd=False, size_divisibility=32)
     
     test_dataset = dataset(cfg, 
-                            dataset_type="test", transform=get_valid_transforms, 
+                            dataset_type="test", transform=get_valid_transforms(cfg), 
                             return_masks=True, return_bboxes=True, return_labels=True,
                             bbox_format='xyxy', filter_empty=True, min_bbox_size=1.0, 
                             use_crowd=False, size_divisibility=32)
@@ -171,7 +171,7 @@ def run(cfg: cfg):
                                     shuffle=False)
     
     # - build and prepare model
-    model = build_model(cfg)    
+    model = build_model(cfg)
     
     evaluators = {
         "valid": {
@@ -182,8 +182,8 @@ def run(cfg: cfg):
         },
     }
 
-    # callbacks = {c: CALLBACKS.build(cfg.callbacks[c]) for c in cfg.callbacks}
-    callbacks = {}
+    callbacks = {c: CALLBACKS.build(cfg.callbacks[c]) for c in cfg.callbacks}
+    # callbacks = {}
     # add coco evaluation callback
     coco_eval_callback = CocoEval(save_coco_vis=False,
                                   alpha=0.65, 

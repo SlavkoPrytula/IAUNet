@@ -29,22 +29,22 @@ def main(cfg: cfg):
     print(f"Sample keys: {list(sample.keys())}")
 
 
-    from evaluation.evaluators.coco_evaluator import remove_padding
-    sample["image"] = remove_padding(
-        sample["image"], 
-        img_size=sample["resized_shape"],
-        output_height=sample["ori_shape"][0],
-        output_width=sample["ori_shape"][1],
-        rescale=True
-    )
+    # from evaluation.evaluators.coco_evaluator import remove_padding
+    # sample["image"] = remove_padding(
+    #     sample["image"], 
+    #     img_size=sample["resized_shape"],
+    #     output_height=sample["ori_shape"][0],
+    #     output_width=sample["ori_shape"][1],
+    #     rescale=True
+    # )
 
-    sample["instance_masks"] = remove_padding(
-        sample["instance_masks"], 
-        img_size=sample["resized_shape"],
-        output_height=sample["ori_shape"][0],
-        output_width=sample["ori_shape"][1],
-        rescale=True
-    )
+    # sample["instance_masks"] = remove_padding(
+    #     sample["instance_masks"], 
+    #     img_size=sample["resized_shape"],
+    #     output_height=sample["ori_shape"][0],
+    #     output_width=sample["ori_shape"][1],
+    #     rescale=True
+    # )
 
     print(f"Sample image shape: {sample['image'].shape}")
     print(f"Sample mask shape: {sample['instance_masks'].shape}")

@@ -19,12 +19,13 @@ nvidia-smi
 DATASET="revvity_25"
 
 python main.py model=v2/iaunet-r50 \
-               model.decoder.type=iadecoder_ml_fpn_ds \
+               model.decoder.type=iadecoder_ml_fpn/experimental/deep_supervision \
                model.decoder.num_classes=1 \
                model.decoder.dec_layers=3 \
                model.decoder.num_queries=100 \
                model.decoder.dim_feedforward=1024 \
-               callbacks.progress_bar.refresh_rate=0 \
-            #    logger=group_logger \
+               logger=group_logger \
                dataset=$DATASET \
                job_id=$SLURM_JOB_ID
+
+            #    callbacks.progress_bar.refresh_rate=0 \

@@ -9,11 +9,11 @@ check_val_every_n_epoch: 10
 log_every_n_steps: 50
 num_sanity_val_steps: 1
 
-deterministic: True
+deterministic: False
 benchmark: False
 
-precision: 32-true
-# precision: 16-mixed
+# precision: 32-true
+precision: 16-mixed
 sync_batchnorm: False
 enable_progress_bar: True
 enable_model_summary: True

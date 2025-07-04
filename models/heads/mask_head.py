@@ -1,5 +1,6 @@
 from torch import nn
 from fvcore.nn.weight_init import c2_msra_fill
+from utils.registry import HEADS
 
 
 def _make_stack_3x3_convs(num_convs, in_channels, out_channels):
@@ -13,6 +14,7 @@ def _make_stack_3x3_convs(num_convs, in_channels, out_channels):
     return nn.Sequential(*convs)
 
 
+@HEADS.register(name="MaskStackedConv")
 class MaskBranch(nn.Module):
     def __init__(self, in_channels, out_channels=256, num_convs=4):
         super().__init__()

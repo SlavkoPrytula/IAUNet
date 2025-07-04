@@ -1,3 +1,4 @@
+# working version 
 import albumentations as A
 from .transforms.copy_paste import CopyPaste
 import cv2
@@ -10,11 +11,14 @@ def lsj_transforms(cfg: cfg):
     size = cfg.dataset.train_dataset.size
     seed = cfg.seed
     return A.Compose([
-        A.LongestMaxSize(max_size=max(size)),
-        A.RandomScale(scale_limit=(-0.9, 1), p=1, interpolation=1),  # scale 0.1x to 2.0x
-        A.RandomCrop(*size, pad_if_needed=True, pad_position='bottom_right'),
         A.VerticalFlip(p=0.5),
         A.HorizontalFlip(p=0.5),
+        A.RandomRotate90(p=0.5),
+
+        A.LongestMaxSize(max_size=max(size)),
+        A.RandomScale(scale_limit=(-0.9, 1), p=1, interpolation=1),  # scale 0.1x to 2.0x
+        A.PadIfNeeded(*size, position='top_left', border_mode=cv2.BORDER_CONSTANT, value=0, mask_value=0),
+        A.RandomCrop(*size),
     ], 
     bbox_params=A.BboxParams(format='pascal_voc', label_fields=['labels', 'indices']), 
     )
@@ -31,10 +35,31 @@ def ssj_transforms(cfg: cfg):
 
         A.LongestMaxSize(max_size=max(size)),
         A.RandomScale(scale_limit=(-0.2, 0.5), p=1, interpolation=1),  # scale 0.8x to 1.5x
-        A.RandomCrop(*size, pad_if_needed=True, pad_position='bottom_right'),
+        A.PadIfNeeded(*size, position='top_left', border_mode=cv2.BORDER_CONSTANT, value=0, mask_value=0),
+        A.RandomCrop(*size),
     ], 
     bbox_params=A.BboxParams(format='pascal_voc', label_fields=['labels', 'indices']),
     )
+
+
+# def ssj_transforms(cfg: cfg):
+#     """Small Scale Jittering (SSJ) augmentation pipeline."""
+#     size = cfg.dataset.train_dataset.size
+#     seed = cfg.seed
+#     return A.Compose([
+#         A.VerticalFlip(p=0.5),
+#         A.HorizontalFlip(p=0.5),
+#         A.RandomRotate90(p=0.5),
+
+#         A.LongestMaxSize(max_size=max(size)),
+#         A.RandomScale(scale_limit=(-0.2, 0.5), p=1, interpolation=1),  # scale 0.8x to 1.5x
+#         # A.PadIfNeeded(*size, position='top_left', border_mode=cv2.BORDER_CONSTANT, fill=0, fill_mask=0),
+#         A.RandomCrop(*size, pad_if_needed=True, pad_position='top_left', 
+#                      border_mode=cv2.BORDER_CONSTANT, fill=0, fill_mask=0),
+#     ], 
+#     bbox_params=A.BboxParams(format='pascal_voc', label_fields=['labels', 'indices']),
+#     )
+
 
 
 # --- augmentation registry ---
