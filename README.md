@@ -9,7 +9,7 @@
 </div>
 
 <p align="center">
-  <img src="" width="90%" />
+  <img src="figures/IAUNet_v2-main_v2.pdf" width="90%" />
 </p>
 
 ---
