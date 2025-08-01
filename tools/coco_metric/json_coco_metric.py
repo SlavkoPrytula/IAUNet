@@ -120,7 +120,7 @@ if __name__ == "__main__":
     
     # Revvity-25
     gt_json_path = "/gpfs/space/projects/PerkinElmer/cytoplasm_segmentation/datasets/Revvity-25/v2/annotations/valid.json"
-    pred_json_path = 'runs/benchmarks_v2/[Revvity_25]/[iaunet-r50]/[iadecoder_ml_fpn]/[experimental]/[deep_supervision]/[job=58402719]-[2025-07-04 00:23:25]/results/coco.segm.json'
+    pred_json_path = 'runs/benchmarks_v2/[Revvity_25]/[iaunet-r50]/[iadecoder_ml_fpn]/[experimental]/[deep_supervision]/[job=58405935]-[2025-07-04 20:21:57]/results/coco.segm.json'
     image_dir = "/gpfs/space/projects/PerkinElmer/cytoplasm_segmentation/datasets/Revvity-25/v2/images"
 
     # ISBI2014
@@ -149,7 +149,7 @@ if __name__ == "__main__":
 
         H, W = img_info["height"], img_info["width"]
         save_coco_vis(img, gt_coco, pred_coco, img_id, shape=[H, W],
-                      alpha=0.65, draw_border=True, border_size=5, border_color='same',
+                      alpha=0.65, draw_border=True, border_size=5, border_color='white',
                       static_color=False, show_img=False, 
                       path=f"./tools/coco_metric/results/{base_name}.jpg")
                       

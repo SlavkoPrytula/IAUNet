@@ -1,36 +1,3 @@
-# criterion:
-#   type: SparseCriterion
-#   losses:
-#     - labels
-#     - masks
-#     # - activations
-#     # - bboxes
-#   weights:
-#     labels: 1.0
-#     bce_masks: 5.0
-#     dice_masks: 2.0
-#     iou_masks: 2.0
-#     bbox_weight: 5.0
-#     giou_weight: 2.0
-#     no_object_weight: 0.1
-#   matcher:
-#     type: PointSampleHungarianMatcher
-#     cost_cls: 1.0
-#     cost_dice: 2.0
-#     cost_mask: 5.0
-#     cost_bbox: 5.0
-#     cost_giou: 2.0
-#   num_classes: 1
-
-# evaluator:
-#   type: MMDetDataloaderEvaluator
-#   mask_thr: 0.5
-#   score_thr: 0.01
-#   nms_thr: 0.8
-#   metric: segm
-#   classwise: true
-#   outfile_prefix: results/coco
-
 optimizer:
   type: AdamW
   lr: 0.0001

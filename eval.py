@@ -118,7 +118,7 @@ if __name__ == '__main__':
     sys.path.append("./")
     args = parse_args()
 
-    experiment_path = Path("runs/benchmarks_v2/[Revvity_25]/[iaunet-r50]/[iadecoder_ml_fpn]/[experimental]/[deep_supervision]/[job=58402719]-[2025-07-04 00:23:25]")
+    experiment_path = Path("runs/benchmarks_v2/[Revvity_25]/[iaunet-r50]/[iadecoder_ml_fpn]/[experimental]/[deep_supervision]/[job=58405935]-[2025-07-04 20:21:57]")
 
     if args.experiment_path:
         experiment_path = Path(args.experiment_path)
@@ -147,15 +147,6 @@ if __name__ == '__main__':
             'run_name': cfg.run.run_name,
             'save_dir': experiment_path,
         },
-        # 'dataset': {
-        #     'valid_dataset': {
-        #         'size': [512, 512],
-        #         'batch_size': 4
-        #     },
-        #     'eval_dataset': {
-        #         'batch_size': 4,
-        #     }
-        # }
     })
     cfg = OmegaConf.merge(cfg, eval_cfg)
 
