@@ -139,6 +139,14 @@ Replace `<dataset_name>` with `revvity25`, `livecell`, or `isbi2014` depending o
 
 ## Inference
 
+<p align="center">
+  <img src="figures/multi_model_comparison_livecell_crop_v1.png" width="100%" />
+</p>
+
+<p align="center">
+  <em>LIVECell inference results across multiple models, including our proposed IAUNet.</em>
+</p>
+
 To run inference:
 
 ```bash
