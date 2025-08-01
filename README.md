@@ -21,7 +21,7 @@ This is the official repository for the paper:
 > *CVPR Workshops (CVMI), 2025*
 
 **Updates**
-- 01/08/2025: 🔥 IAUNet code release 
+- 01/08/2025: 🔥 IAUNet code release
 
 ---
 
@@ -49,6 +49,21 @@ pip install -r requirements.txt
 ---
 
 ## Datasets
+
+### Revvity-25 Full Cell Segmentation Dataset
+
+We present the **Revvity-25 Full Cell Segmentation Dataset**, a cutting-edge 2025 benchmark designed to advance cell segmentation research. This dataset offers meticulously detailed annotations of overlapping cell cytoplasm in brightfield images, providing high-resolution labels with precise instance boundaries. It supports comprehensive evaluation across both modal and amodal segmentation tasks, making it a valuable resource for developing and benchmarking state-of-the-art segmentation algorithms.
+
+* Download from: [Revvity-25](https://bcv.cs.ut.ee/datasets/)
+* Expected directory structure:
+
+```
+Revvity-25/
+├── images/
+└── annotations/
+    ├── train.json
+    └── valid.json
+```
 
 ### ISBI 2014 Cell Tracking Challenge
 
@@ -94,6 +109,7 @@ configs/train.yaml
 Paths to datasets should be specified in the corresponding dataset config files, such as:
 
 ```
+configs/dataset/revvity25.yaml
 configs/dataset/isbi2014.yaml
 configs/dataset/livecell.yaml
 ```
@@ -117,7 +133,7 @@ python main.py model=v2/iaunet-r50 \
                dataset=<dataset_name>
 ```
 
-Replace `<dataset_name>` with `livecell` or `isbi2014` depending on your dataset.
+Replace `<dataset_name>` with `revvity25`, `livecell`, or `isbi2014` depending on your dataset.
 
 ---
 
