@@ -81,7 +81,7 @@ Revvity-25/
 
 ### ISBI 2014
 
-* Download from: [https://cs.adelaide.edu.au/\~carneiro/isbi14\_challenge/dataset.html](https://cs.adelaide.edu.au/~carneiro/isbi14_challenge/dataset.html)
+* Download from: [ISBI 2014](https://cs.adelaide.edu.au/~carneiro/isbi14_challenge/dataset.html)
 * After conversion to COCO format, the structure should look like:
 
 ```
@@ -96,7 +96,7 @@ ISBI2014/coco/
 
 ### LiveCell
 
-* Download and prepare the dataset following instructions at: [https://github.com/livecell-dataset/livecell](https://github.com/livecell-dataset/livecell)
+* Download and prepare the dataset following instructions at: [LiveCell](https://github.com/livecell-dataset/livecell)
 * Expected structure:
 
 ```
@@ -148,6 +148,8 @@ python main.py model=v2/iaunet-r50 \
 ```
 
 Replace `<dataset_name>` with `revvity25`, `livecell`, or `isbi2014` depending on your dataset.
+
+The run output paths are configured in `configs/run/default.yaml` and results will be saved to the `save_dir`
 
 ---
 
