@@ -25,6 +25,20 @@ This is the official repository for the paper:
 
 ---
 
+## Table of Contents
+
+- [Installation](#installation)
+- [Datasets](#datasets)
+  - [Revvity-25](#revvity-25)
+  - [ISBI 2014](#isbi-2014)
+  - [LiveCell](#livecell)
+- [Training the Model](#training-the-model)
+- [Inference](#inference)
+- [License](#license)
+- [Citing IAUNet](#citing-iaunet)
+
+---
+
 ## Installation
 
 We recommend using Python 3.9.19 and PyTorch 2.3.1 with CUDA 12.1.
@@ -50,7 +64,7 @@ pip install -r requirements.txt
 
 ## Datasets
 
-### Revvity-25 Full Cell Segmentation Dataset
+### Revvity-25
 
 We present the **Revvity-25 Full Cell Segmentation Dataset**, a cutting-edge 2025 benchmark designed to advance cell segmentation research. This dataset offers meticulously detailed annotations of overlapping cell cytoplasm in brightfield images, providing high-resolution labels with precise instance boundaries. It supports comprehensive evaluation across both modal and amodal segmentation tasks, making it a valuable resource for developing and benchmarking state-of-the-art segmentation algorithms.
 
@@ -65,7 +79,7 @@ Revvity-25/
     └── valid.json
 ```
 
-### ISBI 2014 Cell Tracking Challenge
+### ISBI 2014
 
 * Download from: [https://cs.adelaide.edu.au/\~carneiro/isbi14\_challenge/dataset.html](https://cs.adelaide.edu.au/~carneiro/isbi14_challenge/dataset.html)
 * After conversion to COCO format, the structure should look like:
