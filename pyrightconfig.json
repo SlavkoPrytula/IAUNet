@@ -1,0 +1,16 @@
+
+{
+    "include": [
+        "."
+    ],
+    "exclude": [
+        "runs",
+        "outputs",
+        "benchmarks",
+        ".pytest_cache",
+        "__pycache__"
+    ],
+    "reportMissingImports": true,
+    "pythonVersion": "3.9",
+    "typeCheckingMode": "basic"
+}

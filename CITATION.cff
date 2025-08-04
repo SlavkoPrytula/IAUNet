@@ -1,0 +1,26 @@
+cff-version: 1.2.0
+message: >
+  If you use IAUNet or the Revvity-25 dataset in your research, please cite the following work.
+
+title: "IAUNet: Instance-Aware U-Net"
+
+authors:
+  - family-names: Prytula
+    given-names: Yaroslav
+  - family-names: Tsiporenko
+    given-names: Illia
+  - family-names: Zeynalli
+    given-names: Ali
+  - family-names: Fishman
+    given-names: Dmytro
+
+license: CC-BY-NC-4.0
+repository-code: "https://github.com/SlavkoPrytula/IAUNet"
+url: "https://openaccess.thecvf.com/content/CVPR2025W/CVMI/papers/Prytula_IAUNet_Instance-Aware_U-Net_CVPRW_2025_paper.pdf"
+version: "1.0.0"
+date-released: 2025-06-15
+
+conference:
+  name: "CVPR Workshops"
+  year: 2025
+  location: "Seattle, USA"

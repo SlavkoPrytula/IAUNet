@@ -14,7 +14,6 @@ tools/analysis/outputs
 # test.py
 todo.md
 TODO.md
-pyrightconfig.json
 .pytest_cache/
 .github/
 
