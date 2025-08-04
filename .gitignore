@@ -1,0 +1,31 @@
+.idea/
+.vscode/
+wandb/*
+visuals/*
+runs/*
+outputs/*
+runs
+benchmarks/
+
+tools/analysis/outputs
+
+# *.jpg
+# *.png
+# test.py
+todo.md
+TODO.md
+pyrightconfig.json
+.pytest_cache/
+.github/
+
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+csv2latex.py
+csv2latex copy.py
+test_einops.py
+log.txt
+temp
+cvpr
