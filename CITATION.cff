@@ -24,3 +24,30 @@ conference:
   name: "CVPR Workshops"
   year: 2025
   location: "Seattle, USA"
+
+preferred-citation:
+  type: article
+  authors:
+    - family-names: Prytula
+      given-names: Yaroslav
+    - family-names: Tsiporenko
+      given-names: Illia
+    - family-names: Zeynalli
+      given-names: Ali
+    - family-names: Fishman
+      given-names: Dmytro
+  title: "IAUNet: Instance-Aware U-Net"
+  journal: "Proceedings of the Computer Vision and Pattern Recognition Conference (CVPR) Workshops"
+  month: 6
+  year: 2025
+  start: 4739
+  end: 4748
+  bibtex: |
+    @InProceedings{Prytula_2025_CVPR,
+        author    = {Prytula, Yaroslav and Tsiporenko, Illia and Zeynalli, Ali and Fishman, Dmytro},
+        title     = {IAUNet: Instance-Aware U-Net},
+        booktitle = {Proceedings of the Computer Vision and Pattern Recognition Conference (CVPR) Workshops},
+        month     = {June},
+        year      = {2025},
+        pages     = {4739--4748}
+    }
