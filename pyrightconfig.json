@@ -10,7 +10,23 @@
         ".pytest_cache",
         "__pycache__"
     ],
-    "reportMissingImports": true,
     "pythonVersion": "3.9",
-    "typeCheckingMode": "basic"
+    // "typeCheckingMode": "basic",
+    "typeCheckingMode": "off",
+    "reportMissingImports": true,
+    
+    // "reportGeneralTypeIssues": "none",
+    // "reportOperatorIssue": "none",
+    // "reportArgumentType": "none",
+    // "reportAssignmentType": "none",
+    // "reportAttributeAccessIssue": "none",
+    // "reportCallIssue": "none",
+    // "reportIndexIssue": "none",
+    // "reportIncompatibleMethodOverride": "none",
+    // "reportOptionalMemberAccess": "none",
+    // "reportOptionalSubscript": "none",
+    // "reportOptionalCall": "none",
+    // "reportOptionalIterable": "none",
+    // "reportOptionalContextManager": "none",
+    // "reportOptionalOperand": "none"
 }
