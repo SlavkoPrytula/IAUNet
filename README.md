@@ -2,7 +2,7 @@
 
 <div align="center">
 
-[![Paper](https://img.shields.io/badge/Paper-CVPRW%202025-brightgreen)](https://openaccess.thecvf.com/content/CVPR2025W/CVMI/papers/Prytula_IAUNet_Instance-Aware_U-Net_CVPRW_2025_paper.pdf)
+[![Paper](https://img.shields.io/badge/Paper-CVPRW%202025-brightgreen)](https://www.arxiv.org/abs/2508.01928)
 [![Conference](https://img.shields.io/badge/CVPRW-2025-blue)](https://openaccess.thecvf.com/CVPR2025_workshops/CVMI)
 [![Project WebPage](https://img.shields.io/badge/Project-webpage-%23fc4d5d)](https://bcv.cs.ut.ee/)
 
