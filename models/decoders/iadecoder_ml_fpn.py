@@ -319,8 +319,8 @@ class IADecoder(BaseDecoder):
         inst_masks = inst_masks.view(B, N, H, W)
         bboxes = bboxes.sigmoid()
 
-        inst_masks = F.interpolate(inst_masks, size=ori_shape, 
-                                   mode="bilinear", align_corners=False)
+        # inst_masks = F.interpolate(inst_masks, size=ori_shape, 
+        #                            mode="bilinear", align_corners=False)
 
         output = {
             'pred_logits': logits,

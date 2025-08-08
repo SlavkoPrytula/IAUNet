@@ -1,4 +1,4 @@
-# IAUNet: Instance-Aware UNet (CVPRW 2025)
+<h1 align="center">IAUNet: Instance-Aware UNet (CVPRW 2025)</h1>
 
 <div align="center">
 
@@ -7,6 +7,28 @@
 [![Project WebPage](https://img.shields.io/badge/Project-webpage-%23fc4d5d)](https://bcv.cs.ut.ee/)
 
 </div>
+
+
+<div align="center" style="margin-top: 10px; margin-bottom: 20px;">
+    <span class="author-block">
+        <a href="https://scholar.google.com/citations?user=RLf-ytQAAAAJ&hl">Yaroslav Prytula</a><sup>1,2</sup>
+    </span> &nbsp;|&nbsp;
+    <span class="author-block">
+        <a href="https://scholar.google.com/citations?user=tnvq360AAAAJ&hl=en">Illia Tsiporenko</a><sup>1</sup>
+    </span> &nbsp;|&nbsp;
+    <span class="author-block">
+        <a href="https://scholar.google.com/citations?user=Y_aAGL8AAAAJ&hl=en">Ali Zeynalli</a><sup>1</sup>
+    </span> &nbsp;|&nbsp;
+    <span class="author-block">
+        <a href="https://scholar.google.com/citations?user=IOuDrrEAAAAJ&hl=en">Dmytro Fishman</a><sup>1,3</sup>
+    </span>
+    <div class="is-size-5 publication-authors">
+      <span class="author-block"><sup>1</sup>Institute of Computer Science, University of Tartu,</span><br>
+      <span class="author-block"><sup>2</sup>Ukrainian Catholic University,</span>
+      <span class="author-block"><sup>3</sup>STACC OÜ, Tartu, Estonia</span>
+    </div>
+</div>
+
 
 <p align="center">
   <img src="figures/IAUNet_v2-main_v2.png" width="90%" />
@@ -21,6 +43,7 @@ This is the official repository for the paper:
 > *CVPR Workshops (CVMI), 2025*
 
 **Updates**
+- **08/08/2025: ⭐️ Revvity-25 dataset released ([Revvity-25](https://huggingface.co/datasets/YaroslavPrytula/Revvity-25))**
 - 01/08/2025: 🔥 IAUNet code release
 
 ---
@@ -68,7 +91,7 @@ pip install -r requirements.txt
 
 We present the **Revvity-25 Full Cell Segmentation Dataset**, a cutting-edge 2025 benchmark designed to advance cell segmentation research. This dataset offers meticulously detailed annotations of overlapping cell cytoplasm in brightfield images, providing high-resolution labels with precise instance boundaries. It supports comprehensive evaluation across both modal and amodal segmentation tasks, making it a valuable resource for developing and benchmarking state-of-the-art segmentation algorithms.
 
-* Download from: [Revvity-25](https://bcv.cs.ut.ee/datasets/)
+* Download from: [Revvity-25](https://huggingface.co/datasets/YaroslavPrytula/Revvity-25)
 * Expected directory structure:
 
 ```
@@ -85,7 +108,7 @@ Revvity-25/
 * After conversion to COCO format, the structure should look like:
 
 ```
-ISBI2014/coco/
+ISBI2014/
 ├── isbi_train/
 ├── isbi_test/
 └── annotations/
@@ -100,7 +123,7 @@ ISBI2014/coco/
 * Expected structure:
 
 ```
-LiveCell/coco/
+LiveCell/
 ├── livecell_train/
 ├── livecell_val/
 ├── livecell_test/
@@ -183,7 +206,7 @@ For more details, see the [LICENSE](LICENSE) file or visit [Creative Commons](ht
 
 ---
 
-## Citing IAUNet
+## Citing IAUNet and Revvity-25
 
 If you use this work in your research, please cite:
 
@@ -197,3 +220,15 @@ If you use this work in your research, please cite:
     pages     = {4739--4748}
 }
 ```
+
+---
+
+## Contact
+
+📧 [s.prytula@ucu.edu.ua](mailto:s.prytula@ucu.edu.ua) or [yaroslav.prytula@ut.ee](mailto:yaroslav.prytula@ut.ee)
+
+---
+
+## Acknowledgements
+
+This work was supported by [Revvity](https://www.revvity.com/) and funded by the TEM-TA101 grant “Artificial Intelligence for Smart Automation.” Computational resources were provided by the High-Performance Computing Cluster at the University of Tartu 🇪🇪. We thank the [Biomedical Computer Vision Lab](https://bcv.cs.ut.ee/) for their invaluable support. We express gratitude to the Armed Forces of Ukraine 🇺🇦 and the bravery of the Ukrainian people for enabling a secure working environment, without which this work would not have been possible.

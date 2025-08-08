@@ -385,8 +385,8 @@ class IADecoder(BaseDecoder):
         aux_outputs = results.get('aux_outputs')
         
         # instance masks.
-        inst_masks = F.interpolate(inst_masks, size=ori_shape, 
-                                   mode="bilinear", align_corners=False)
+        # inst_masks = F.interpolate(inst_masks, size=ori_shape, 
+        #                            mode="bilinear", align_corners=False)
 
         output = {
             'pred_logits': logits,
