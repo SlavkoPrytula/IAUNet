@@ -9,8 +9,8 @@ benchmarks/
 
 tools/analysis/outputs
 
-# *.jpg
-# *.png
+*.jpg
+*.png
 # test.py
 todo.md
 TODO.md
