@@ -1,9 +1,10 @@
-<h1 align="center">IAUNet: Instance-Aware UNet (CVPRW 2025)</h1>
+<h1 align="center">IAUNet: Instance-Aware U-Net (CVPRW 2025)</h1>
 
 <div align="center">
 
 [![Paper](https://img.shields.io/badge/Paper-CVPRW%202025-brightgreen)](https://www.arxiv.org/abs/2508.01928)
 [![Conference](https://img.shields.io/badge/CVPRW-2025-blue)](https://openaccess.thecvf.com/CVPR2025_workshops/CVMI)
+[![Dataset](https://img.shields.io/badge/🤗%20Hugging%20Face-Dataset-pink)](https://huggingface.co/datasets/YaroslavPrytula/Revvity-25)
 [![Project WebPage](https://img.shields.io/badge/Project-webpage-%23fc4d5d)](https://bcv.cs.ut.ee/)
 
 </div>
@@ -31,8 +32,10 @@
 
 
 <p align="center">
-  <img src="figures/IAUNet_v2-main_v2.png" width="90%" />
+  <img src="figures/IAUNet_v2-main_v2.png" width="90%" /><br>
+  IAUNet is a novel query-based U-Net architecture for cell instance segmentation in microscopy images. It features the full U-Net design, enhanced by a lightweight convolutional Pixel decoder, and a Transformer decoder that refines object-specific features across multiple scales.
 </p>
+
 
 ---
 
@@ -43,7 +46,7 @@ This is the official repository for the paper:
 > *CVPR Workshops (CVMI), 2025*
 
 **Updates**
-- **08/08/2025: ⭐️ Revvity-25 dataset released ([Revvity-25](https://huggingface.co/datasets/YaroslavPrytula/Revvity-25))**
+- **08/08/2025: 🤗 Revvity-25 dataset released ([Revvity-25](https://huggingface.co/datasets/YaroslavPrytula/Revvity-25))**
 - 01/08/2025: 🔥 IAUNet code release
 
 ---
@@ -89,9 +92,10 @@ pip install -r requirements.txt
 
 ### Revvity-25
 
-We present the **Revvity-25 Full Cell Segmentation Dataset**, a cutting-edge 2025 benchmark designed to advance cell segmentation research. This dataset offers meticulously detailed annotations of overlapping cell cytoplasm in brightfield images, providing high-resolution labels with precise instance boundaries. It supports comprehensive evaluation across both modal and amodal segmentation tasks, making it a valuable resource for developing and benchmarking state-of-the-art segmentation algorithms.
+We present the **Revvity-25 Full Cell Segmentation Dataset**, a cutting-edge 2025 benchmark for advancing cell segmentation research in microscopy images. Revvity-25 is a public microscopy cell instance segmentation dataset of high-resolution brightfield microscopy images containing manually annotated cancer cells with precise cell borders and overlaps. One of the key contributions in our paper [IAUNet: Instance-Aware U-Net](https://arxiv.org/abs/2508.01928) is the introduction of Revvity-25, which comprises `110` high-resolution (`1080 x 1080`) brightfield images, each containing on average `27` expert-validated cells, totaling `2937` annotated instances. Each cell is delineated with an average of `60` polygon points, reaching up to `400` points for complex morphologies, making this the first dataset to provide such accurate and detailed annotations for modal and amodal segmentation in biomedical imaging. This dataset serves as a unique resource for training, testing, and benchmarking semantic and instance segmentation models for challenging brightfield microscopy cell images.
 
-* Download from: [Revvity-25](https://huggingface.co/datasets/YaroslavPrytula/Revvity-25)
+
+* **Download from: [Revvity-25](https://huggingface.co/datasets/YaroslavPrytula/Revvity-25)**
 * Expected directory structure:
 
 ```
@@ -232,3 +236,11 @@ If you use this work in your research, please cite:
 ## Acknowledgements
 
 This work was supported by [Revvity](https://www.revvity.com/) and funded by the TEM-TA101 grant “Artificial Intelligence for Smart Automation.” Computational resources were provided by the High-Performance Computing Cluster at the University of Tartu 🇪🇪. We thank the [Biomedical Computer Vision Lab](https://bcv.cs.ut.ee/) for their invaluable support. We express gratitude to the Armed Forces of Ukraine 🇺🇦 and the bravery of the Ukrainian people for enabling a secure working environment, without which this work would not have been possible.
+
+## Resources 
+
+🔥 Paper: [https://arxiv.org/abs/2508.01928](https://arxiv.org/abs/2508.01928) \
+🤗 Dataset: [https://huggingface.co/datasets/YaroslavPrytula/Revvity-25](https://huggingface.co/datasets/YaroslavPrytula/Revvity-25) \
+⭐️ Github: [https://github.com/SlavkoPrytula/IAUNet](https://github.com/SlavkoPrytula/IAUNet) \
+🌐 Project page: [https://slavkoprytula.github.io/IAUNet/](https://slavkoprytula.github.io/IAUNet/)
+
