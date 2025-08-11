@@ -47,6 +47,7 @@ This is the official repository for the paper:
 > *CVPR Workshops (CVMI), 2025*
 
 **Updates**
+- **10/08/2025: 🚀 Model weights released ([iaunet-r50-revvity-25](https://huggingface.co/YaroslavPrytula/iaunet-r50-revvity-25))**
 - **08/08/2025: 🤗 Revvity-25 dataset released ([Revvity-25](https://huggingface.co/datasets/YaroslavPrytula/Revvity-25))**
 - 01/08/2025: 🔥 IAUNet code release
 
